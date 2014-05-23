@@ -1,0 +1,12 @@
+{
+  "private": true,
+
+  "name": "ColladaConverter",
+  "version": "0.0.1",
+
+  "dependencies": {
+    "typescript":            "=1.0.1",
+    "uglify-js":             "1.x.x"
+  }
+
+}

@@ -1,0 +1,12 @@
+/node_modules
+
+/visual_studio/*.user
+/visual_studio/*.suo
+/visual_studio/obj
+/visual_studio/bin
+/visual_studio/collada
+
+/lib/*
+
+/examples/convert.js
+/examples/convert.js.map

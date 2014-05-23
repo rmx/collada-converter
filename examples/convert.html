@@ -1,0 +1,313 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Collada Animation Loader/Converter</title>
+    <style>
+        .input-cell > label {
+            line-height: normal;
+            flex: 0 0 75px;
+            border-radius: 2px 0 0 2px;
+            border: 1px solid rgba(147,128,108,.25);
+            padding: .5em .75em;
+            background-color: rgba(147,128,108,.1);
+            color: #666;
+            font-weight: 400;
+            margin-left: 0.5em;
+        }
+
+        textarea, a {
+            display: block;
+            line-height: normal;
+            flex: 1 0 100px;
+            border-radius: 0 2px 2px 0;
+            border: 1px solid rgba(147,128,108,.25);
+            border-left: 0;
+            padding: .5em .75em;
+            margin: 0;
+        }
+
+        button {
+            display: block;
+            line-height: normal;
+            flex: 1 0 100px;
+            border-radius: 2px;
+            border: 1px solid rgba(147,128,108,.25);
+            padding: .5em .75em;
+            margin: 0;
+            margin-left: 0.5em;
+        }
+
+        #container {
+            flex:1;
+            margin:0 auto;
+        }
+
+        .cell-container {
+            display: flex;
+            flex: 1;
+            flex-wrap: wrap;
+            border-radius: 0 2px 2px 0;
+            border: 1px solid rgba(147,128,108,.25);
+            border-left: 0;
+            padding: .5em .75em;
+            margin: 0;
+        }
+
+        .checkbox-cell {
+            flex: 1 0 150px;
+            flex-wrap: wrap;
+            display: flex;
+        }
+
+        .checkbox-label {
+            flex: 1 0 50px;
+            display: block;
+            vertical-align: middle;
+            line-height: normal;
+            margin-left: 0.5em;
+        }
+
+        .checkbox {
+            line-height: normal;
+            margin-left: 0.5em;
+        }
+
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .input-cell {
+            display: flex;
+            flex-wrap: wrap;
+            flex:1 0 250px;
+            margin-bottom: 0.5em;
+        }
+
+        canvas {
+            display: block;
+            line-height: normal;
+            flex: 1 0 100px;
+            border: 1px solid rgba(147,128,108,.25);
+            padding: .5em .75em;
+            margin: 0;
+            border-left: 0;
+            min-height: 480px;
+        }
+
+        body {
+            display:flex;
+        }
+    </style>
+    <script type="text/javascript" src="../js/gl-matrix.js"></script>
+    <script type="text/javascript" src="../lib/collada.js"></script>
+    <script type="text/javascript" src="convert.js"></script>
+    <script id="shader-fs" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec2 v_texcoord;
+        varying vec3 v_normal;
+        varying vec3 v_position;
+
+        uniform vec3 u_ambient_color;
+        uniform vec3 u_light_direction;
+        uniform vec3 u_light_color;
+
+        void main(void) {
+            float diffuse = max(dot(v_normal, u_light_direction), 0.0);
+            vec3 light = u_ambient_color + u_light_color * diffuse;
+            gl_FragColor = vec4(light, 1) + vec4(0.001*v_texcoord, 0, 0);
+        }
+    </script>
+    <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 va_position;
+        attribute vec3 va_normal;
+        attribute vec2 va_texcoord;
+
+        uniform mat4 u_modelview_matrix;
+        uniform mat4 u_projection_matrix;
+        uniform mat3 u_normal_matrix;
+
+        varying vec2 v_texcoord;
+        varying vec3 v_normal;
+        varying vec3 v_position;
+
+        void main(void) {
+            gl_Position = u_projection_matrix * u_modelview_matrix * vec4(va_position, 1.0);
+            v_texcoord = va_texcoord;
+            vec4 pos = u_modelview_matrix * vec4(va_position, 1);
+            v_position = pos.xyz;
+            v_normal = u_normal_matrix * va_normal;
+        }
+    </script>
+    <script id="shader-skinning-vs" type="x-shader/x-vertex">
+        attribute vec3 va_position;
+        attribute vec3 va_normal;
+        attribute vec2 va_texcoord;
+        attribute vec4 va_boneindex;
+        attribute vec4 va_boneweight;
+
+        uniform mat4 u_modelview_matrix;
+        uniform mat4 u_projection_matrix;
+        uniform mat3 u_normal_matrix;
+        uniform mat4 u_bind_shape_matrix;
+        uniform mat4 u_bone_matrix[100];
+
+        varying vec2 v_texcoord;
+        varying vec3 v_normal;
+        varying vec3 v_position;
+
+        void main(void) {
+            ivec4 boneindex = ivec4(va_boneindex);
+            mat4 skin_mat =
+                va_boneweight.x * u_bone_matrix[boneindex.x] +
+                va_boneweight.y * u_bone_matrix[boneindex.y] +
+                va_boneweight.z * u_bone_matrix[boneindex.z] +
+                va_boneweight.w * u_bone_matrix[boneindex.w];
+
+            vec4 world_pos = skin_mat * u_bind_shape_matrix * vec4(va_position, 1.0);
+            vec4 world_normal = skin_mat * u_bind_shape_matrix * vec4(va_normal, 0.0);
+
+            vec4 eye_pos = u_modelview_matrix * vec4(world_pos.xyz, 1);
+            vec3 eye_normal = u_normal_matrix * normalize(world_normal.xyz);
+            gl_Position = u_projection_matrix * eye_pos;
+
+            v_texcoord = va_texcoord;
+            v_position = eye_pos.xyz;
+            v_normal = eye_normal;
+        }
+    </script>
+</head>
+<body>
+    <div id="container">
+        <div class="input-row">
+            <div class="input-cell">
+                <label for="input">Input</label>
+                <textarea id="input" rows="10" cols="40"></textarea>
+            </div>
+            <div class="input-cell">
+                <label for="output">Output</label>
+                <textarea id="output" rows="10" cols="40"></textarea>
+            </div>
+        </div>
+        <div class="input-row">
+            <button id="convert" class="input-cell">Convert</button>
+        </div>
+        <div class="input-row">
+            <div class="input-cell">
+                <label for="download_json">JSON</label>
+                <a id="download_json" href="" download="model.json">Download link</a>
+            </div>
+            <div class="input-cell">
+                <label for="download_data">Data</label>
+                <a id="download_data" href="" download="model.bin">Download link</a>
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="input-cell">
+                <label for="log_progress">Progress</label>
+                <textarea id="log_progress" rows="10" cols="20"></textarea>
+            </div>
+            <div class="input-cell">
+                <label for="log_loader">Loader Log</label>
+                <textarea id="log_loader" rows="10" cols="20"></textarea>
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="input-cell">
+                <label for="log_converter">Converter Log</label>
+                <textarea id="log_converter" rows="10" cols="40"></textarea>
+            </div>
+            <div class="input-cell">
+                <label for="log_exporter">Exporter Log</label>
+                <textarea id="log_exporter" rows="10" cols="40"></textarea>
+            </div>
+        </div>
+        <div class="input-row input-cell">
+            <label for="canvas">Preview</label>
+            <canvas id="canvas" width="600" height="400"></canvas>
+        </div>
+        <div class="input-row input-cell">
+            <label for="parts">Mesh parts</label>
+            <div class="cell-container">
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_01" name="part_01" value="1" class="checkbox" checked>
+                    <label for="part_01" class="checkbox-label" id="part_01_label">Part 1</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_02" name="part_02" value="2" class="checkbox" checked>
+                    <label for="part_02" class="checkbox-label" id="part_02_label">Part 2</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_03" name="part_03" value="3" class="checkbox" checked>
+                    <label for="part_03" class="checkbox-label" id="part_03_label">Part 3</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_04" name="part_04" value="4" class="checkbox" checked>
+                    <label for="part_04" class="checkbox-label" id="part_04_label">Part 4</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_05" name="part_05" value="5" class="checkbox" checked>
+                    <label for="part_05" class="checkbox-label" id="part_05_label">Part 5</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_06" name="part_06" value="6" class="checkbox" checked>
+                    <label for="part_06" class="checkbox-label" id="part_06_label">Part 6</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_07" name="part_07" value="7" class="checkbox" checked>
+                    <label for="part_07" class="checkbox-label" id="part_07_label">Part 7</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_08" name="part_08" value="8" class="checkbox" checked>
+                    <label for="part_08" class="checkbox-label" id="part_08_label">Part 8</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_09" name="part_09" value="9" class="checkbox" checked>
+                    <label for="part_09" class="checkbox-label" id="part_09_label">Part 9</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_10" name="part_10" value="10" class="checkbox" checked>
+                    <label for="part_10" class="checkbox-label" id="part_10_label">Part 10</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_11" name="part_11" value="11" class="checkbox" checked>
+                    <label for="part_11" class="checkbox-label" id="part_11_label">Part 11</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_12" name="part_12" value="12" class="checkbox" checked>
+                    <label for="part_12" class="checkbox-label" id="part_12_label">Part 12</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_13" name="part_13" value="13" class="checkbox" checked>
+                    <label for="part_13" class="checkbox-label" id="part_13_label">Part 13</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_14" name="part_14" value="14" class="checkbox" checked>
+                    <label for="part_14" class="checkbox-label" id="part_14_label">Part 14</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_15" name="part_15" value="15" class="checkbox" checked>
+                    <label for="part_15" class="checkbox-label" id="part_15_label">Part 15</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_16" name="part_16" value="16" class="checkbox" checked>
+                    <label for="part_16" class="checkbox-label" id="part_16_label">Part 16</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_17" name="part_17" value="17" class="checkbox" checked>
+                    <label for="part_17" class="checkbox-label" id="part_17_label">Part 17</label>
+                </div>
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="part_18" name="part_18" value="18" class="checkbox" checked>
+                    <label for="part_18" class="checkbox-label" id="part_18_label">Part 18</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        window.onload = function () { init(); }
+    </script>
+</body>
+</html>
