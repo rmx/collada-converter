@@ -213,8 +213,8 @@ module COLLADA.Converter {
                 for (var i: number = 0; i < node.geometries.length; ++i) {
                     nodes.push(node);
                     geometries.push(node.geometries[i]);
-                    node.geometries = [];
                 }
+                node.geometries = [];
             });
 
             if (geometries.length === 0) {

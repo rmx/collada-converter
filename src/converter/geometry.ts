@@ -318,7 +318,7 @@ module COLLADA.Converter {
 
                 var chunk: COLLADA.Converter.GeometryChunk = COLLADA.Converter.Geometry.createChunk(geometry, triangles, context);
                 if (chunk !== null) {
-                    chunk.name = geometry.name;
+                    chunk.name = result.name;
                     if (trianglesList.length > 1) {
                         chunk.name += (" #" + i)
                 }
