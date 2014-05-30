@@ -16,7 +16,11 @@
             margin-left: 0.5em;
         }
 
-        textarea, a {
+        .long-label {
+            flex: 0 0 150px;
+        }
+
+        textarea, a, input {
             display: block;
             line-height: normal;
             flex: 1 0 100px;
@@ -65,12 +69,26 @@
             display: block;
             vertical-align: middle;
             line-height: normal;
+            margin-top:3px;
             margin-left: 0.5em;
+            height: 24px;
         }
 
         .checkbox {
             line-height: normal;
+            margin: 3px;
             margin-left: 0.5em;
+            height: 24px;
+            width: 24px;
+        }
+
+        .option-checkbox {
+            line-height: normal;
+            flex: 0 0 32px;
+            margin: auto;
+            margin-left: 0.5em;
+            height: 24px;
+            width: 24px;
         }
 
         .input-row {
@@ -81,8 +99,12 @@
         .input-cell {
             display: flex;
             flex-wrap: wrap;
-            flex:1 0 250px;
+            flex: 1 0 250px;
             margin-bottom: 0.5em;
+        }
+
+        .short-cell {
+            flex: 0 0 200px;
         }
 
         canvas {
@@ -189,6 +211,16 @@
             <div class="input-cell">
                 <label for="output">Output</label>
                 <textarea id="output" rows="10" cols="40"></textarea>
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="input-cell short-cell">
+                <label for="option-animations" class="long-label">Animations</label>
+                <input id="option-animations" type="checkbox" name="option-animations" class="option-checkbox" checked />
+            </div>
+            <div class="input-cell">
+                <label for="option-fps" class="long-label">FPS</label>
+                <input id="option-fps" type="text" name="option-fps" value="10" />
             </div>
         </div>
         <div class="input-row">

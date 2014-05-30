@@ -21,6 +21,11 @@ module COLLADA.Converter {
         convert(doc: COLLADA.Loader.Document): COLLADA.Converter.Document {
             var context: COLLADA.Converter.Context = new COLLADA.Converter.Context(this.log, this.options);
 
+            if (doc === null) {
+                context.log.write("No document to convert", LogLevel.Warning);
+                return null;
+            }
+
             var result: COLLADA.Converter.Document = new COLLADA.Converter.Document();
 
             // Scene nodes
@@ -48,6 +53,10 @@ module COLLADA.Converter {
             var result: COLLADA.Converter.Node[] = [];
 
             // Get the COLLADA scene
+            if (doc.scene === null) {
+                context.log.write("Collada document has no scene", LogLevel.Warning);
+                return result;
+            }
             var scene: COLLADA.Loader.VisualScene = COLLADA.Loader.VisualScene.fromLink(doc.scene.instance, context);
             if (scene === null) {
                 context.log.write("Collada document has no scene", LogLevel.Warning);

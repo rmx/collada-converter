@@ -19,6 +19,11 @@ module COLLADA.Exporter {
         export(doc: COLLADA.Converter.Document): COLLADA.Exporter.Document {
             var context: COLLADA.Exporter.Context = new COLLADA.Exporter.Context(this.log);
 
+            if (doc === null) {
+                context.log.write("No document to convert", LogLevel.Warning);
+                return null;
+            }
+
             var info: COLLADA.Exporter.InfoJSON = {
                 bbox_min: [Infinity, Infinity, Infinity],
                 bbox_max: [-Infinity, -Infinity, -Infinity]

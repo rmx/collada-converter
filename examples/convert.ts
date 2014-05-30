@@ -117,6 +117,8 @@ function onConvertClick() {
     // console.log(loadData);
 
     // Convert
+    loader_objects.converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
+    loader_objects.converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
     timeStart("COLLADA conversion");
     var convertData = loader_objects.converter.convert(loadData);
     timeEnd("COLLADA conversion");

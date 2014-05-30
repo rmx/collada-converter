@@ -5,41 +5,89 @@
 
 module COLLADA.Exporter {
 
-    export class Geometry {
+    export class BoundingBox {
+        min: number[];
+        max: number[];
+
+        constructor() {
+            this.min = null;
+            this.max = null;
+        }
+
+        toJSON(): BoundingBoxJSON {
+            return {
+                min: this.min,
+                max: this.max
+            };
+        }
+    }
+
+    export class GeometryChunk {
         name: string;
         material: number;
         vertex_count: number;
         triangle_count: number;
-        bbox_min: number[];
-        bbox_max: number[];
-        bind_shape_mat: number[];
-        indices: COLLADA.Exporter.DataChunk;
-        position: COLLADA.Exporter.DataChunk;
-        normal: COLLADA.Exporter.DataChunk;
-        texcoord: COLLADA.Exporter.DataChunk;
-        boneweight: COLLADA.Exporter.DataChunk;
-        boneindex: COLLADA.Exporter.DataChunk;
+        triangle_offset: number;
+        bounding_box: BoundingBox;
 
         constructor() {
             this.name = null;
             this.material = null;
             this.vertex_count = null;
             this.triangle_count = null;
-            this.bbox_min = null;
-            this.bbox_max = null;
-            this.bind_shape_mat = null;
+            this.triangle_offset = null;
+            this.bounding_box = null;
+        }
+
+        static create(chunk: COLLADA.Converter.GeometryChunk, context: COLLADA.Exporter.Context): COLLADA.Exporter.GeometryChunk {
+            var result: COLLADA.Exporter.GeometryChunk = new COLLADA.Exporter.GeometryChunk();
+
+            return result;
+        }
+
+        toJSON(): GeometryChunkJSON {
+            return {
+                name: this.name,
+                material: this.material,
+                vertex_count: this.vertex_count,
+                triangle_count: this.triangle_count,
+                triangle_offset: this.triangle_offset,
+                bounding_box: this.bounding_box.toJSON()
+            };
+        }
+    }
+
+    export class Geometry {
+        name: string;
+        vertex_count: number;
+        triangle_count: number;
+        bounding_box: BoundingBox;
+        indices: COLLADA.Exporter.DataChunk;
+        position: COLLADA.Exporter.DataChunk;
+        normal: COLLADA.Exporter.DataChunk;
+        texcoord: COLLADA.Exporter.DataChunk;
+        boneweight: COLLADA.Exporter.DataChunk;
+        boneindex: COLLADA.Exporter.DataChunk;
+        chunks: COLLADA.Exporter.GeometryChunk[];
+
+        constructor() {
+            this.name = null;
+            this.vertex_count = null;
+            this.triangle_count = null;
+            this.bounding_box = null;
             this.indices = null;
             this.position = null;
             this.normal = null;
             this.texcoord = null;
             this.boneweight = null;
             this.boneindex = null;
+            this.chunks = [];
         }
 
-        static create(chunk: COLLADA.Converter.GeometryChunk, context: COLLADA.Exporter.Context): COLLADA.Exporter.Geometry {
+        static create(geometry: COLLADA.Converter.Geometry, context: COLLADA.Exporter.Context): COLLADA.Exporter.Geometry {
             var result: COLLADA.Exporter.Geometry = new COLLADA.Exporter.Geometry();
-            result.name = chunk.name;
-            result.material = null;
+            result.name = geometry.name;
+
             result.vertex_count = chunk.vertexCount;
             result.triangle_count = chunk.triangleCount;
             result.bbox_min = [chunk.bbox_min[0], chunk.bbox_min[1], chunk.bbox_min[2]];
@@ -51,11 +99,6 @@ module COLLADA.Exporter {
             result.boneweight = COLLADA.Exporter.DataChunk.create(chunk.boneweight, 4, context);
             result.boneindex = COLLADA.Exporter.DataChunk.create(chunk.boneindex, 4, context);
 
-            if (chunk.bindShapeMatrix !== null) {
-                result.bind_shape_mat = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-                COLLADA.MathUtils.copyNumberArray(chunk.bindShapeMatrix, result.bind_shape_mat, 16);
-            }
-
             return result;
         }
 
@@ -63,17 +106,16 @@ module COLLADA.Exporter {
             // Required properties
             var result: COLLADA.Exporter.GeometryJSON = {
                 name: this.name,
-                material: this.material,
                 vertex_count: this.vertex_count,
                 triangle_count: this.triangle_count,
-                bbox_min: this.bbox_min,
-                bbox_max: this.bbox_max,
+                bounding_box: this.bounding_box.toJSON(),
                 indices: this.indices.toJSON(),
-                position: this.position.toJSON()
+                position: this.position.toJSON(),
+                chunks: this.chunks.map((x) => x.toJSON())
             }
 
-        // Optional properties
-        if (this.normal !== null) {
+            // Optional properties
+            if (this.normal !== null) {
                 result.normal = this.normal.toJSON();
             }
             if (this.texcoord !== null) {
@@ -84,9 +126,6 @@ module COLLADA.Exporter {
             }
             if (this.boneindex !== null) {
                 result.boneindex = this.boneindex.toJSON();
-            }
-            if (this.bind_shape_mat !== null) {
-                result.bind_shape_mat = this.bind_shape_mat;
             }
 
             return result;

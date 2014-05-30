@@ -48,6 +48,7 @@ module COLLADA.Loader {
             } catch (err) {
                 context.log.write(err.message, LogLevel.Exception);
                 this._reportError(id, context);
+                return null;
             }
             this._reportSuccess(id, result, context);
             return result;

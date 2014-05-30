@@ -50,10 +50,10 @@ module COLLADA.Loader {
             var colladaNodes: NodeList = doc.getElementsByTagName("COLLADA");
             if (colladaNodes.length === 0) {
                 context.log.write("Cannot parse document, no top level COLLADA element.", LogLevel.Error);
-                return;
+                return new COLLADA.Loader.Document();
             } else if (colladaNodes.length > 1) {
                 context.log.write("Cannot parse document, more than one top level COLLADA element.", LogLevel.Error);
-                return;
+                return new COLLADA.Loader.Document();
             }
 
             return COLLADA.Loader.Document.parseCOLLADA(colladaNodes[0], context);

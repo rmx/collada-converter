@@ -1,8 +1,10 @@
 module COLLADA.Exporter {
+    export interface BoundingBoxJSON {
+        min: number[];
+        max: number[];
+    };
 
     export interface InfoJSON {
-        bbox_min: number[];
-        bbox_max: number[];
     };
 
     export interface DataChunkJSON {
@@ -19,21 +21,50 @@ module COLLADA.Exporter {
         normal?: string;
     };
 
+    /**
+    * A Geometry contains all geometric data (positions, normals, indices, ...) of an object.
+    * The object can be further divided into multiple geometry chunks, each with a different material.
+    */
     export interface GeometryJSON {
         name: string;
-        material: number;
+        /** Total number of vertices */
         vertex_count: number;
+        /** Total number of triangles */
         triangle_count: number;
-        bbox_min: number[];
-        bbox_max: number[];
-        bind_shape_mat?: number[];
+        /** 3 uint16 elements per triangle */
         indices: DataChunkJSON;
+        /** 3 float32 elements per vertex */
         position: DataChunkJSON;
+        /** 3 float32 elements per vertex */
         normal?: DataChunkJSON;
+        /** 2 float32 elements per vertex */
         texcoord?: DataChunkJSON;
+        /** 4 float32 elements per vertex */
         boneweight?: DataChunkJSON;
+        /** 4 uint8 elements per vertex */
         boneindex?: DataChunkJSON;
+        /** Chunks */
+        chunks: GeometryChunkJSON[];
+        /** Bounding box of the whole geometry */
+        bounding_box?: BoundingBoxJSON;
     };
+
+    /**
+    * Part of a geometry
+    */
+    export interface GeometryChunkJSON {
+        name: string;
+        /** Material index */
+        material: number;
+        /** Number of vertices in this chunk */
+        vertex_count: number;
+        /** Number of triangles in this chunk - see the 'count' parameter of gl.drawElements() */
+        triangle_count: number;
+        /** Offset in the index buffer where this chunk starts - see the 'offset' parameter of gl.drawElements() */
+        triangle_offset: number;
+        /** Bounding box of this part */
+        bounding_box?: BoundingBoxJSON;
+    }
 
     export interface BoneJSON {
         name: string;

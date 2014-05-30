@@ -37,6 +37,7 @@ module COLLADA.Converter {
     export class Options {
         singleAnimation: OptionBool;
         singleGeometry: OptionBool;
+        singleBufferPerGeometry: OptionBool;
         enableAnimations: OptionBool;
         useAnimationLabels: OptionBool;
         enableExtractGeometry: OptionBool;
@@ -44,12 +45,15 @@ module COLLADA.Converter {
         animationLabels: OptionArray<COLLADA.Converter.AnimationLabel>;
         animationFps: OptionFloat;
         removeConstAnimationTracks: OptionBool;
+        applyBindShape: OptionBool;
 
         constructor() {
             this.singleAnimation = new OptionBool(true,
                 "If enabled, all animations are merged into a single animation. Enable if each bone has a separate top level animation.");
             this.singleGeometry = new OptionBool(true,
                 "If enabled, all geometries are merged into a single geometry. Only has an effect if 'extractGeometry' is enabled.");
+            this.singleBufferPerGeometry = new OptionBool(true,
+                "If enabled, all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of each buffer.");
             this.enableAnimations = new OptionBool(true,
                 "If enabled, animations are exported. Otherwise, all animations are ignored.");
             this.enableExtractGeometry = new OptionBool(true,
@@ -64,6 +68,8 @@ module COLLADA.Converter {
                 "Default FPS for resampled animations.");
             this.removeConstAnimationTracks = new OptionBool(true,
                 "If enabled, animation tracks are removed if they only contain the rest pose transformation for all times.");
+            this.applyBindShape = new OptionBool(true,
+                "If enabled, the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.");
         }
 
     }
