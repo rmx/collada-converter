@@ -31,10 +31,35 @@ module COLLADA.Converter {
             // Scene nodes
             result.nodes = ColladaConverter.createScene(doc, context);
 
-            // Geometries
+            // Extract geometries
             if (context.options.enableExtractGeometry.value === true) {
                 result.geometries = COLLADA.Converter.Node.extractGeometries(result.nodes, context);
             }
+
+            var forEachGeometry = (fn: (geometry: Converter.Geometry)=>void) => {
+                for (var i: number = 0; i < result.geometries.length; ++i) {
+                    fn(result.geometries[i]);
+                }
+                COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
+                    for (var i: number = 0; i < node.geometries.length; ++i) {
+                        fn(node.geometries[i]);
+                    }
+                });
+            }
+
+            // Merge chunk data
+            if (context.options.singleBufferPerGeometry.value === true) {
+                forEachGeometry((geometry) => {
+                    COLLADA.Converter.GeometryChunk.mergeChunkData(geometry.chunks, context);
+                });
+            }
+
+            // Compute bounding boxes
+            COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
+                forEachGeometry((geometry) => {
+                    COLLADA.Converter.Geometry.computeBoundingBox(geometry, context);
+                });
+            });
 
             // Original animations curves
             if (context.options.enableAnimations.value === true) {

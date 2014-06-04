@@ -26,7 +26,6 @@ module COLLADA.Exporter {
     * The object can be further divided into multiple geometry chunks, each with a different material.
     */
     export interface GeometryJSON {
-        name: string;
         /** Total number of vertices */
         vertex_count: number;
         /** Total number of triangles */
@@ -53,15 +52,18 @@ module COLLADA.Exporter {
     * Part of a geometry
     */
     export interface GeometryChunkJSON {
+        /** Name of this part */
         name: string;
         /** Material index */
         material: number;
         /** Number of vertices in this chunk */
         vertex_count: number;
+        /** Offset in the vertex buffer where data for this chunk starts */
+        vertex_offset: number;
         /** Number of triangles in this chunk - see the 'count' parameter of gl.drawElements() */
         triangle_count: number;
         /** Offset in the index buffer where this chunk starts - see the 'offset' parameter of gl.drawElements() */
-        triangle_offset: number;
+        index_offset: number;
         /** Bounding box of this part */
         bounding_box?: BoundingBoxJSON;
     }
@@ -93,7 +95,7 @@ module COLLADA.Exporter {
     export interface DocumentJSON {
         info: InfoJSON;
         materials: MaterialJSON[];
-        geometries: GeometryJSON[];
+        geometry: GeometryJSON;
         bones: BoneJSON[];
         animations: AnimationJSON[];
         /** Base64 encoded binary data */

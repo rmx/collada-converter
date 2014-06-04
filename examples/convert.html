@@ -173,7 +173,6 @@
         uniform mat4 u_modelview_matrix;
         uniform mat4 u_projection_matrix;
         uniform mat3 u_normal_matrix;
-        uniform mat4 u_bind_shape_matrix;
         uniform mat4 u_bone_matrix[100];
 
         varying vec2 v_texcoord;
@@ -188,8 +187,8 @@
                 va_boneweight.z * u_bone_matrix[boneindex.z] +
                 va_boneweight.w * u_bone_matrix[boneindex.w];
 
-            vec4 world_pos = skin_mat * u_bind_shape_matrix * vec4(va_position, 1.0);
-            vec4 world_normal = skin_mat * u_bind_shape_matrix * vec4(va_normal, 0.0);
+            vec4 world_pos = skin_mat * vec4(va_position, 1.0);
+            vec4 world_normal = skin_mat * vec4(va_normal, 0.0);
 
             vec4 eye_pos = u_modelview_matrix * vec4(world_pos.xyz, 1);
             vec3 eye_normal = u_normal_matrix * normalize(world_normal.xyz);

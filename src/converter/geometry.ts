@@ -3,6 +3,7 @@
 /// <reference path="material.ts" />
 /// <reference path="bone.ts" />
 /// <reference path="geometry_chunk.ts" />
+/// <reference path="bounding_box.ts" />
 /// <reference path="../external/gl-matrix.i.ts" />
 /// <reference path="../math.ts" />
 
@@ -12,13 +13,18 @@ module COLLADA.Converter {
         name: string;
         chunks: COLLADA.Converter.GeometryChunk[];
         bones: COLLADA.Converter.Bone[];
+        boundingBox: BoundingBox;
 
         constructor() {
             this.name = "";
             this.chunks = [];
             this.bones = [];
+            this.boundingBox = new BoundingBox();
         }
 
+        /**
+        * Creates a static (non-animated) geometry
+        */
         static createStatic(instanceGeometry: COLLADA.Loader.InstanceGeometry, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
             var geometry: COLLADA.Loader.Geometry = COLLADA.Loader.Geometry.fromLink(instanceGeometry.geometry, context);
             if (geometry === null) {
@@ -29,6 +35,9 @@ module COLLADA.Converter {
             return COLLADA.Converter.Geometry.createGeometry(geometry, instanceGeometry.materials, context);
         }
 
+        /**
+        * Creates an animated (skin or morph) geometry
+        */
         static createAnimated(instanceController: COLLADA.Loader.InstanceController, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
             var controller: COLLADA.Loader.Controller = COLLADA.Loader.Controller.fromLink(instanceController.controller, context);
             if (controller === null) {
@@ -45,6 +54,9 @@ module COLLADA.Converter {
             return null;
         }
 
+        /**
+        * Creates a skin-animated geometry
+        */
         static createSkin(instanceController: COLLADA.Loader.InstanceController, controller: COLLADA.Loader.Controller, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
             // Controller element
             var controller: COLLADA.Loader.Controller = COLLADA.Loader.Controller.fromLink(instanceController.controller, context);
@@ -227,17 +239,19 @@ module COLLADA.Converter {
 
             // Distribute skin data to chunks
             for (var i = 0; i < geometry.chunks.length; ++i) {
-                var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
+                var chunk: GeometryChunk = geometry.chunks[i];
+                var chunkData: GeometryData = chunk.data;
+                var chunkSrcIndices: GeometryChunkSourceIndices = chunk._colladaIndices;
 
                 // Distribute indices to chunks
-                chunk.boneindex = new Uint8Array(chunk.vertexCount * bonesPerVertex);
-                COLLADA.Converter.Utils.reIndex(skinIndices, chunk._colladaVertexIndices, chunk._colladaIndexStride, chunk._colladaIndexOffset, bonesPerVertex,
-                    chunk.boneindex, chunk.indices, 1, 0, bonesPerVertex);
+                chunkData.boneindex = new Uint8Array(chunk.vertexCount * bonesPerVertex);
+                COLLADA.Converter.Utils.reIndex(skinIndices, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset,
+                    bonesPerVertex, chunkData.boneindex, chunkData.indices, 1, 0, bonesPerVertex);
 
                 // Distribute weights to chunks
-                chunk.boneweight = new Float32Array(chunk.vertexCount * bonesPerVertex);
-                COLLADA.Converter.Utils.reIndex(skinWeights, chunk._colladaVertexIndices, chunk._colladaIndexStride, chunk._colladaIndexOffset, bonesPerVertex,
-                    chunk.boneweight, chunk.indices, 1, 0, bonesPerVertex);
+                chunkData.boneweight = new Float32Array(chunk.vertexCount * bonesPerVertex);
+                COLLADA.Converter.Utils.reIndex(skinWeights, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset,
+                    bonesPerVertex, chunkData.boneweight, chunkData.indices, 1, 0, bonesPerVertex);
             }
 
             // Copy bind shape matrices
@@ -266,10 +280,12 @@ module COLLADA.Converter {
             var result: COLLADA.Converter.Geometry = new COLLADA.Converter.Geometry();
             result.name = geometry.name || geometry.id || geometry.sid || "geometry";
 
+            // Loop over all <triangle> elements
             var trianglesList: COLLADA.Loader.Triangles[] = geometry.triangles;
             for (var i: number = 0; i < trianglesList.length; i++) {
                 var triangles = trianglesList[i];
 
+                // Find the used material
                 var material: COLLADA.Converter.Material;
                 if (triangles.material !== null) {
                     material = materialMap.symbols[triangles.material];
@@ -282,6 +298,7 @@ module COLLADA.Converter {
                     material = COLLADA.Converter.Material.createDefaultMaterial(context);
                 }
 
+                // Create a geometry chunk
                 var chunk: COLLADA.Converter.GeometryChunk = COLLADA.Converter.GeometryChunk.createChunk(geometry, triangles, context);
                 if (chunk !== null) {
                     chunk.name = result.name;
@@ -292,9 +309,13 @@ module COLLADA.Converter {
                     result.chunks.push(chunk);
                 }
             }
+
             return result;
         }
 
+        /**
+        * Transforms the given geometry (position and normals) by the given matrix
+        */
         static transformGeometry(geometry: COLLADA.Converter.Geometry, transformMatrix: Mat4, context: COLLADA.Converter.Context) {
             // Create the normal transformation matrix
             var normalMatrix: Mat3 = mat3.create();
@@ -308,6 +329,11 @@ module COLLADA.Converter {
             }
         }
 
+        /**
+        * Applies the bind shape matrix to the given geometry.
+        *
+        * This transforms the geometry by the bind shape matrix, and resets the bind shape matrix to identity.
+        */
         static applyBindShapeMatrices(geometry: COLLADA.Converter.Geometry, context: COLLADA.Converter.Context) {
 
             // Transform normals and positions of all chunks by the corresponding bind shape matrix
@@ -328,6 +354,19 @@ module COLLADA.Converter {
             }
         }
 
+        /**
+        * Computes the bounding box of the static (unskinned) geometry
+        */
+        static computeBoundingBox(geometry: COLLADA.Converter.Geometry, context: COLLADA.Converter.Context) {
+            geometry.boundingBox.reset();
+
+            for (var i: number = 0; i < geometry.chunks.length; ++i) {
+                var chunk: GeometryChunk = geometry.chunks[i];
+                GeometryChunk.computeBoundingBox(chunk, context);
+                geometry.boundingBox.extendBox(chunk.boundingBox);
+            }
+        }
+
         static addSkeleton(geometry: COLLADA.Converter.Geometry, node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
             // Create a single bone
             var colladaNode: COLLADA.Loader.VisualSceneNode = context.nodes.findCollada(node);
@@ -340,19 +379,20 @@ module COLLADA.Converter {
             // Attach all geometry to the bone
             for (var i = 0; i < geometry.chunks.length; ++i) {
                 var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
+                var chunkData: GeometryData = chunk.data;
 
-                chunk.boneindex = new Uint8Array(chunk.vertexCount * 4);
-                chunk.boneweight = new Float32Array(chunk.vertexCount * 4);
+                chunkData.boneindex = new Uint8Array(chunk.vertexCount * 4);
+                chunkData.boneweight = new Float32Array(chunk.vertexCount * 4);
                 for (var v = 0; v < chunk.vertexCount; ++v) {
-                    chunk.boneindex[4 * v + 0] = 0;
-                    chunk.boneindex[4 * v + 1] = 0;
-                    chunk.boneindex[4 * v + 2] = 0;
-                    chunk.boneindex[4 * v + 3] = 0;
+                    chunkData.boneindex[4 * v + 0] = 0;
+                    chunkData.boneindex[4 * v + 1] = 0;
+                    chunkData.boneindex[4 * v + 2] = 0;
+                    chunkData.boneindex[4 * v + 3] = 0;
 
-                    chunk.boneweight[4 * v + 0] = 1;
-                    chunk.boneweight[4 * v + 1] = 0;
-                    chunk.boneweight[4 * v + 2] = 0;
-                    chunk.boneweight[4 * v + 3] = 0;
+                    chunkData.boneweight[4 * v + 0] = 1;
+                    chunkData.boneweight[4 * v + 1] = 0;
+                    chunkData.boneweight[4 * v + 2] = 0;
+                    chunkData.boneweight[4 * v + 3] = 0;
                 }
             }
         }
@@ -421,7 +461,7 @@ module COLLADA.Converter {
             // Recode indices
             for (var i = 0; i < geometry.chunks.length; ++i) {
                 var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
-                var boneindex: Uint8Array = chunk.boneindex;
+                var boneindex: Uint8Array = chunk.data.boneindex;
 
                 for (var j = 0; j < boneindex.length; ++j) {
                     boneindex[j] = index_map[boneindex[j]];

@@ -25,54 +25,51 @@ module COLLADA.Exporter {
             }
 
             var info: COLLADA.Exporter.InfoJSON = {
-                bbox_min: [Infinity, Infinity, Infinity],
-                bbox_max: [-Infinity, -Infinity, -Infinity]
             };
+
             var converter_materials: COLLADA.Converter.Material[] = [];
             var materials: COLLADA.Exporter.Material[] = [];
-            var geometries: COLLADA.Exporter.Geometry[] = [];
-
-
+            var geometry: COLLADA.Exporter.Geometry = null;
 
             var bones: COLLADA.Exporter.Bone[] = [];
             var animations: COLLADA.Exporter.Animation[] = [];
 
-            // Geometries
-            for (var g: number = 0; g < doc.geometries.length; ++g) {
-                var converter_geometry: COLLADA.Converter.Geometry = doc.geometries[g];
+            if (doc.geometries.length === 0) {
+                context.log.write("Document contains no geometry, nothing exported", LogLevel.Warning);
+                return null;
+            } else if (doc.geometries.length > 1) {
+                context.log.write("Document contains multiple geometries, only the first geometry is exported", LogLevel.Warning);
+            }
 
-                // Chunks
-                for (var c: number = 0; c < converter_geometry.chunks.length; ++c) {
-                    var chunk: COLLADA.Converter.GeometryChunk = converter_geometry.chunks[c];
+            // Geometry
+            var converter_geometry: COLLADA.Converter.Geometry = doc.geometries[0];
+            geometry = COLLADA.Exporter.Geometry.create(converter_geometry, context);
 
-                    // Create the material, if it does not exist yet
-                    var material_index: number = converter_materials.indexOf(chunk.material);
-                    if (material_index === -1) {
-                        var material: COLLADA.Exporter.Material = COLLADA.Exporter.Material.create(chunk.material, context);
-                        material_index = materials.length;
+            // Chunks
+            for (var c: number = 0; c < converter_geometry.chunks.length; ++c) {
+                var chunk: COLLADA.Converter.GeometryChunk = converter_geometry.chunks[c];
 
-                        converter_materials.push(chunk.material);
-                        materials.push(material);
-                    }
+                // Create the material, if it does not exist yet
+                var material_index: number = converter_materials.indexOf(chunk.material);
+                if (material_index === -1) {
+                    var material: COLLADA.Exporter.Material = COLLADA.Exporter.Material.create(chunk.material, context);
+                    material_index = materials.length;
 
-                    // Create the geometry
-                    var geometry: COLLADA.Exporter.Geometry = COLLADA.Exporter.Geometry.create(chunk, context);
-                    geometry.material = material_index;
-                    geometries.push(geometry);
-
-                    // Bounding box
-                    for (var d: number = 0; d < 3; ++d) {
-                        info.bbox_min[d] = Math.min(info.bbox_min[d], chunk.bbox_min[d]);
-                        info.bbox_max[d] = Math.max(info.bbox_max[d], chunk.bbox_max[d]);
-                    }
+                    converter_materials.push(chunk.material);
+                    materials.push(material);
                 }
 
-                // Bones
-                for (var b: number = 0; b < converter_geometry.bones.length; ++b) {
-                    var converter_bone: COLLADA.Converter.Bone = converter_geometry.bones[b];
-                    var bone: COLLADA.Exporter.Bone = COLLADA.Exporter.Bone.create(converter_bone, context);
-                    bones.push(bone);
-                }
+                // Create the geometry
+                var geometryChunk: COLLADA.Exporter.GeometryChunk = COLLADA.Exporter.GeometryChunk.create(chunk, context);
+                geometryChunk.material = material_index;
+                geometry.chunks.push(geometryChunk);
+            }
+
+            // Bones
+            for (var b: number = 0; b < converter_geometry.bones.length; ++b) {
+                var converter_bone: COLLADA.Converter.Bone = converter_geometry.bones[b];
+                var bone: COLLADA.Exporter.Bone = COLLADA.Exporter.Bone.create(converter_bone, context);
+                bones.push(bone);
             }
 
             // Animations
@@ -89,7 +86,7 @@ module COLLADA.Exporter {
             result.json = {
                 info: info,
                 materials: materials.map((e) => e.toJSON()),
-                geometries: geometries.map((e) => e.toJSON()),
+                geometry: geometry.toJSON(),
                 bones: bones.map((e) => e.toJSON()),
                 animations: animations.map((e) => e.toJSON())
             };

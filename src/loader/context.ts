@@ -147,6 +147,19 @@ module COLLADA.Loader {
         }
 
         /**
+        *   Parses a string of whitespace-separated integer numbers
+        */
+        strToUints(str: string): Uint32Array {
+            var strings: string[] = this.strToStrings(str);
+            var data: Uint32Array = new Uint32Array(strings.length);
+            var len: number = strings.length;
+            for (var i: number = 0; i < len; ++i) {
+                data[i] = parseInt(strings[i], 10);
+            }
+            return data;
+        }
+
+        /**
         *   Parses a string of whitespace-separated booleans
         */
         strToBools(str: string): Uint8Array {

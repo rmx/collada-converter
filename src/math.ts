@@ -29,6 +29,12 @@ module COLLADA {
             }
         }
 
+        static copyNumberArrayOffset(src: NumberArray, srcOffset: number, dest: NumberArray, destOffset: number, count: number) {
+            for (var i: number = 0; i < count; ++i) {
+                dest[destOffset + i] = src[srcOffset + i];
+            }
+        }
+
         /**
         * Calls the given function for each src[i*stride + offset]
         */

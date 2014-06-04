@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "collada", "collada.csproj", "{DA0A0093-14B7-44D8-A181-6B020CE18E3A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "convert", "convert.csproj", "{F0FE3DEE-B6B7-4A1E-A83C-57FDAAFF290D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DA0A0093-14B7-44D8-A181-6B020CE18E3A} = {DA0A0093-14B7-44D8-A181-6B020CE18E3A}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

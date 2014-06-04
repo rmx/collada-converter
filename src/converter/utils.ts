@@ -11,8 +11,8 @@ module COLLADA.Converter {
         *
         */
         static reIndex(
-            srcData: Float32Array, srcIndices: Int32Array, srcStride: number, srcOffset: number, srcDim: number,
-            destData: Float32Array, destIndices: Int32Array, destStride: number, destOffset: number, destDim: number) {
+            srcData: Float32Array, srcIndices: Uint32Array, srcStride: number, srcOffset: number, srcDim: number,
+            destData: Float32Array, destIndices: Uint32Array, destStride: number, destOffset: number, destDim: number) {
 
             var dim: number = Math.min(srcDim, destDim);
             var srcIndexCount: number = srcIndices.length;
@@ -40,15 +40,17 @@ module COLLADA.Converter {
         * Given a list of indices stored as indices[i*stride + offset],
         * returns a similar list of indices stored as an array of consecutive numbers.
         */
-        static compactIndices(indices: Int32Array, stride: number, offset: number): Int32Array {
+        static compactIndices(indices: Uint32Array, stride: number, offset: number): Uint32Array {
             var uniqueCount: number = 0;
             var indexCount = indices.length / stride;
-            var uniqueMap: Int32Array = new Int32Array(indexCount);
+            var uniqueMap: Uint32Array = new Uint32Array(indexCount);
+
+            var invalidIndex: number = 0xffffff;
 
             // Find out which indices are unique and which appeared previously
             for (var i: number = 0; i < indexCount; ++i) {
 
-                var previousIndex: number = -1;
+                var previousIndex: number = invalidIndex;
                 for (var j: number = 0; j < i; ++j) {
                     if (indices[j * stride + offset] === indices[i * stride + offset]) {
                         previousIndex = j;
@@ -57,17 +59,17 @@ module COLLADA.Converter {
                 }
 
                 uniqueMap[i] = previousIndex;
-                if (previousIndex !== -1) {
+                if (previousIndex !== invalidIndex) {
                     uniqueCount++;
                 }
             }
 
             // Create new indices
-            var result: Int32Array = new Int32Array(indexCount);
+            var result: Uint32Array = new Uint32Array(indexCount);
             var nextIndex = 0;
             for (var i: number = 0; i < indexCount; ++i) {
                 var previousIndex = uniqueMap[i];
-                if (previousIndex === -1) {
+                if (previousIndex === invalidIndex) {
                     result[i] = nextIndex;
                     nextIndex++;
                 } else {
@@ -81,7 +83,7 @@ module COLLADA.Converter {
         /**
         * Returns the maximum element of a list of non-negative integers
         */
-        static maxIndex(indices: Int32Array): number {
+        static maxIndex(indices: Uint32Array): number {
             if (indices === null) {
                 return null;
             }
