@@ -259,21 +259,74 @@ function clearBuffers() {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 }
 
+function copyData<BufferType extends COLLADA.NumberArray>(srcJson: COLLADA.Exporter.DataChunkJSON, srcData: BufferType, dest: BufferType, destOffset: number, destAdd: number) {
+    var count: number = srcJson.count * srcJson.stride;
+    for (var i: number = 0; i < count; ++i) {
+        dest[i + destOffset] = srcData[i] + destAdd;
+    }
+}
 
 function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     var shader: i_gl_shader = (json.bones.length > 0) ? gl_objects.shaders.skin : gl_objects.shaders.normal;
-    var json_geometry: COLLADA.Exporter.GeometryJSON = json.geometry;
-
     var geometry: i_gl_geometry = {};
+
+    var vertex_count = json.chunks.reduce((prev: number, e: COLLADA.Exporter.GeometryJSON) => prev + e.vertex_count, 0);
+    var triangle_count = json.chunks.reduce((prev: number, e: COLLADA.Exporter.GeometryJSON) => prev + e.triangle_count, 0);
+
+    var data_position = new Float32Array(vertex_count * 3);
+    var data_normal = new Float32Array(vertex_count * 3);
+    var data_texcoord = new Float32Array(vertex_count * 2);
+    var data_boneweight = new Float32Array(vertex_count * 4);
+    var data_boneindex = new Uint8Array(vertex_count * 4);
+    var data_indices = new Uint32Array(triangle_count * 3);
+
+    var vertex_offset: number = 0;
+    var index_offset: number = 0;
+    for (var i = 0; i < json.chunks.length; ++i) {
+        var json_chunk: COLLADA.Exporter.GeometryJSON = json.chunks[i];
+
+        var geometry_chunk: i_gl_geometry_chunk = {};
+        geometry_chunk.name = json_chunk.name;
+        geometry_chunk.triangle_count = json_chunk.triangle_count;
+        geometry_chunk.index_offset = index_offset;
+        geometry_chunk.vertex_count = vertex_count;
+
+        gl_objects.chunks.push(geometry_chunk);
+
+        if (json_chunk.position !== null) {
+            var chunk_position: Float32Array = new Float32Array(data, json_chunk.position.byte_offset, json_chunk.position.count * json_chunk.position.stride);
+            copyData(json_chunk.position, chunk_position, data_position, vertex_offset*3, 0);
+        }
+        if (json_chunk.normal !== null) {
+            var chunk_normal: Float32Array = new Float32Array(data, json_chunk.normal.byte_offset, json_chunk.normal.count * json_chunk.normal.stride);
+            copyData(json_chunk.normal, chunk_normal, data_normal, vertex_offset * 3, 0);
+        }
+        if (json_chunk.texcoord !== null) {
+            var chunk_texcoord: Float32Array = new Float32Array(data, json_chunk.texcoord.byte_offset, json_chunk.texcoord.count * json_chunk.texcoord.stride);
+            copyData(json_chunk.texcoord, chunk_texcoord, data_texcoord, vertex_offset * 2, 0);
+        }
+        if (json_chunk.boneweight !== null) {
+            var chunk_boneweight: Float32Array = new Float32Array(data, json_chunk.boneweight.byte_offset, json_chunk.boneweight.count * json_chunk.boneweight.stride);
+            copyData(json_chunk.boneweight, chunk_boneweight, data_boneweight, vertex_offset * 4, 0);
+        }
+        if (json_chunk.boneindex !== null) {
+            var chunk_boneindex: Uint8Array = new Uint8Array(data, json_chunk.boneindex.byte_offset, json_chunk.boneindex.count * json_chunk.boneindex.stride);
+            copyData(json_chunk.boneindex, chunk_boneindex, data_boneindex, vertex_offset * 4, 0);
+        }
+        if (json_chunk.indices !== null) {
+            var chunk_indices: Uint32Array = new Uint32Array(data, json_chunk.indices.byte_offset, json_chunk.indices.count * json_chunk.indices.stride);
+            copyData(json_chunk.indices, chunk_indices, data_indices, index_offset, vertex_offset);
+        }
+        vertex_offset += json_chunk.vertex_count;
+        index_offset += json_chunk.triangle_count * 3;
+    }
 
     // VAO
     geometry.vao = gl_vao.createVertexArrayOES();
     gl_vao.bindVertexArrayOES(geometry.vao);
 
     // Vertex buffer: position
-    if (json_geometry.position && shader.attribs.position >= 0) {
-        var data_position = new Float32Array(data, json_geometry.position.byte_offset, json_geometry.position.count * 3);
-
+    if (shader.attribs.position >= 0) {
         geometry.position = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, geometry.position);
         gl.bufferData(gl.ARRAY_BUFFER, data_position, gl.STATIC_DRAW);
@@ -282,9 +335,7 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     }
 
     // Vertex buffer: normal
-    if (json_geometry.normal && shader.attribs.normal >= 0) {
-        var data_normal = new Float32Array(data, json_geometry.normal.byte_offset, json_geometry.normal.count * 3);
-
+    if (shader.attribs.normal >= 0) {
         geometry.normal = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, geometry.normal);
         gl.bufferData(gl.ARRAY_BUFFER, data_normal, gl.STATIC_DRAW);
@@ -293,9 +344,7 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     }
 
     // Vertex buffer: texcoord
-    if (json_geometry.texcoord && shader.attribs.texcoord >= 0) {
-        var data_texcoord = new Float32Array(data, json_geometry.texcoord.byte_offset, json_geometry.texcoord.count * 2);
-
+    if (shader.attribs.texcoord >= 0) {
         geometry.texcoord = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, geometry.texcoord);
         gl.bufferData(gl.ARRAY_BUFFER, data_texcoord, gl.STATIC_DRAW);
@@ -304,8 +353,7 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     }
 
     // Vertex buffer: bone weight
-    if (json_geometry.boneweight && shader.attribs.boneweight >= 0) {
-        var data_boneweight = new Float32Array(data, json_geometry.boneweight.byte_offset, json_geometry.boneweight.count * 4);
+    if (shader.attribs.boneweight >= 0) {
 
         geometry.boneweight = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, geometry.boneweight);
@@ -315,9 +363,7 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     }
 
     // Vertex buffer: bone index
-    if (json_geometry.boneindex && shader.attribs.boneindex >= 0) {
-        var data_boneindex = new Uint8Array(data, json_geometry.boneindex.byte_offset, json_geometry.boneindex.count * 4);
-
+    if (shader.attribs.boneindex >= 0) {
         geometry.boneindex = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, geometry.boneindex);
         gl.bufferData(gl.ARRAY_BUFFER, data_boneindex, gl.STATIC_DRAW);
@@ -326,9 +372,7 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     }
 
     // Index buffer
-    if (json_geometry.indices) {
-        var data_indices = new Uint32Array(data, json_geometry.indices.byte_offset, json_geometry.indices.count * 3);
-
+    if (true) {
         geometry.indices = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, geometry.indices);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data_indices, gl.STATIC_DRAW);
@@ -337,19 +381,6 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     gl_objects.geometry = geometry;
 
     gl_vao.bindVertexArrayOES(null);
-
-    // Geometry chunks
-    for (var i = 0; i < json.chunks.length; ++i) {
-        var json_chunk: COLLADA.Exporter.GeometryJSON = json.chunks[i];
-
-        var geometry_chunk: i_gl_geometry_chunk = {};
-        geometry_chunk.name = json_chunk.name;
-        geometry_chunk.triangle_count = json_chunk.triangle_count;
-        geometry_chunk.index_offset = json_chunk.index_offset;
-        geometry_chunk.vertex_count = json_chunk.vertex_count;
-
-        gl_objects.chunks.push(geometry_chunk);
-    }
 
     // Bones
     if (json.bones.length > 0) {
