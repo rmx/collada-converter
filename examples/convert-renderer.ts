@@ -172,6 +172,12 @@ function initShader(shader: i_gl_shader, vs_name: string, fs_name: string) {
 
     gl.useProgram(shader.program);
 
+    gl.bindAttribLocation(shader.program, 0, "va_position");
+    gl.bindAttribLocation(shader.program, 1, "va_normal");
+    gl.bindAttribLocation(shader.program, 2, "va_texcoord");
+    gl.bindAttribLocation(shader.program, 3, "va_boneweight");
+    gl.bindAttribLocation(shader.program, 4, "va_boneindex");
+
     shader.attribs = {};
     shader.attribs.position = gl.getAttribLocation(shader.program, "va_position");
     shader.attribs.normal = gl.getAttribLocation(shader.program, "va_normal");
