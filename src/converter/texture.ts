@@ -58,6 +58,9 @@ module COLLADA.Converter {
 
             result = new COLLADA.Converter.Texture(textureImage);
             result.url = textureImage.initFrom;
+            if (context.options.removeTexturePath.value === true) {
+                result.url = result.url.replace(/^.*[\\\/]/, '');
+            }
             context.textures.register(textureImage, result);
 
             return result;

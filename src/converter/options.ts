@@ -46,6 +46,7 @@ module COLLADA.Converter {
         animationFps: OptionFloat;
         removeConstAnimationTracks: OptionBool;
         applyBindShape: OptionBool;
+        removeTexturePath: OptionBool;
 
         constructor() {
             this.singleAnimation = new OptionBool(true,
@@ -70,6 +71,8 @@ module COLLADA.Converter {
                 "If enabled, animation tracks are removed if they only contain the rest pose transformation for all times.");
             this.applyBindShape = new OptionBool(true,
                 "If enabled, the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.");
+            this.removeTexturePath = new OptionBool(true,
+                "If enable, only the filename and extension of textures are kept and the remaining path is discarded.");
         }
 
     }
