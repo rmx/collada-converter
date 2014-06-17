@@ -24,16 +24,6 @@ module COLLADA.Exporter {
                 return null;
             }
 
-            var info: COLLADA.Exporter.InfoJSON = {
-            };
-
-            var converter_materials: COLLADA.Converter.Material[] = [];
-            var materials: COLLADA.Exporter.Material[] = [];
-            var geometry: COLLADA.Exporter.Geometry = null;
-
-            var bones: COLLADA.Exporter.Bone[] = [];
-            var animations: COLLADA.Exporter.Animation[] = [];
-
             if (doc.geometries.length === 0) {
                 context.log.write("Document contains no geometry, nothing exported", LogLevel.Warning);
                 return null;
@@ -41,18 +31,19 @@ module COLLADA.Exporter {
                 context.log.write("Document contains multiple geometries, only the first geometry is exported", LogLevel.Warning);
             }
 
-            // Geometry
+            // Geometry and materials
+            var converter_materials: COLLADA.Converter.Material[] = [];
+            var materials: COLLADA.Exporter.MaterialJSON[] = [];
             var converter_geometry: COLLADA.Converter.Geometry = doc.geometries[0];
-            geometry = COLLADA.Exporter.Geometry.create(converter_geometry, context);
+            var chunks: COLLADA.Exporter.GeometryJSON[] = [];
 
-            // Chunks
             for (var c: number = 0; c < converter_geometry.chunks.length; ++c) {
                 var chunk: COLLADA.Converter.GeometryChunk = converter_geometry.chunks[c];
 
                 // Create the material, if it does not exist yet
                 var material_index: number = converter_materials.indexOf(chunk.material);
                 if (material_index === -1) {
-                    var material: COLLADA.Exporter.Material = COLLADA.Exporter.Material.create(chunk.material, context);
+                    var material: COLLADA.Exporter.MaterialJSON = Material.toJSON(chunk.material, context);
                     material_index = materials.length;
 
                     converter_materials.push(chunk.material);
@@ -60,35 +51,25 @@ module COLLADA.Exporter {
                 }
 
                 // Create the geometry
-                var geometryChunk: COLLADA.Exporter.GeometryChunk = COLLADA.Exporter.GeometryChunk.create(chunk, context);
-                geometryChunk.material = material_index;
-                geometry.chunks.push(geometryChunk);
-            }
-
-            // Bones
-            for (var b: number = 0; b < converter_geometry.bones.length; ++b) {
-                var converter_bone: COLLADA.Converter.Bone = converter_geometry.bones[b];
-                var bone: COLLADA.Exporter.Bone = COLLADA.Exporter.Bone.create(converter_bone, context);
-                bones.push(bone);
-            }
-
-            // Animations
-            for (var a: number = 0; a < doc.resampled_animations.length; ++a) {
-                var converter_animation: COLLADA.Converter.AnimationData = doc.resampled_animations[a];
-                var animation: COLLADA.Exporter.Animation = COLLADA.Exporter.Animation.create(converter_animation, context);
-                animations.push(animation);
+                chunks.push(Geometry.toJSON(chunk, material_index, context));
             }
 
             // Result
             var result: COLLADA.Exporter.Document = new COLLADA.Exporter.Document();
 
+            var info: COLLADA.Exporter.InfoJSON = {
+                bounding_box: BoundingBox.toJSON(converter_geometry.boundingBox)
+            };
+            var bones: BoneJSON[] = converter_geometry.bones.map((e) => Bone.toJSON(e, context));
+            var animations: AnimationJSON[] = doc.resampled_animations.map((e) => Animation.toJSON(e, context));
+
             // Assemble result: JSON part
             result.json = {
                 info: info,
-                materials: materials.map((e) => e.toJSON()),
-                geometry: geometry.toJSON(),
-                bones: bones.map((e) => e.toJSON()),
-                animations: animations.map((e) => e.toJSON())
+                materials: materials,
+                chunks: chunks,
+                bones: bones,
+                animations: animations
             };
 
             // Assemble result: Binary data part

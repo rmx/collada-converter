@@ -5,6 +5,8 @@ module COLLADA.Exporter {
     };
 
     export interface InfoJSON {
+        /** Bounding box of the whole geometry */
+        bounding_box: BoundingBoxJSON;
     };
 
     export interface DataChunkJSON {
@@ -16,16 +18,19 @@ module COLLADA.Exporter {
 
     export interface MaterialJSON {
         name: string;
-        diffuse?: string;
-        specular?: string;
-        normal?: string;
+        diffuse: string;
+        specular: string;
+        normal: string;
     };
 
     /**
-    * A Geometry contains all geometric data (positions, normals, indices, ...) of an object.
-    * The object can be further divided into multiple geometry chunks, each with a different material.
+    * A geometry chunk.
     */
     export interface GeometryJSON {
+        /** Name of this part */
+        name: string;
+        /** Material index */
+        material: number;
         /** Total number of vertices */
         vertex_count: number;
         /** Total number of triangles */
@@ -35,38 +40,16 @@ module COLLADA.Exporter {
         /** 3 float32 elements per vertex */
         position: DataChunkJSON;
         /** 3 float32 elements per vertex */
-        normal?: DataChunkJSON;
+        normal: DataChunkJSON;
         /** 2 float32 elements per vertex */
-        texcoord?: DataChunkJSON;
+        texcoord: DataChunkJSON;
         /** 4 float32 elements per vertex */
-        boneweight?: DataChunkJSON;
+        boneweight: DataChunkJSON;
         /** 4 uint8 elements per vertex */
-        boneindex?: DataChunkJSON;
-        /** Chunks */
-        chunks: GeometryChunkJSON[];
-        /** Bounding box of the whole geometry */
-        bounding_box?: BoundingBoxJSON;
+        boneindex: DataChunkJSON;
+        /** Bounding box of this chunk */
+        bounding_box: BoundingBoxJSON;
     };
-
-    /**
-    * Part of a geometry
-    */
-    export interface GeometryChunkJSON {
-        /** Name of this part */
-        name: string;
-        /** Material index */
-        material: number;
-        /** Number of vertices in this chunk */
-        vertex_count: number;
-        /** Offset in the vertex buffer where data for this chunk starts */
-        vertex_offset: number;
-        /** Number of triangles in this chunk - see the 'count' parameter of gl.drawElements() */
-        triangle_count: number;
-        /** Offset in the index buffer where this chunk starts - see the 'offset' parameter of gl.drawElements() */
-        index_offset: number;
-        /** Bounding box of this part */
-        bounding_box?: BoundingBoxJSON;
-    }
 
     export interface BoneJSON {
         name: string;
@@ -80,9 +63,9 @@ module COLLADA.Exporter {
 
     export interface AnimationTrackJSON {
         bone: number;
-        pos?: DataChunkJSON;
-        rot?: DataChunkJSON;
-        scl?: DataChunkJSON;
+        pos: DataChunkJSON;
+        rot: DataChunkJSON;
+        scl: DataChunkJSON;
     };
 
     export interface AnimationJSON {
@@ -95,7 +78,7 @@ module COLLADA.Exporter {
     export interface DocumentJSON {
         info: InfoJSON;
         materials: MaterialJSON[];
-        geometry: GeometryJSON;
+        chunks: GeometryJSON[];
         bones: BoneJSON[];
         animations: AnimationJSON[];
         /** Base64 encoded binary data */

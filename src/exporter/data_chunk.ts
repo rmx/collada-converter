@@ -27,15 +27,19 @@ module COLLADA.Exporter {
             return this.data.length * this.bytes_per_element;
         }
 
-        toJSON(): COLLADA.Exporter.DataChunkJSON {
-            var result: COLLADA.Exporter.DataChunkJSON = {
-                type: this.type,
-                byte_offset: this.byte_offset,
-                stride: this.stride,
-                count: this.count
+        static toJSON(chunk: DataChunk): COLLADA.Exporter.DataChunkJSON {
+            if (chunk === null) {
+                return null;
             }
 
-        return result;
+            var result: COLLADA.Exporter.DataChunkJSON = {
+                type: chunk.type,
+                byte_offset: chunk.byte_offset,
+                stride: chunk.stride,
+                count: chunk.count
+            }
+
+            return result;
         }
 
         static create(data: any, stride: number, context: COLLADA.Exporter.Context): COLLADA.Exporter.DataChunk {

@@ -5,52 +5,37 @@
 module COLLADA.Exporter {
 
     export class Bone {
-        name: string;
-        parent: number;
-        skinned: boolean;
-        inv_bind_mat: number[];
-        pos: number[];
-        rot: number[];
-        scl: number[];
 
-        constructor() {
-            this.name = null;
-            this.parent = null;
-            this.skinned = null;
-            this.inv_bind_mat = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-            this.pos = [0, 0, 0];
-            this.rot = [0, 0, 0, 1];
-            this.scl = [1, 1, 1];
-        }
+        static toJSON(bone: COLLADA.Converter.Bone, context: COLLADA.Exporter.Context): COLLADA.Exporter.BoneJSON {
+            if (bone === null) {
+                return null;
+            }
 
-        static create(bone: COLLADA.Converter.Bone, context: COLLADA.Exporter.Context): COLLADA.Exporter.Bone {
-            var result: COLLADA.Exporter.Bone = new COLLADA.Exporter.Bone();
-            result.name = bone.name;
-            result.parent = (bone.parent !== null) ? (bone.parent.index) : -1;
-            result.skinned = bone.attachedToSkin;
-
-            var mat: Mat4 = bone.node.getLocalMatrix();
-            COLLADA.MathUtils.decompose(mat, result.pos, result.rot, result.scl);
-
-            COLLADA.MathUtils.copyNumberArray(bone.invBindMatrix, result.inv_bind_mat, 16);
-
-            return result;
-        }
-
-        toJSON(): COLLADA.Exporter.BoneJSON {
             // TODO: options for this
             var mat_tol: number = 5;
             var pos_tol: number = 4;
             var scl_tol: number = 3;
             var rot_tol: number = 4;
+
+            // Bone default transform
+            var mat: Mat4 = bone.node.getLocalMatrix();
+            var pos: number[] = [0, 0, 0];
+            var rot: number[] = [0, 0, 0, 1];
+            var scl: number[] = [1, 1, 1];
+            COLLADA.MathUtils.decompose(mat, pos, rot, scl);
+
+            // Bone inverse bind matrix
+            var inv_bind_mat: number[] = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+            COLLADA.MathUtils.copyNumberArray(bone.invBindMatrix, inv_bind_mat, 16);
+
             return {
-                name: this.name,
-                parent: this.parent,
-                skinned: this.skinned,
-                inv_bind_mat: this.inv_bind_mat.map((x) => COLLADA.MathUtils.round(x, mat_tol)),
-                pos: this.pos.map((x) => COLLADA.MathUtils.round(x, pos_tol)),
-                rot: this.rot.map((x) => COLLADA.MathUtils.round(x, rot_tol)),
-                scl: this.scl.map((x) => COLLADA.MathUtils.round(x, scl_tol))
+                name: bone.name,
+                parent: (bone.parent !== null) ? (bone.parent.index) : -1,
+                skinned: bone.attachedToSkin,
+                inv_bind_mat: inv_bind_mat.map((x) => COLLADA.MathUtils.round(x, mat_tol)),
+                pos: pos.map((x) => COLLADA.MathUtils.round(x, pos_tol)),
+                rot: rot.map((x) => COLLADA.MathUtils.round(x, rot_tol)),
+                scl: scl.map((x) => COLLADA.MathUtils.round(x, scl_tol))
             };
         }
     }

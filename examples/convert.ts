@@ -138,7 +138,7 @@ function onConvertClick() {
 
     // Output
     elements.output.textContent = JSON.stringify(exportData.json, null, 2);
-    resetCheckboxes(exportData.json.geometry.chunks);
+    resetCheckboxes(exportData.json.chunks);
 
     // Start rendering
     timeStart("WebGL loading");
@@ -196,7 +196,7 @@ function init() {
     clearOutput();
 }
 
-function resetCheckboxes(chunks: COLLADA.Exporter.GeometryChunkJSON[]) {
+function resetCheckboxes(chunks: COLLADA.Exporter.GeometryJSON[]) {
     for (var i: number = 0; i < elements.mesh_parts_checkboxes.length; ++i) {
         var checkbox: HTMLInputElement = elements.mesh_parts_checkboxes[i];
         var label: HTMLLabelElement = elements.mesh_parts_labels[i];

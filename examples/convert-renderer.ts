@@ -206,8 +206,8 @@ function initMatrices() {
 
 
 function setupCamera(json: COLLADA.Exporter.DocumentJSON) {
-    var bmin = vec3.clone(json.geometry.bounding_box.min);
-    var bmax = vec3.clone(json.geometry.bounding_box.max);
+    var bmin = vec3.clone(json.info.bounding_box.min);
+    var bmax = vec3.clone(json.info.bounding_box.max);
     var diag = vec3.create();
     vec3.subtract(diag, bmax, bmin);
     gl_objects.camera.up = vec3.fromValues(0, 0, 1);
@@ -339,8 +339,8 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     gl_vao.bindVertexArrayOES(null);
 
     // Geometry chunks
-    for (var i = 0; i < json.geometry.chunks.length; ++i) {
-        var json_chunk: COLLADA.Exporter.GeometryChunkJSON = json.geometry.chunks[i];
+    for (var i = 0; i < json.chunks.length; ++i) {
+        var json_chunk: COLLADA.Exporter.GeometryJSON = json.chunks[i];
 
         var geometry_chunk: i_gl_geometry_chunk = {};
         geometry_chunk.name = json_chunk.name;

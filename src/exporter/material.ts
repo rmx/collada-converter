@@ -4,44 +4,18 @@
 module COLLADA.Exporter {
 
     export class Material {
-        name: string;
-        diffuse: string;
-        specular: string;
-        normal: string;
 
-        constructor() {
-            this.name = null;
-            this.diffuse = null;
-            this.specular = null;
-            this.normal = null;
-        }
+        static toJSON(material: COLLADA.Converter.Material, context: COLLADA.Exporter.Context): COLLADA.Exporter.MaterialJSON {
+            if (material === null) {
+                return null;
+            }
 
-        static create(material: COLLADA.Converter.Material, context: COLLADA.Exporter.Context): COLLADA.Exporter.Material {
-            var result: COLLADA.Exporter.Material = new COLLADA.Exporter.Material();
-            result.name = material.name || "material";
-            result.diffuse = (material.diffuse !== null) ? (material.diffuse.url) : null;
-            result.specular = (material.specular !== null) ? (material.specular.url) : null;
-            result.normal = (material.normal !== null) ? (material.normal.url) : null;
-            return result;
-        }
-
-        toJSON(): COLLADA.Exporter.MaterialJSON {
-            // Required properties
-            var result: COLLADA.Exporter.MaterialJSON = {
-                name: this.name,
+            return {
+                name: material.name,
+                diffuse: (material.diffuse !== null) ? (material.diffuse.url) : null,
+                specular: (material.specular !== null) ? (material.specular.url) : null,
+                normal: (material.normal !== null) ? (material.normal.url) : null
             };
-
-            // Optional properties
-            if (this.diffuse !== null) {
-                result.diffuse = this.diffuse;
-            }
-            if (this.specular !== null) {
-                result.specular = this.specular;
-            }
-            if (this.normal !== null) {
-                result.normal = this.normal;
-            }
-            return result;
         }
     };
 }

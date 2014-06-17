@@ -53,7 +53,7 @@ module COLLADA.Converter {
                 "If enabled, all animations are merged into a single animation. Enable if each bone has a separate top level animation.");
             this.singleGeometry = new OptionBool(true,
                 "If enabled, all geometries are merged into a single geometry. Only has an effect if 'extractGeometry' is enabled.");
-            this.singleBufferPerGeometry = new OptionBool(true,
+            this.singleBufferPerGeometry = new OptionBool(false,
                 "If enabled, all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of each buffer.");
             this.enableAnimations = new OptionBool(true,
                 "If enabled, animations are exported. Otherwise, all animations are ignored.");
