@@ -49,6 +49,7 @@ interface i_gl_objects {
     extensions?: {
         vao?: any;
         euint?: any;
+        tex_float?: any;
     };
 
     geometry?: i_gl_geometry;
@@ -56,7 +57,9 @@ interface i_gl_objects {
     animation?: COLLADA.Exporter.AnimationJSON;
     tracks?: i_gl_track[];
     bones?: COLLADA.Exporter.BoneJSON[];
+    bone_matrix_size?: number;
     bone_matrices?: Float32Array;
+    bone_matrices_texture?: WebGLTexture;
 
     matrices?: {
         modelview?: Mat4;
@@ -102,6 +105,7 @@ function initGL() {
     gl_objects.extensions = {};
     gl_objects.extensions.vao = gl.getExtension('OES_vertex_array_object');
     gl_objects.extensions.euint = gl.getExtension('OES_element_index_uint');
+    gl_objects.extensions.tex_float = gl.getExtension('OES_texture_float');
     gl_vao = gl_objects.extensions.vao;
 
     // Background color
@@ -116,9 +120,31 @@ function initGL() {
     gl_objects.shaders.skin = {};
     initShader(gl_objects.shaders.skin, "shader-skinning-vs", "shader-fs");
     initMatrices();
+    initBoneTexture();
     clearBuffers();
 }
 
+function initBoneTexture() {
+    // 32x32 pixels can store 256 bone matrices
+    gl_objects.bone_matrix_size = 32;
+    gl_objects.bone_matrices = new Float32Array(4 * gl_objects.bone_matrix_size * gl_objects.bone_matrix_size);
+
+    gl_objects.bone_matrices_texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, gl_objects.bone_matrices_texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl_objects.bone_matrix_size, gl_objects.bone_matrix_size, 0, gl.RGBA, gl.FLOAT, gl_objects.bone_matrices);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+function updateBoneTexture() {
+    gl.bindTexture(gl.TEXTURE_2D, gl_objects.bone_matrices_texture);
+    //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl_objects.bone_matrix_size, gl_objects.bone_matrix_size, 0, gl.RGBA, gl.FLOAT, gl_objects.bone_matrices);
+    // Note: texSubImage is faster, but bugged in current firefox
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl_objects.bone_matrix_size, gl_objects.bone_matrix_size, gl.RGBA, gl.FLOAT, gl_objects.bone_matrices);
+}
 
 function getShaderSource(id: string): string {
     var shaderScript: HTMLElement = document.getElementById(id);
@@ -237,7 +263,9 @@ function setUniforms(shader: i_gl_shader) {
 
     // Bone matrices
     if (shader.uniforms.bone_matrix) {
-        gl.uniformMatrix4fv(shader.uniforms.bone_matrix, false, gl_objects.bone_matrices);
+        gl.activeTexture(gl.TEXTURE0 + 0);
+        gl.bindTexture(gl.TEXTURE_2D, gl_objects.bone_matrices_texture);
+        gl.uniform1i(shader.uniforms.bone_matrix, 0);
     }
 
     // Lighting
@@ -258,7 +286,6 @@ function clearBuffers() {
     gl_objects.geometry = null;
     gl_objects.chunks = [];
     gl_objects.bones = [];
-    gl_objects.bone_matrices = null;
 
     gl_vao.bindVertexArrayOES(null);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -391,8 +418,6 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
     // Bones
     if (json.bones.length > 0) {
         gl_objects.bones = json.bones;
-        var maxbones: number = 100;
-        gl_objects.bone_matrices = new Float32Array(16 * maxbones);
     }
 
     // Animations
@@ -582,4 +607,6 @@ function animate_skeleton(time: number) {
             matrices[i * 16 + j] = bone_matrix[j];
         }
     }
+
+    updateBoneTexture();
 }
