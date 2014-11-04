@@ -10,8 +10,9 @@ module COLLADA.Loader {
         color: Float32Array;
         params: { [s: string]: COLLADA.Loader.LightParam; }
 
-    constructor() {
+        constructor() {
             super();
+            this._className += "Light|";
             this.type = null;
             this.color = null;
             this.params = {};
@@ -73,7 +74,7 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "color":
-                        light.color = context.strToFloats(child.textContent);
+                        light.color = context.getFloatsContent(child);
                         break;
                     case "constant_attenuation":
                     case "linear_attenuation":

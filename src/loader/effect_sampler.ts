@@ -21,6 +21,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "EffectSampler|";
             this.surface = null;
             this.image = null;
             this.wrapS = null;
@@ -33,7 +34,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.EffectSampler {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectSampler>(link, COLLADA.Loader.EffectSampler, "COLLADA.Loader.EffectSampler", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectSampler>(link, "EffectSampler", context);
         }
 
         /**
@@ -45,31 +46,31 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "source":
-                        result.surface = context.createFxLink(child.textContent, parent);
+                        result.surface = context.createFxLink(context.getTextContent(child), parent);
                         break;
                     case "instance_image":
                         result.image = context.getAttributeAsUrlLink(child, "url", true);
                         break;
                     case "wrap_s":
-                        result.wrapS = child.textContent;
+                        result.wrapS = context.getTextContent(child);
                         break;
                     case "wrap_t":
-                        result.wrapT = child.textContent;
+                        result.wrapT = context.getTextContent(child);
                         break;
                     case "minfilter":
-                        result.minFilter = child.textContent;
+                        result.minFilter = context.getTextContent(child);
                         break;
                     case "magfilter":
-                        result.magFilter = child.textContent;
+                        result.magFilter = context.getTextContent(child);
                         break;
                     case "border_color":
-                        result.borderColor = context.strToFloats(child.textContent);
+                        result.borderColor = context.getFloatsContent(child);
                         break;
                     case "mipmap_maxlevel":
-                        result.mipmapMaxLevel = parseInt(child.textContent, 10);
+                        result.mipmapMaxLevel = context.getIntContent(child);
                         break;
                     case "mipmap_bias":
-                        result.mipmapBias = parseFloat(child.textContent);
+                        result.mipmapBias = context.getFloatContent(child);
                         break;
                     default:
                         context.reportUnexpectedChild(child);

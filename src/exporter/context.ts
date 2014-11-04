@@ -3,13 +3,14 @@
 
 module COLLADA.Exporter {
 
-    export class Context implements COLLADA.Context {
+    export class Context extends COLLADA.Context {
         log: Log;
         chunks: COLLADA.Exporter.DataChunk[];
         chunk_data: Uint8Array[];
         bytes_written: number;
 
         constructor(log: Log) {
+            super();
             this.log = log;
             this.chunks = [];
             this.chunk_data = [];

@@ -26,6 +26,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "VisualSceneNode|";
             this.type = null;
             this.layer = null;
             this.children = [];
@@ -38,7 +39,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.VisualSceneNode {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.VisualSceneNode>(link, COLLADA.Loader.VisualSceneNode, "COLLADA.Loader.VisualSceneNode", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.VisualSceneNode>(link, "VisualSceneNode", context);
         }
 
         static registerParent(child: COLLADA.Loader.VisualSceneNode, parent: COLLADA.Loader.Element, context: COLLADA.Loader.Context) {

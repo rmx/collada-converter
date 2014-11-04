@@ -16,6 +16,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Animation|";
             this.parent = null;
             this.children = [];
             this.sources = [];

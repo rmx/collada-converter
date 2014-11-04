@@ -9,11 +9,12 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Material|";
             this.effect = null;
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Material {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Material>(link, COLLADA.Loader.Material, "COLLADA.Loader.Material", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Material>(link, "Material", context);
         }
 
         /**

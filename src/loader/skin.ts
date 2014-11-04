@@ -16,6 +16,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Skin|";
             this.source = null;
             this.bindShapeMatrix = null;
             this.sources = [];
@@ -34,7 +35,7 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "bind_shape_matrix":
-                        result.bindShapeMatrix = context.strToFloats(child.textContent);
+                        result.bindShapeMatrix = context.getFloatsContent(child);
                         break;
                     case "source":
                         result.sources.push(COLLADA.Loader.Source.parse(child, context));

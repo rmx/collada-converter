@@ -9,5 +9,6 @@
 @REM Build example
 @ECHO building convert.js
 @CALL node node_modules/typescript/bin/tsc examples/convert.ts -t ES5 -sourcemap --out examples/convert.js
+@CALL node node_modules/typescript/bin/tsc examples/convert-task.ts -t ES5 -sourcemap --out examples/convert-task.js
 
 @PAUSE

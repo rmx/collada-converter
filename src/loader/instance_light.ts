@@ -9,6 +9,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "InstanceLight|";
             this.light = null;
         }
 

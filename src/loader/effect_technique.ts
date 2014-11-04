@@ -29,6 +29,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "EffectTechnique|";
             this.params = [];
             this.shading = null;
             this.emission = null;
@@ -46,7 +47,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.EffectTechnique {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectTechnique>(link, COLLADA.Loader.EffectTechnique, "COLLADA.Loader.EffectTechnique", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectTechnique>(link, "EffectTechnique", context);
         }
 
         /**
@@ -110,19 +111,19 @@ module COLLADA.Loader {
                         technique.bump = COLLADA.Loader.ColorOrTexture.parse(child, technique, context);
                         break;
                     case "shininess":
-                        technique.shininess = parseFloat(child.childNodes[1].textContent);
+                        technique.shininess = context.getFloatContent(child.childNodes[1] || child.childNodes.item(0));
                         break;
                     case "reflectivity":
-                        technique.reflectivity = parseFloat(child.childNodes[1].textContent);
+                        technique.reflectivity = context.getFloatContent(child.childNodes[1] || child.childNodes.item(0));
                         break;
                     case "transparency":
-                        technique.transparency = parseFloat(child.childNodes[1].textContent);
+                        technique.transparency = context.getFloatContent(child.childNodes[1] || child.childNodes.item(0));
                         break;
                     case "index_of_refraction":
-                        technique.index_of_refraction = parseFloat(child.childNodes[1].textContent);
+                        technique.index_of_refraction = context.getFloatContent(child.childNodes[1] || child.childNodes.item(0));
                         break;
                     case "double_sided":
-                        technique.double_sided = (parseFloat(child.textContent)) > 0;
+                        technique.double_sided = context.getFloatContent(child) > 0;
                         break;
                     default:
                         if (profile === "COMMON") {

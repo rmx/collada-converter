@@ -12,6 +12,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "ElementTemplate|";
             this.member = null;
         }
 

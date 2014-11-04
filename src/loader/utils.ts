@@ -9,7 +9,7 @@ module COLLADA.Loader {
 
             // Iterate over all children (can be nodes or text content)
             for (var i: number = 0; i < childNodesLength; i++) {
-                var child: Node = childNodes[i];
+                var child: Node = childNodes[i] || childNodes.item(i);
 
                 // Skip text content
                 if (child.nodeType !== 1) continue;

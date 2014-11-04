@@ -56,7 +56,7 @@ module COLLADA.Loader {
                 return new COLLADA.Loader.Document();
             }
 
-            return COLLADA.Loader.Document.parseCOLLADA(colladaNodes[0], context);
+            return COLLADA.Loader.Document.parseCOLLADA(colladaNodes[0] || colladaNodes.item(0), context);
         }
 
         static parseCOLLADA(node: Node, context: COLLADA.Loader.Context): COLLADA.Loader.Document {

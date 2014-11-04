@@ -10,6 +10,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Channel|";
             this.source = null;
             this.target = null;
         }

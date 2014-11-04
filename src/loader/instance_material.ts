@@ -22,11 +22,12 @@ module COLLADA.Loader {
         symbol: string;
         /** Contains uniform parameters */
         params: { [s: string]: COLLADA.Loader.InstanceMaterialParam; }
-    /** Contains vertex paramters */
-    vertexInputs: { [s: string]: COLLADA.Loader.InstanceMaterialVertexInput; }
+        /** Contains vertex paramters */
+        vertexInputs: { [s: string]: COLLADA.Loader.InstanceMaterialVertexInput; }
 
-    constructor() {
+        constructor() {
             super();
+            this._className += "InstanceMaterial|";
             this.material = null;
             this.symbol = null;
             this.params = {};

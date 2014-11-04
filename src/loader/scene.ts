@@ -13,6 +13,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Scene|";
             this.instance = null;
         }
 

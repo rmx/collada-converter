@@ -18,8 +18,9 @@ module COLLADA.Loader {
         data: COLLADA.Loader.SourceData;
         params: { [s: string]: string; }
 
-    constructor() {
+        constructor() {
             super();
+            this._className += "Source|";
             this.sourceId = null;
             this.count = null;
             this.stride = null;
@@ -29,7 +30,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Source {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Source>(link, COLLADA.Loader.Source, "COLLADA.Loader.Source", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Source>(link, "Source", context);
         }
 
         /**
@@ -46,20 +47,20 @@ module COLLADA.Loader {
                 switch (child.nodeName) {
                     case "bool_array":
                         result.sourceId = context.getAttributeAsString(child, "id", null, false);
-                        result.data = context.strToBools(child.textContent);
+                        result.data = context.getBoolsContent(child);
                         break;
                     case "float_array":
                         result.sourceId = context.getAttributeAsString(child, "id", null, false);
-                        result.data = context.strToFloats(child.textContent);
+                        result.data = context.getFloatsContent(child);
                         break;
                     case "int_array":
                         result.sourceId = context.getAttributeAsString(child, "id", null, false);
-                        result.data = context.strToInts(child.textContent);
+                        result.data = context.getIntsContent(child);
                         break;
                     case "IDREF_array":
                     case "Name_array":
                         result.sourceId = context.getAttributeAsString(child, "id", null, false);
-                        result.data = context.strToStrings(child.textContent);
+                        result.data = context.getStringsContent(child);
                         break;
                     case "technique_common":
                         COLLADA.Loader.Source.parseSourceTechniqueCommon(child, result, context);
@@ -100,7 +101,7 @@ module COLLADA.Loader {
             source.stride = context.getAttributeAsInt(node, "stride", 1, false);
             source.offset = context.getAttributeAsInt(node, "offset", 0, false);
             if (sourceId !== "#" + source.sourceId) {
-                context.log.write("Source " + source.id + "uses a non-local data source, this is not supported", LogLevel.Error);
+                context.log.write("Source " + source.id + " uses a non-local data source, this is not supported", LogLevel.Error);
             }
 
             Utils.forEachChild(node, function (child: Node) {

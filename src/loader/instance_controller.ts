@@ -17,6 +17,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "InstanceController|";
             this.controller = null;
             this.skeletons = [];
             this.materials = [];
@@ -36,7 +37,7 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "skeleton":
-                        result.skeletons.push(context.createUrlLink(child.textContent));
+                        result.skeletons.push(context.createUrlLink(context.getTextContent(child)));
                         break;
                     case "bind_material":
                         COLLADA.Loader.BindMaterial.parse(child, result, context);

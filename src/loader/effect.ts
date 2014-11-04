@@ -17,12 +17,13 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Effect|";
             this.params = [];
             this.technique = null;
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Effect {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Effect>(link, COLLADA.Loader.Effect, "COLLADA.Loader.Effect", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Effect>(link, "Effect", context);
         }
 
         /**

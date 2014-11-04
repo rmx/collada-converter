@@ -9,6 +9,7 @@ module COLLADA.Loader {
     * Base class for all links within a collada document
     */
     export class Link {
+        url: string;
         target: COLLADA.Loader.Element;
 
         constructor() {
@@ -35,7 +36,6 @@ module COLLADA.Loader {
     *   <element source="#xyz">
     */
     export class UrlLink extends Link {
-        url: string;
 
         constructor(url: string) {
             super();
@@ -68,7 +68,6 @@ module COLLADA.Loader {
     *   <element texture="xyz">
     */
     export class FxLink extends Link {
-        url: string;
         scope: COLLADA.Loader.Element;
 
         constructor(url: string, scope: COLLADA.Loader.Element) {
@@ -109,7 +108,6 @@ module COLLADA.Loader {
     *   <element target="xyz/abc">
     */
     export class SidLink extends Link {
-        url: string;
         parentId: string;
         id: string;
         sids: string[];

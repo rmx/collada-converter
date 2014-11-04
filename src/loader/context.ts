@@ -4,7 +4,7 @@
 
 module COLLADA.Loader {
 
-    export class Context implements COLLADA.Context {
+    export class Context extends COLLADA.Context {
         ids: { [s: string]: COLLADA.Loader.Element; }
         log: Log;
         links: Link[];
@@ -12,11 +12,41 @@ module COLLADA.Loader {
         loadedBytes: number;
 
         constructor() {
+            super();
             this.log = null;
             this.ids = {};
             this.links = [];
             this.totalBytes = null;
             this.loadedBytes = null;
+        }
+
+
+        getTextContent(el: Node): string {
+            return el.textContent || (<any>el).firstChild.getNodeValue()+"";
+        }
+
+        getFloatsContent(el: Node): Float32Array {
+            return this.strToFloats(this.getTextContent(el));
+        }
+
+        getFloatContent(el: Node): number {
+            return parseFloat(this.getTextContent(el));
+        }
+
+        getIntsContent(el: Node): Int32Array {
+            return this.strToInts(this.getTextContent(el));
+        }
+
+        getIntContent(el: Node): number {
+            return parseInt(this.getTextContent(el), 10);
+        }
+
+        getBoolsContent(el: Node): Uint8Array {
+            return this.strToBools(this.getTextContent(el));
+        }
+
+        getStringsContent(el: Node): string[] {
+            return this.strToStrings(this.getTextContent(el));
         }
 
         getAttributeAsFloat(el: Node, name: string, defaultValue: number, required: boolean): number {
@@ -46,7 +76,7 @@ module COLLADA.Loader {
         getAttributeAsString(el: Node, name: string, defaultValue: string, required: boolean): string {
             var attr: Attr = el.attributes.getNamedItem(name);
             if (attr != null) {
-                return attr.value;
+                return attr.value + "";
             } else if (!required) {
                 return defaultValue;
             } else {

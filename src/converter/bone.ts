@@ -52,7 +52,7 @@ module COLLADA.Converter {
                     break;
                 }
             }
-            if (boneNode instanceof COLLADA.Loader.VisualSceneNode) {
+            if (context.isInstanceOf(boneNode, "VisualSceneNode")) {
                 return <COLLADA.Loader.VisualSceneNode> boneNode;
             } else {
                 context.log.write("Joint " + boneSid + " does not point to a visual scene node, joint ignored", LogLevel.Warning);

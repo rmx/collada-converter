@@ -11,6 +11,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "InstanceGeometry|";
             this.geometry = null;
             this.materials = [];
         }

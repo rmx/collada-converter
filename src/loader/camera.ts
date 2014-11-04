@@ -9,8 +9,9 @@ module COLLADA.Loader {
         type: string;
         params: { [s: string]: COLLADA.Loader.CameraParam; }
 
-    constructor() {
+        constructor() {
             super();
+            this._className += "Camera|";
             this.type = null;
             this.params = {};
         }

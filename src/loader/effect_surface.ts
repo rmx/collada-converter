@@ -20,6 +20,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "EffectSurface|";
             this.type = null;
             this.initFrom = null;
             this.format = null;
@@ -30,7 +31,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.EffectSurface {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectSurface>(link, COLLADA.Loader.EffectSurface, "COLLADA.Loader.EffectSurface", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectSurface>(link, "EffectSurface", context);
         }
 
         /**
@@ -44,22 +45,22 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "init_from":
-                        result.initFrom = context.createUrlLink(child.textContent);
+                        result.initFrom = context.createUrlLink(context.getTextContent(child));
                         break;
                     case "format":
-                        result.format = child.textContent;
+                        result.format = context.getTextContent(child);
                         break;
                     case "size":
-                        result.size = context.strToFloats(child.textContent);
+                        result.size = context.getFloatsContent(child);
                         break;
                     case "viewport_ratio":
-                        result.viewportRatio = context.strToFloats(child.textContent);
+                        result.viewportRatio = context.getFloatsContent(child);
                         break;
                     case "mip_levels":
-                        result.mipLevels = parseInt(child.textContent, 10);
+                        result.mipLevels = context.getIntContent(child);
                         break;
                     case "mipmap_generate":
-                        result.mipmapGenerate = (child.textContent === "True");
+                        result.mipmapGenerate = (context.getTextContent(child).toLowerCase() === "true");
                         break;
                     default:
                         context.reportUnexpectedChild(child);

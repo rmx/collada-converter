@@ -19,6 +19,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "EffectParam|";
             this.semantic = null;
             this.surface = null;
             this.sampler = null;
@@ -26,7 +27,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.EffectParam {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectParam>(link, COLLADA.Loader.EffectParam, "COLLADA.Loader.EffectParam", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.EffectParam>(link, "EffectParam", context);
         }
 
         /**
@@ -41,19 +42,19 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "semantic":
-                        result.semantic = child.textContent;
+                        result.semantic = context.getTextContent(child);
                         break;
                     case "float":
-                        result.floats = context.strToFloats(child.textContent);
+                        result.floats = context.getFloatsContent(child);
                         break;
                     case "float2":
-                        result.floats = context.strToFloats(child.textContent);
+                        result.floats = context.getFloatsContent(child);
                         break;
                     case "float3":
-                        result.floats = context.strToFloats(child.textContent);
+                        result.floats = context.getFloatsContent(child);
                         break;
                     case "float4":
-                        result.floats = context.strToFloats(child.textContent);
+                        result.floats = context.getFloatsContent(child);
                         break;
                     case "surface":
                         result.surface = COLLADA.Loader.EffectSurface.parse(child, result, context);

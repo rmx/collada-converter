@@ -9,11 +9,12 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Image|";
             this.initFrom = null;
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Image {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Image>(link, COLLADA.Loader.Image, "COLLADA.Loader.Image", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Image>(link, "Image", context);
         }
 
         /**
@@ -28,7 +29,7 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "init_from":
-                        result.initFrom = child.textContent;
+                        result.initFrom = context.getTextContent(child);
                         break;
                     default:
                         context.reportUnexpectedChild(child);

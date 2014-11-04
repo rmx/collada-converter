@@ -8,7 +8,7 @@ module COLLADA {
         Exception = 5
     };
 
-    function LogLevelToString(level: LogLevel): string {
+    export function LogLevelToString(level: LogLevel): string {
         switch (level) {
             case LogLevel.Trace: return "TRACE";
             case LogLevel.Info: return "INFO";
@@ -21,6 +21,16 @@ module COLLADA {
 
     export interface Log {
         write: (message: string, level: LogLevel) => void;
+    }
+
+    export class LogCallback implements Log {
+        onmessage: (message: string, level: LogLevel) => void;
+
+        write(message: string, level: LogLevel) {
+            if (this.onmessage) {
+                this.onmessage(message, level);
+            }
+        }
     }
 
     export class LogArray implements Log {

@@ -15,6 +15,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Input|";
             this.semantic = null;
             this.source = null;
             this.offset = null;

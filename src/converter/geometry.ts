@@ -96,7 +96,7 @@ module COLLADA.Converter {
             }
             if (skeletonRootNodes.length === 0) {
                 context.log.write("Controller has no skeleton, using the whole scene as the skeleton root", LogLevel.Warning);
-                skeletonRootNodes = context.nodes.collada.filter((node: COLLADA.Loader.VisualSceneNode) => (node.parent instanceof COLLADA.Loader.VisualScene));
+                skeletonRootNodes = context.nodes.collada.filter((node: COLLADA.Loader.VisualSceneNode) => (context.isInstanceOf(node.parent, "VisualScene")));
             }
             if (skeletonRootNodes.length === 0) {
                 context.log.write("Controller still has no skeleton, using unskinned geometry", LogLevel.Warning);

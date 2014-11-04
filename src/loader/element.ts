@@ -11,6 +11,8 @@ module COLLADA.Loader {
     *   even if the actual element does not support those.
     */
     export class Element {
+        /** Class name so that we do not depend on instanceof */
+        _className: string;
         /** Collada URL adressing: identifier */
         id: string;
         /** Collada SID/FX adressing: identifier */
@@ -32,21 +34,22 @@ module COLLADA.Loader {
             this.fxParent = null;
             this.fxChildren = {};
             this.sidChildren = [];
+            this._className = "|Element|";
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Element {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Element>(link, COLLADA.Loader.Element, "COLLADA.Loader.Element", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Element>(link, "Element", context);
         }
 
-        static _fromLink<T extends COLLADA.Loader.Element>(link: Link, type: any, typeName: string, context: COLLADA.Context): T {
+        static _fromLink<T extends COLLADA.Loader.Element>(link: Link, typeName: string, context: COLLADA.Context): T {
             if (link === null) {
                 return null;
             } else if (link.target === null) {
                 return null;
-            } else if (link.target instanceof type) {
+            } else if (context.isInstanceOf(link.target, typeName)) {
                 return <T> link.target;
             } else {
-                context.log.write("Link with url " + link.getUrl() + " does not point to a " + typeName + ", link target ignored", LogLevel.Error);
+                context.log.write("Link with url " + link.url + " does not point to a " + typeName + ", link target ignored", LogLevel.Error);
                 return null;
             }
         }

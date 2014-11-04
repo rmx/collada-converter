@@ -14,6 +14,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Sampler|";
             this.input = null;
             this.outputs = [];
             this.inTangents = [];
@@ -22,7 +23,7 @@ module COLLADA.Loader {
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Sampler {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Sampler>(link, COLLADA.Loader.Sampler, "COLLADA.Loader.Sampler", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Sampler>(link, "Sampler", context);
         }
 
         /**

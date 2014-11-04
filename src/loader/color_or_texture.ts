@@ -13,6 +13,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "ColorOrTexture|";
             this.color = null;
             this.textureSampler = null;
             this.texcoord = null;
@@ -32,7 +33,7 @@ module COLLADA.Loader {
             Utils.forEachChild(node, function (child: Node) {
                 switch (child.nodeName) {
                     case "color":
-                        result.color = context.strToColor(child.textContent);
+                        result.color = context.strToColor(context.getTextContent(child));
                         break;
                     case "texture":
                         result.textureSampler = context.getAttributeAsFxLink(child, "texture", parent, true);

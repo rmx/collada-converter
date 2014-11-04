@@ -8,6 +8,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "CameraParam|";
             this.value = null;
         }
 
@@ -19,7 +20,7 @@ module COLLADA.Loader {
 
             result.sid = context.getAttributeAsString(node, "sid", null, false);
             result.name = node.nodeName;
-            result.value = parseFloat(node.textContent);
+            result.value = parseFloat(context.getTextContent(node));
 
             return result;
         }

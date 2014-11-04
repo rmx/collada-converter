@@ -41,21 +41,24 @@ module COLLADA.Converter {
         }
     }
 
-    export class Context implements COLLADA.Context {
+    export class Context extends COLLADA.Context {
         materials: COLLADA.Converter.ObjectMap<COLLADA.Loader.Material, COLLADA.Converter.Material>;
         textures: COLLADA.Converter.ObjectMap<COLLADA.Loader.Image, COLLADA.Converter.Texture>;
         nodes: COLLADA.Converter.ObjectMap<COLLADA.Loader.VisualSceneNode, COLLADA.Converter.Node>;
         animationTargets: COLLADA.Converter.ObjectMap<COLLADA.Loader.Element, COLLADA.Converter.AnimationTarget>;
         log: Log;
         options: COLLADA.Converter.Options;
+        messageCount: { [name: string]: number };
 
         constructor(log: Log, options: COLLADA.Converter.Options) {
+            super();
             this.log = log;
             this.options = options;
             this.materials = new COLLADA.Converter.ObjectMap<COLLADA.Loader.Material, COLLADA.Converter.Material>();
             this.textures = new COLLADA.Converter.ObjectMap<COLLADA.Loader.Image, COLLADA.Converter.Texture>();
             this.nodes = new COLLADA.Converter.ObjectMap<COLLADA.Loader.VisualSceneNode, COLLADA.Converter.Node>();
             this.animationTargets = new COLLADA.Converter.ObjectMap<COLLADA.Loader.Element, COLLADA.Converter.AnimationTarget>();
+            this.messageCount = {};
         }
     }
 }

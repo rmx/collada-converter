@@ -12,12 +12,13 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Controller|";
             this.skin = null;
             this.morph = null;
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Controller {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Controller>(link, COLLADA.Loader.Controller, "COLLADA.Loader.Controller", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Controller>(link, "Controller", context);
         }
 
         /**

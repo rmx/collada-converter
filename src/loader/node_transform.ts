@@ -9,6 +9,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "NodeTransform|";
             this.type = null;
             this.data = null;
         }
@@ -23,7 +24,7 @@ module COLLADA.Loader {
             result.type = node.nodeName;
 
             context.registerSidTarget(result, parent);
-            result.data = context.strToFloats(node.textContent);
+            result.data = context.getFloatsContent(node);
 
             var expectedDataLength: number = 0;
             switch (result.type) {

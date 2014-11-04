@@ -15,6 +15,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "VertexWeights|";
             this.inputs = [];
             this.vcount = null;
             this.v = null;
@@ -38,10 +39,10 @@ module COLLADA.Loader {
                         COLLADA.Loader.VertexWeights.addInput(result, input, context);
                         break;
                     case "vcount":
-                        result.vcount = context.strToInts(child.textContent);
+                        result.vcount = context.getIntsContent(child);
                         break;
                     case "v":
-                        result.v = context.strToInts(child.textContent);
+                        result.v = context.getIntsContent(child);
                         break;
                     default:
                         context.reportUnexpectedChild(child);

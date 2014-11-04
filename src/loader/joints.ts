@@ -11,6 +11,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Joints|";
             this.joints = null;
             this.invBindMatrices = null;
         }

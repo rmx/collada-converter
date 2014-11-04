@@ -17,6 +17,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Triangles|";
             this.type = null;
             this.count = null;
             this.material = null;
@@ -42,10 +43,10 @@ module COLLADA.Loader {
                         result.inputs.push(COLLADA.Loader.Input.parse(child, true, context));
                         break;
                     case "vcount":
-                        result.vcount = context.strToInts(child.textContent);
+                        result.vcount = context.getIntsContent(child);
                         break;
                     case "p":
-                        result.indices = context.strToInts(child.textContent);
+                        result.indices = context.getIntsContent(child);
                         break;
                     default:
                         context.reportUnexpectedChild(child);

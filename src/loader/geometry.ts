@@ -14,13 +14,14 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Geometry|";
             this.sources = [];
             this.vertices = [];
             this.triangles = [];
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Geometry {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Geometry>(link, COLLADA.Loader.Geometry, "COLLADA.Loader.Geometry", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Geometry>(link, "Geometry", context);
         }
 
         /**

@@ -17,14 +17,6 @@ interface i_elements {
 };
 var elements: i_elements = {};
 
-interface i_loader_objects {
-    parser?: DOMParser;
-    loader?: COLLADA.Loader.ColladaLoader;
-    converter?: COLLADA.Converter.ColladaConverter;
-    exporter?: COLLADA.Exporter.ColladaExporter;
-};
-var loader_objects: i_loader_objects = {};
-
 var timestamps: {[name: string]:number} = {};
 var input_data: string = "";
 
@@ -33,8 +25,19 @@ function writeProgress(msg: string) {
     console.log(msg);
 }
 
+function writeLog(name: string, message: string, level: COLLADA.LogLevel) {
+    var line: string = COLLADA.LogLevelToString(level) + ": " + message;
+    switch (name) {
+        case "loader": elements.log_loader.textContent += line + "\n"; break;
+        case "converter": elements.log_converter.textContent += line + "\n"; break;
+        case "exporter": elements.log_exporter.textContent += line + "\n"; break;
+        case "progress": elements.log_progress.textContent += line + "\n"; break;
+    }
+}
+
 function timeStart(name: string) {
     timestamps[name] = performance.now();
+    writeProgress(name + " started"); 
 }
 
 function timeEnd(name: string) {
@@ -99,56 +102,138 @@ function onFileLoaded(ev: Event) {
     elements.input.textContent = "COLLADA loaded (" + (data.length/1024).toFixed(1) + " kB)";
 }
 
-function onConvertClick() {
-    clearOutput();
+function convertAsync() {
 
-    // Input
-    var input = input_data;
+    var url = window.location.href.replace("convert.html", "");
+    var script_urls = ["convert-task.js", "../js/xmlsax.js", "../js/xmlw3cdom.js", "../lib/collada.js", "../js/gl-matrix.js"].map((value) => ("'" + url + value + "'"));
+    var worker_script = new Blob(["importScripts(" + script_urls.join(",") + ");"]);
+    var worker_script_url = URL.createObjectURL(worker_script);
+    var worker = new Worker(worker_script_url);
+    URL.revokeObjectURL(worker_script_url);
+
+    worker.onmessage = function (event) {
+        var message: any = event.data;
+        if (message.progress_start) {
+            timeStart(message.progress_start);
+        }
+        if (message.progress_end) {
+            timeEnd(message.progress_end);
+        }
+        if (message.log_name) {
+            writeLog(message.log_name, message.log_message, message.log_level);
+        }
+        if (message.result_json) {
+            var json = message.result_json;
+            var data = message.result_data;
+
+            // Download links
+            elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
+            elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
+            elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(data.buffer);
+            elements.download_data.textContent = "Download (" + (data.length / 1024).toFixed(1) + " kB)";
+
+            // Output
+            elements.output.textContent = JSON.stringify(json, null, 2);
+            resetCheckboxes(json.chunks);
+
+            // Start rendering
+            timeStart("WebGL loading");
+            fillBuffers(json, data.buffer);
+            setupCamera(json);
+            timeEnd("WebGL loading");
+
+            timeStart("WebGL rendering");
+            tick(null);
+            timeEnd("WebGL rendering");
+        }
+    };
+
+    // Worker data
+    var worker_data: any = {};
+    worker_data.input_data = input_data;
+    
+    // Start the worker
+    var options: any = {};
+    options.fps = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
+    options.animations = (<HTMLInputElement>document.getElementById("option-animations")).checked;
+    worker_data.options = options;
+
+    worker.postMessage(worker_data);
+}
+
+function convertSync() {
+    // Parser
+    var parser = new DOMParser();
 
     // Parse
     timeStart("XML parsing");
-    var xmlDoc = loader_objects.parser.parseFromString(input, "text/xml");
+    var xmlDoc = parser.parseFromString(input_data, "text/xml");
     timeEnd("XML parsing");
+
+    // Loader
+    var loader = new COLLADA.Loader.ColladaLoader();
+    var loaderlog = loader.log = new COLLADA.LogCallback;
+    loaderlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("loader", message, level); }
 
     // Load
     timeStart("COLLADA parsing");
-    var loadData = loader_objects.loader.loadFromXML("id", xmlDoc);
+    var load_data = loader.loadFromXML("id", xmlDoc);
     timeEnd("COLLADA parsing");
-    // console.log(loadData);
+
+    // Converter
+    var converter = new COLLADA.Converter.ColladaConverter();
+    var converterlog = converter.log = new COLLADA.LogCallback;
+    converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
 
     // Convert
-    loader_objects.converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
-    loader_objects.converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
+    converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
+    converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
     timeStart("COLLADA conversion");
-    var convertData = loader_objects.converter.convert(loadData);
+    var convertData = converter.convert(load_data);
     timeEnd("COLLADA conversion");
-    //console.log(convertData);
+
+    // Exporter
+    var exporter = new COLLADA.Exporter.ColladaExporter();
+    var exporterlog = exporter.log = new COLLADA.LogCallback;
+    exporterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
 
     // Export
     timeStart("COLLADA export");
-    var exportData = loader_objects.exporter.export(convertData);
+    var exportData = exporter.export(convertData);
     timeEnd("COLLADA export");
-    // console.log(exportData);
+
+    var json = exportData.json;
+    var data = exportData.data;
 
     // Download links
-    elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(exportData.json, null);
-    elements.download_json.textContent = "Download (" + (JSON.stringify(exportData.json).length / 1024).toFixed(1) + " kB)";
-    elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(exportData.data);
-    elements.download_data.textContent = "Download (" + (exportData.data.length / 1024).toFixed(1) + " kB)";
+    elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
+    elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
+    elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(data);
+    elements.download_data.textContent = "Download (" + (data.length / 1024).toFixed(1) + " kB)";
 
     // Output
-    elements.output.textContent = JSON.stringify(exportData.json, null, 2);
-    resetCheckboxes(exportData.json.chunks);
+    elements.output.textContent = JSON.stringify(json, null, 2);
+    resetCheckboxes(json.chunks);
 
     // Start rendering
     timeStart("WebGL loading");
-    fillBuffers(exportData.json, exportData.data.buffer);
-    setupCamera(exportData.json);
+    fillBuffers(json, data.buffer);
+    setupCamera(json);
     timeEnd("WebGL loading");
 
     timeStart("WebGL rendering");
     tick(null);
     timeEnd("WebGL rendering");
+}
+
+function onConvertClick() {
+    clearOutput();
+
+    if (true) {
+        convertSync();
+    } else {
+        convertAsync();
+    }
 }
 
 function onColladaProgress(id: string, loaded: number, total: number) {
@@ -174,15 +259,6 @@ function init() {
         elements.mesh_parts_checkboxes[i] = <HTMLInputElement> document.getElementById(id);
         elements.mesh_parts_labels[i] = <HTMLLabelElement> document.getElementById(id + "_label");
     }
-
-    // Create COLLADA converter chain
-    loader_objects.parser = new DOMParser();
-    loader_objects.loader = new COLLADA.Loader.ColladaLoader();
-    loader_objects.loader.log = new COLLADA.LogTextArea(elements.log_loader);
-    loader_objects.converter = new COLLADA.Converter.ColladaConverter();
-    loader_objects.converter.log = new COLLADA.LogTextArea(elements.log_converter);
-    loader_objects.exporter = new COLLADA.Exporter.ColladaExporter();
-    loader_objects.exporter.log = new COLLADA.LogTextArea(elements.log_exporter);
 
     // Initialize WebGL
     initGL();

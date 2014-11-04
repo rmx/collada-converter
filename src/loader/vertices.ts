@@ -10,11 +10,12 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Vertices|";
             this.inputs = [];
         }
 
         static fromLink(link: Link, context: COLLADA.Context): COLLADA.Loader.Vertices {
-            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Vertices>(link, COLLADA.Loader.Vertices, "COLLADA.Loader.Vertices", context);
+            return COLLADA.Loader.Element._fromLink<COLLADA.Loader.Vertices>(link, "Vertices", context);
         }
 
         /**

@@ -33,15 +33,27 @@ module COLLADA.Converter {
             this.dataCount = null;
         }
 
-        findInputIndices(t: number, context: COLLADA.Context): COLLADA.Converter.AnimationChannelIndices {
+        findInputIndices(t: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationChannelIndices {
             var input: Float32Array = this.input;
 
             // Handle borders
             if (t < input[0]) {
-                context.log.write("Invalid time for resampling: t=" + t + ", t_begin=" + input[0] + ", using first keyframe", LogLevel.Warning);
+                var warningCount = context.messageCount["findInputIndices-invalidTime"] || 0;
+                if (warningCount < 10) {
+                    context.log.write("Invalid time for resampling: t=" + t + ", t_begin=" + input[0] + ", using first keyframe", LogLevel.Warning);
+                } else if (warningCount == 10) {
+                    context.log.write("Further warnings about invalid time suppressed.", LogLevel.Warning);
+                }
+                context.messageCount["findInputIndices-invalidTime"] = warningCount + 1;
                 return { i0: 0, i1: 1 };
             } else if (t > input[input.length - 1]) {
-                context.log.write("Invalid time for resampling: t=" + t + ", t_end=" + input[input.length - 1] + ", using last keyframe", LogLevel.Warning);
+                var warningCount = context.messageCount["findInputIndices-invalidTime"] || 0;
+                if (warningCount < 10) {
+                    context.log.write("Invalid time for resampling: t=" + t + ", t_end=" + input[input.length - 1] + ", using last keyframe", LogLevel.Warning);
+                } else if (warningCount == 10) {
+                    context.log.write("Further warnings about invalid time suppressed.", LogLevel.Warning);
+                }
+                context.messageCount["findInputIndices-invalidTime"] = warningCount + 1;
                 return { i0: input.length - 2, i1: input.length - 1 };
             }
 

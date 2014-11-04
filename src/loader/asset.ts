@@ -13,6 +13,7 @@ module COLLADA.Loader {
 
         constructor() {
             super();
+            this._className += "Asset|";
             this.unit = null;
             this.upAxis = null;
         }
@@ -26,7 +27,7 @@ module COLLADA.Loader {
                         result.unit = context.getAttributeAsFloat(child, "meter", 1, false);
                         break;
                     case "up_axis":
-                        result.upAxis = child.textContent.toUpperCase().charAt(0);
+                        result.upAxis = context.getTextContent(child).toUpperCase().charAt(0);
                         break;
                     case "contributor":
                     case "created":
