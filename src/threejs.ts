@@ -115,7 +115,7 @@ module COLLADA.Threejs {
             }
 
             var bones: any[] = converter_geometry.bones.map((bone) => { return COLLADA.Threejs.Bone.toJSON(bone, context); });
-            var animations: any[] = doc.resampled_animations.map((e) => { return COLLADA.Threejs.Animation.toJSON(e, converter_geometry.bones, context); });
+            var animations: any[] = doc.resampled_animations.map((e) => { return COLLADA.Threejs.Animation.toJSON(e, converter_geometry.bones, bones, context); });
 
             // Assemble result
             return {
