@@ -37,12 +37,7 @@ module COLLADA.Exporter {
         }
 
         static bufferToBlobURI(buf: Uint8Array): string {
-            var blob: Blob = new Blob([buf], { type: "application/octet-stream" });
-            return URL.createObjectURL(blob);
-        }
-
-        static jsonToBlobURI(json: any): string {
-            var blob: Blob = new Blob([JSON.stringify(json)], { type: "application/json" });
+            var blob: Blob = new Blob([buf]);
             return URL.createObjectURL(blob);
         }
 

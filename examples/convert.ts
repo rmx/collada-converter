@@ -12,6 +12,7 @@ interface i_elements {
     canvas?: HTMLCanvasElement;
     download_json?: HTMLAnchorElement;
     download_data?: HTMLAnchorElement;
+    download_threejs?: HTMLAnchorElement;
     mesh_parts_checkboxes?: HTMLInputElement[];
     mesh_parts_labels?: HTMLLabelElement[];
 };
@@ -215,6 +216,19 @@ function convertSync() {
     elements.output.textContent = JSON.stringify(json, null, 2);
     resetCheckboxes(json.chunks);
 
+    // Exporter2
+    var exporter2 = new COLLADA.Threejs.ThreejsExporter();
+    var exporter2log = exporter2.log = new COLLADA.LogCallback;
+    exporter2log.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
+
+    // Export2
+    timeStart("Threejs export");
+    var threejsData = exporter2.export(convertData);
+    timeEnd("Threejs export");
+
+    elements.download_threejs.href = COLLADA.Exporter.Utils.jsonToBlobURI(threejsData);
+    elements.download_threejs.textContent = "Download (" + (JSON.stringify(threejsData).length / 1024).toFixed(1) + " kB)";
+
     // Start rendering
     timeStart("WebGL loading");
     fillBuffers(json, data.buffer);
@@ -252,6 +266,7 @@ function init() {
     elements.canvas = <HTMLCanvasElement> document.getElementById("canvas");
     elements.download_json = <HTMLAnchorElement> document.getElementById("download_json");
     elements.download_data = <HTMLAnchorElement> document.getElementById("download_data");
+    elements.download_threejs = <HTMLAnchorElement> document.getElementById("download_threejs");
     elements.mesh_parts_checkboxes = [];
     elements.mesh_parts_labels = [];
     for (var i: number = 0; i < 18; ++i) {
