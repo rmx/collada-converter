@@ -99,6 +99,7 @@ module COLLADA.Converter {
             if (source === null) {
                 return null;
             }
+
             if (source.stride > outDim) {
                 context.log.write("Source data for " + name + " contains too many dimensions, " + (source.stride - outDim) + " dimensions will be ignored", LogLevel.Warning);
             } else if (source.stride < outDim) {
@@ -122,9 +123,13 @@ module COLLADA.Converter {
 
             // Copy data
             var result = new Float32Array(source.count * outDim);
-            for (var i: number = iBegin; i < iEnd; i += outDim) {
+            var src_offset = source.offset;
+            var src_stride = source.stride;
+            var dest_offset = 0;
+            var dest_stride = outDim;
+            for (var i: number = 0; i < source.count; ++i) {
                 for (var j: number = 0; j < outDim; ++j) {
-                    result[i - iBegin + j] = srcData[i + j];
+                    result[dest_offset + dest_stride * i + j] = srcData[src_offset + src_stride*i + j];
                 }
             }
             return result;
@@ -157,9 +162,13 @@ module COLLADA.Converter {
 
             // Copy data
             var result: string[] = new Array(source.count * outDim);
-            for (var i: number = iBegin; i < iEnd; i += outDim) {
+            var src_offset = source.offset;
+            var src_stride = source.stride;
+            var dest_offset = 0;
+            var dest_stride = outDim;
+            for (var i: number = 0; i < source.count; ++i) {
                 for (var j: number = 0; j < outDim; ++j) {
-                    result[i - iBegin + j] = srcData[i + j];
+                    result[dest_offset + dest_stride * i + j] = srcData[src_offset + src_stride * i + j];
                 }
             }
             return result;

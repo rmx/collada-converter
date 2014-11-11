@@ -1,6 +1,6 @@
 @REM Build library
 @ECHO building collada.js
-@CALL node node_modules/typescript/bin/tsc src/loader.ts src/converter.ts src/exporter.ts -t ES5 -sourcemap -d --out lib/collada.js
+@CALL node node_modules/typescript/bin/tsc src/loader.ts src/converter.ts src/exporter.ts src/threejs.ts -t ES5 -sourcemap -d --out lib/collada.js
 
 @REM UglifyJS library
 @ECHO building collada.min.js
