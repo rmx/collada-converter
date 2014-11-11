@@ -1,5 +1,7 @@
 /// <reference path="../src/external/gl-matrix.i.ts" />
 /// <reference path="../lib/collada.d.ts" />
+/// <reference path="convert-renderer-rmx.ts" />
+/// <reference path="convert-renderer-threejs.ts" />
 
 interface i_gl_shader {
     program?: WebGLProgram;
