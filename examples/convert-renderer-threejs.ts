@@ -180,13 +180,9 @@ function initThreejs() {
 
     // Camera
     var camera = new THREE.PerspectiveCamera(27, elements.canvas.width / elements.canvas.height, 1, 100);
-    camera.position.x = 10;
-    camera.position.y = 3;
-    camera.position.z = 5;
+    camera.position.set(10, 3, 5);
+    camera.up.set(0, 0, 1);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
-    camera.up.x = 0;
-    camera.up.y = 0;
-    camera.up.z = 1;
     threejs_objects.camera = camera;
 
 
@@ -203,6 +199,11 @@ function initThreejs() {
     var light2 = new THREE.DirectionalLight(0xffffff, 1.5);
     light2.position.set(0, -1, 0);
     threejs_objects.scene.add(light2);
+    
+    // Grid
+    var gridXY = new THREE.GridHelper(5, 1);
+    gridXY.rotation.x = Math.PI / 2;
+    threejs_objects.scene.add(gridXY);
 
     // Renderer
     var renderer = new THREE.WebGLRenderer({ canvas: elements.canvas, antialias: false });

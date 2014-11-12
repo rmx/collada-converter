@@ -42,8 +42,13 @@ class RMXModelLoader {
         result.data_normal     = this.loadFloatData(json.normal,     data);
         result.data_texcoord   = this.loadFloatData(json.texcoord,   data);
         result.data_boneweight = this.loadFloatData(json.boneweight, data);
-        result.data_boneindex  = new Float32Array(this.loadUint8Data(json.boneindex,  data));
+        result.data_boneindex  = this.loadUint8Data(json.boneindex,  data);
         result.data_indices    = this.loadUint32Data(json.indices,   data);
+
+        // Three.js wants float data
+        if (result.data_boneindex) {
+            result.data_boneindex = new Float32Array(result.data_boneindex);
+        }
 
         return result;
     }
