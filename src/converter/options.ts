@@ -47,6 +47,7 @@ module COLLADA.Converter {
         removeConstAnimationTracks: OptionBool;
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
+        sortBones: OptionBool;
 
         constructor() {
             this.singleAnimation = new OptionBool(true,
@@ -72,7 +73,9 @@ module COLLADA.Converter {
             this.applyBindShape = new OptionBool(true,
                 "If enabled, the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.");
             this.removeTexturePath = new OptionBool(true,
-                "If enable, only the filename and extension of textures are kept and the remaining path is discarded.");
+                "If enabled, only the filename and extension of textures are kept and the remaining path is discarded.");
+            this.sortBones = new OptionBool(true,
+                "If enabled, bones are sorted so that child bones always appear after their parent bone in the list of bones.");
         }
 
     }

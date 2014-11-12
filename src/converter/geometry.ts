@@ -186,6 +186,16 @@ module COLLADA.Converter {
                 return geometry;
             }
 
+            // Sort bones if necessary
+            var index_map: Uint32Array = null;
+            if (context.options.sortBones.value) {
+                var unsorted_bones = bones;
+                bones = COLLADA.Converter.Bone.sortBones(unsorted_bones);
+                index_map = COLLADA.Converter.Bone.getBoneIndexMap(unsorted_bones, bones);
+            } else {
+                index_map = COLLADA.Converter.Bone.getBoneIndexMap(bones, bones);
+            }
+
             // Compact skinning data
             var bonesPerVertex: number = 4;
             var weightsIndices: Int32Array = skin.vertexWeights.v;
@@ -201,23 +211,43 @@ module COLLADA.Converter {
 
                 // Extract weights and indices
                 var weightCount: number = weightsCounts[i];
-                var totalWeight: number = 0;
                 for (var w: number = 0; w < weightCount; ++w) {
                     var boneIndex: number = weightsIndices[vindex];
+                    boneIndex = index_map[boneIndex];
                     var boneWeightIndex: number = weightsIndices[vindex + 1];
                     vindex += 2;
                     var boneWeight: number = weightsData[boneWeightIndex];
-
                     if (w < bonesPerVertex) {
-                        totalWeight += boneWeight;
+                        // Append bone
                         skinIndices[i * bonesPerVertex + w] = boneIndex;
                         skinWeights[i * bonesPerVertex + w] = boneWeight;
                     } else {
-                        // TODO: replace one of the existing elements if necessary
+                        // Find bone with least weight
+                        var min_weight = 0;
+                        var min_weight_index = 0;
+                        for (var w2: number = 0; w2 < weightCount; ++w2) {
+                            var weight = skinWeights[i * bonesPerVertex + w2];
+                            if (weight < min_weight) {
+                                min_weight = weight;
+                                min_weight_index = w2;
+                            }
+                        }
+
+                        // Replace that bone
+                        if (boneWeight > min_weight) {
+                            skinIndices[i * bonesPerVertex + min_weight_index] = boneIndex;
+                            skinWeights[i * bonesPerVertex + min_weight_index] = boneWeight;
+                        }
                     }
                 }
                 if (weightCount > bonesPerVertex) {
                     verticesWithTooManyInfluences++;
+                }
+
+                // Total weight
+                var totalWeight: number = 0;
+                for (var w: number = 0; w < bonesPerVertex; ++w) {
+                    totalWeight += skinWeights[i * bonesPerVertex + w];
                 }
 
                 // Normalize weights (COLLADA weights should be already normalized)
@@ -416,6 +446,11 @@ module COLLADA.Converter {
                 COLLADA.Converter.Bone.appendBones(merged_bones, geometries[i].bones);
             }
             result.bones = merged_bones;
+
+            // Sort bones if necessary
+            if (context.options.sortBones.value) {
+                merged_bones = COLLADA.Converter.Bone.sortBones(merged_bones);
+            }
 
             // Recode bone indices
             for (var i = 0; i < geometries.length; ++i) {
