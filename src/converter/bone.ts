@@ -226,5 +226,44 @@ module COLLADA.Converter {
             }
             return result;
         }
+
+        /**
+        * Returns true if the bones are sorted so that child bones appear after their parents in the list.
+        */
+        static bonesSorted(bones: COLLADA.Converter.Bone[]): boolean {
+            var errors: number = 0;
+            bones.forEach((bone) => {
+                if (bone.index <= bone.parentIndex()) {
+                    ++errors;
+                }
+            });
+            return errors == 0;
+        }
+
+        /**
+        * Sorts bones so that child bones appear after their parents in the list.
+        */
+        static sortBones(bones: COLLADA.Converter.Bone[]): COLLADA.Converter.Bone[]{
+            var result: COLLADA.Converter.Bone[] = bones.slice(0).sort((a, b) => {
+                var ad = a.depth();
+                var bd = b.depth();
+                if (ad < bd) {
+                    return -1;
+                } else if (ad > bd) {
+                    return 1;
+                } else {
+                    return (a.parentIndex() - b.parentIndex()) + 0.001 * (a.index - b.index);
+                }
+            });
+
+            // Bone indices have changed
+            Bone.updateIndices(result);
+
+            if (result.length != bones.length || Bone.bonesSorted(result) == false) {
+                throw new Error("Error while sorting bones");
+            }
+
+            return result;
+        }
     }
 }

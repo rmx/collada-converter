@@ -24,6 +24,12 @@
     <TypeScriptCompile Include="..\examples\convert-renderer.ts">
       <Link>convert-renderer.ts</Link>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="..\examples\convert-renderer-rmx.ts">
+      <Link>convert-renderer-rmx.ts</Link>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="..\examples\convert-renderer-threejs.ts">
+      <Link>convert-renderer-threejs.ts</Link>
+    </TypeScriptCompile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\examples\convert.html">
