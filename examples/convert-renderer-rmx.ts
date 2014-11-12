@@ -2,10 +2,7 @@
 
 class RMXModelLoader {
 
-    materialCache: { [hash: string]: RMXMaterial };
-
     constructor() {
-        this.materialCache = {};
     }
 
     loadFloatData(json: COLLADA.Exporter.DataChunkJSON, data: ArrayBuffer): Float32Array {
@@ -39,6 +36,7 @@ class RMXModelLoader {
 
         result.name = json.name;
         result.triangle_count = json.triangle_count;
+        result.material_index = json.material;
 
         result.data_position   = this.loadFloatData(json.position,   data);
         result.data_normal     = this.loadFloatData(json.normal,     data);
@@ -132,14 +130,7 @@ class RMXModelLoader {
         result.specular = json.specular;
         result.normal = json.normal;
 
-        var cached_material = this.materialCache[result.hash()];
-        if (cached_material) {
-            result = null;
-            return cached_material;
-        } else {
-            this.materialCache[result.hash()] = result;
-            return result;
-        }
+        return result;
     }
 }
 
@@ -148,6 +139,7 @@ class RMXModelChunk {
     triangle_count: number;
     index_offset: number;
     vertex_count: number;
+    material_index: number;
 
     data_position: Float32Array;
     data_normal: Float32Array;
@@ -157,12 +149,19 @@ class RMXModelChunk {
     data_indices: Uint32Array;
 
     constructor() {
+        this.name = "";
+        this.triangle_count = 0;
+        this.vertex_count = 0;
+        this.index_offset = 0;
+
         this.data_position = null;
         this.data_normal = null;
         this.data_texcoord = null;
         this.data_boneweight = null;
         this.data_boneindex = null;
         this.data_indices = null;
+
+        this.material_index = 0;
     }
 }
 
@@ -235,13 +234,18 @@ class RMXBoneMatrixTexture {
         return texels / texels_per_matrix;
     }
 
-    constructor(bones: number) {
-        this.size = 2;
-        while (RMXBoneMatrixTexture.capacity(this.size) < bones) {
-            this.size = this.size * 2;
-            if (this.size > 2048) throw new Error("Too many bones");
+    static optimalSize(bones: number): number {
+        var result = 2;
+        while (RMXBoneMatrixTexture.capacity(result) < bones) {
+            result = result * 2;
+            if (result > 2048) throw new Error("Too many bones");
         }
 
+        return result;
+    }
+
+    constructor(bones: number) {
+        this.size = RMXBoneMatrixTexture.optimalSize(bones);
         this.data = new Float32Array(4 * this.size * this.size);
         this.texture = null;
     }
@@ -269,109 +273,20 @@ class RMXBoneMatrixTexture {
     }
 }
 
-class RMXBoneMatrices {
-    world_matrices: Mat4[];
-    temp_matrix: Mat4;
-    temp_vec: Vec3;
-    temp_quat: Quat;
-
-    constructor(bones: number) {
-        this.world_matrices = [];
-        for (var b = 0; b < bones; ++b) {
-            this.world_matrices.push(mat4.create());
-        }
-        this.temp_matrix = mat4.create();
-        this.temp_vec = vec3.create();
-        this.temp_quat = quat.create();
-    }
-
-    update(skeleton: RMXSkeleton, pose: RMXPose, dest_data: Float32Array) {
-        var world_matrices = this.world_matrices;
-        var temp_matrix = this.temp_matrix;
-
-        // Loop over all bones
-        var bone_length: number = skeleton.bones.length;
-        for (var b = 0; b < bone_length; ++b) {
-            var bone = skeleton.bones[b];
-            var world_matrix = world_matrices[b];
-
-            // Local matrix
-            // TODO: optimize this
-            vec3.set(this.temp_vec, pose.pos[b * 3 + 0], pose.pos[b * 3 + 1], pose.pos[b * 3 + 2]);
-            quat.set(this.temp_quat, pose.rot[b * 4 + 0], pose.rot[b * 4 + 1], pose.rot[b * 4 + 2], pose.rot[b * 4 + 3]);
-            mat4.fromRotationTranslation(temp_matrix, this.temp_quat, this.temp_vec);
-            vec3.set(this.temp_vec, pose.scl[b * 3 + 0], pose.scl[b * 3 + 1], pose.scl[b * 3 + 2]);
-            mat4.scale(temp_matrix, temp_matrix, this.temp_vec);
-
-            // World matrix
-            if (bone.parent >= 0) {
-                mat4.multiply(world_matrix, world_matrices[bone.parent], temp_matrix);
-            } else {
-                mat4.copy(world_matrix, temp_matrix);
-            }
-
-            // Bone matrices aw data
-            mat4.multiply(temp_matrix, world_matrix, bone.inv_bind_mat);
-            for (var i = 0; i < 16; ++i) {
-                dest_data[b * 16 + i] = temp_matrix[i];
-            }
-        }
-    }
-}
 
 class RMXPose {
     pos: Float32Array;
     rot: Float32Array;
     scl: Float32Array;
-    temp_vec1: Vec3;
-    temp_vec2: Vec3;
-    temp_quat1: Quat;
-    temp_quat2: Quat;
+    world_matrices: Mat4[];
 
     constructor(bones: number) {
-        this.temp_vec1 = vec3.create();
-        this.temp_vec2 = vec3.create();
-        this.temp_quat1 = quat.create();
-        this.temp_quat2 = quat.create();
-
         this.pos = new Float32Array(bones * 3);
         this.rot = new Float32Array(bones * 4);
         this.scl = new Float32Array(bones * 3);
-    }
-
-    /** 
-    * Reset to the rest pose
-    */
-    reset(skeleton: RMXSkeleton) {
-
-        var dest_pos: Float32Array = this.pos;
-        var dest_rot: Float32Array = this.rot;
-        var dest_scl: Float32Array = this.scl;
-
-        // Loop over all bones
-        var bone_length: number = skeleton.bones.length;
-        for (var b = 0; b < bone_length; ++b) {
-            var b3: number = b * 3;
-            var b4: number = b * 4;
-
-            // Bone data
-            var bone = skeleton.bones[b];
-            var bone_pos = bone.pos;
-            var bone_rot = bone.rot;
-            var bone_scl = bone.scl;
-
-            dest_pos[b3 + 0] = bone_pos[0];
-            dest_pos[b3 + 1] = bone_pos[1];
-            dest_pos[b3 + 2] = bone_pos[2];
-
-            dest_rot[b4 + 0] = bone_rot[0];
-            dest_rot[b4 + 1] = bone_rot[1];
-            dest_rot[b4 + 2] = bone_rot[2];
-            dest_rot[b4 + 3] = bone_rot[3];
-
-            dest_scl[b3 + 0] = bone_scl[0];
-            dest_scl[b3 + 1] = bone_scl[1];
-            dest_scl[b3 + 2] = bone_scl[2];
+        this.world_matrices = [];
+        for (var i = 0; i < bones; ++i) {
+            this.world_matrices.push(mat4.create());
         }
     }
 }
@@ -402,16 +317,99 @@ class RMXAnimation {
         this.fps = 0;
         this.tracks = [];
     }
+}
+
+
+class RMXSkeletalAnimation {
+    static mat1: Mat4;
+    static mat2: Mat4;
+    static vec1: Vec3;
+    static vec2: Vec3;
+    static quat1: Quat;
+    static quat2: Quat;
+
+    static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: Float32Array) {
+        var world_matrices = pose.world_matrices;
+        var mat1 = RMXSkeletalAnimation.mat1;
+        var vec1 = RMXSkeletalAnimation.vec1;
+        var quat1 = RMXSkeletalAnimation.quat1;
+
+        // Loop over all bones
+        var bone_length: number = skeleton.bones.length;
+        for (var b = 0; b < bone_length; ++b) {
+            var bone = skeleton.bones[b];
+            var world_matrix = world_matrices[b];
+
+            var pos = pose.pos;
+            var rot = pose.rot;
+            var scl = pose.scl;
+
+            // Local matrix
+            // TODO: optimize this
+            vec3.set(vec1, pos[b * 3 + 0], pos[b * 3 + 1], pos[b * 3 + 2]);
+            quat.set(quat1, rot[b * 4 + 0], rot[b * 4 + 1], rot[b * 4 + 2], rot[b * 4 + 3]);
+            mat4.fromRotationTranslation(mat1, quat1, vec1);
+            vec3.set(vec1, scl[b * 3 + 0], scl[b * 3 + 1], scl[b * 3 + 2]);
+            mat4.scale(mat1, mat1, vec1);
+
+            // World matrix
+            if (bone.parent >= 0) {
+                mat4.multiply(world_matrix, world_matrices[bone.parent], mat1);
+            } else {
+                mat4.copy(world_matrix, mat1);
+            }
+
+            // Bone matrices raw data
+            mat4.multiply(mat1, world_matrix, bone.inv_bind_mat);
+            for (var i = 0; i < 16; ++i) {
+                dest[b * 16 + i] = mat1[i];
+            }
+        }
+    }
+
+    static resetPose(skeleton: RMXSkeleton, pose: RMXPose) {
+        var dest_pos: Float32Array = pose.pos;
+        var dest_rot: Float32Array = pose.rot;
+        var dest_scl: Float32Array = pose.scl;
+
+        // Loop over all bones
+        var bone_length: number = skeleton.bones.length;
+        for (var b = 0; b < bone_length; ++b) {
+            var b3: number = b * 3;
+            var b4: number = b * 4;
+
+            // Bone data
+            var bone = skeleton.bones[b];
+            var bone_pos = bone.pos;
+            var bone_rot = bone.rot;
+            var bone_scl = bone.scl;
+
+            dest_pos[b3 + 0] = bone_pos[0];
+            dest_pos[b3 + 1] = bone_pos[1];
+            dest_pos[b3 + 2] = bone_pos[2];
+
+            dest_rot[b4 + 0] = bone_rot[0];
+            dest_rot[b4 + 1] = bone_rot[1];
+            dest_rot[b4 + 2] = bone_rot[2];
+            dest_rot[b4 + 3] = bone_rot[3];
+
+            dest_scl[b3 + 0] = bone_scl[0];
+            dest_scl[b3 + 1] = bone_scl[1];
+            dest_scl[b3 + 2] = bone_scl[2];
+        }
+    }
 
     /** 
     * Sample the animation, store the result in pose
     */
-    sample(skeleton: RMXSkeleton, pose: RMXPose, frame: number) {
+    static sampleAnimation(animation: RMXAnimation, skeleton: RMXSkeleton, pose: RMXPose, frame: number) {
 
-        frame = Math.max(Math.min(frame, this.frames - 1 -1e6), 0);
+        var mat1 = RMXSkeletalAnimation.mat1;
+        var vec1 = RMXSkeletalAnimation.vec1;
+        var quat1 = RMXSkeletalAnimation.quat1;
+        var quat2 = RMXSkeletalAnimation.quat2;
 
-        var temp_quat1: Quat = pose.temp_quat1;
-        var temp_quat2: Quat = pose.temp_quat2;
+        frame = Math.max(Math.min(frame, animation.frames - 1 - 1e6), 0);
 
         var f1: number = Math.floor(frame);
         var f2: number = Math.ceil(frame);
@@ -425,7 +423,7 @@ class RMXAnimation {
         var s1: number = 1 - s2;
 
         var bones = skeleton.bones;
-        var tracks = this.tracks;
+        var tracks = animation.tracks;
 
         var dest_pos: Float32Array = pose.pos;
         var dest_rot: Float32Array = pose.rot;
@@ -464,22 +462,22 @@ class RMXAnimation {
 
             // Rotation (quaternion spherical interpolation)
             if (track_rot) {
-                temp_quat1[0] = track_rot[f14 + 0];
-                temp_quat1[1] = track_rot[f14 + 1];
-                temp_quat1[2] = track_rot[f14 + 2];
-                temp_quat1[3] = track_rot[f14 + 3];
+                quat1[0] = track_rot[f14 + 0];
+                quat1[1] = track_rot[f14 + 1];
+                quat1[2] = track_rot[f14 + 2];
+                quat1[3] = track_rot[f14 + 3];
 
-                temp_quat2[0] = track_rot[f24 + 0];
-                temp_quat2[1] = track_rot[f24 + 1];
-                temp_quat2[2] = track_rot[f24 + 2];
-                temp_quat2[3] = track_rot[f24 + 3];
+                quat2[0] = track_rot[f24 + 0];
+                quat2[1] = track_rot[f24 + 1];
+                quat2[2] = track_rot[f24 + 2];
+                quat2[3] = track_rot[f24 + 3];
 
-                quat_slerp(temp_quat1, temp_quat1, temp_quat2, s2);
+                quat_slerp(quat1, quat1, quat2, s2);
 
-                dest_rot[b4 + 0] = temp_quat1[0];
-                dest_rot[b4 + 1] = temp_quat1[1];
-                dest_rot[b4 + 2] = temp_quat1[2];
-                dest_rot[b4 + 3] = temp_quat1[3];
+                dest_rot[b4 + 0] = quat1[0];
+                dest_rot[b4 + 1] = quat1[1];
+                dest_rot[b4 + 2] = quat1[2];
+                dest_rot[b4 + 3] = quat1[3];
             } else {
                 dest_rot[b4 + 0] = bone_rot[0];
                 dest_rot[b4 + 1] = bone_rot[1];
@@ -499,4 +497,14 @@ class RMXAnimation {
             }
         }
     }
+
+    static init() {
+        RMXSkeletalAnimation.vec1 = vec3.create();
+        RMXSkeletalAnimation.vec2 = vec3.create();
+        RMXSkeletalAnimation.quat1 = quat.create();
+        RMXSkeletalAnimation.quat2 = quat.create();
+        RMXSkeletalAnimation.mat1 = mat4.create();
+        RMXSkeletalAnimation.mat2 = mat4.create();
+    }
 }
+RMXSkeletalAnimation.init();

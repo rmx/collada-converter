@@ -1,6 +1,8 @@
 /// <reference path="../lib/collada.d.ts" />
 /// <reference path="convert-renderer.ts" />
 
+var use_threejs: boolean = true;
+
 interface i_elements {
     input?: HTMLInputElement;
     log_progress?: HTMLTextAreaElement;
@@ -53,7 +55,12 @@ function clearInput() {
 }
 
 function clearOutput() {
-    clearBuffers();
+    if (use_threejs) {
+        clearBuffersThreejs();
+    } else {
+        clearBuffers();
+    }
+
     resetCheckboxes([]);
     elements.log_progress.textContent = "";
     elements.log_loader.textContent = "";
@@ -139,12 +146,20 @@ function convertAsync() {
 
             // Start rendering
             timeStart("WebGL loading");
-            fillBuffers(json, data.buffer);
-            setupCamera(json);
+            if (use_threejs) {
+                fillBuffersThreejs(json, data.buffer);
+            } else {
+                fillBuffers(json, data.buffer);
+                setupCamera(json);
+            }
             timeEnd("WebGL loading");
 
             timeStart("WebGL rendering");
-            tick(null);
+            if (use_threejs) {
+                tickThreejs(null);
+            } else {
+                tick(null);
+            }
             timeEnd("WebGL rendering");
         }
     };
@@ -231,12 +246,20 @@ function convertSync() {
 
     // Start rendering
     timeStart("WebGL loading");
-    fillBuffers(json, data.buffer);
-    setupCamera(json);
+    if (use_threejs) {
+        fillBuffersThreejs(json, data.buffer);
+    } else {
+        fillBuffers(json, data.buffer);
+        setupCamera(json);
+    }
     timeEnd("WebGL loading");
 
     timeStart("WebGL rendering");
-    tick(null);
+    if (use_threejs) {
+        tickThreejs(null);
+    } else {
+        tick(null);
+    }
     timeEnd("WebGL rendering");
 }
 
@@ -276,7 +299,11 @@ function init() {
     }
 
     // Initialize WebGL
-    initGL();
+    if (use_threejs) {
+        initThreejs();
+    } else {
+        initGL();
+    }
 
     // Register events
     elements.input.ondragover = onFileDrag;
