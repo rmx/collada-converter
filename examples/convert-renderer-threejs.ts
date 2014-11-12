@@ -269,7 +269,7 @@ function animateThreejs(delta_time: number) {
 
     if (threejs_objects.mesh && threejs_objects.mesh.skeleton) {
         RMXSkeletalAnimation.sampleAnimation(threejs_objects.mesh.userData.animations[0], threejs_objects.mesh.skeleton.skeleton,
-            threejs_objects.mesh.skeleton.pose, threejs_objects.time * 5);
+            threejs_objects.mesh.skeleton.pose, threejs_objects.time * 25);
         threejs_objects.mesh.skeleton.update();
     }
 }
