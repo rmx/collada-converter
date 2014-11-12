@@ -12,10 +12,10 @@ module COLLADA.Exporter {
             }
 
             // TODO: options for this
-            var mat_tol: number = 5;
-            var pos_tol: number = 4;
+            var mat_tol: number = 6;
+            var pos_tol: number = 6;
             var scl_tol: number = 3;
-            var rot_tol: number = 4;
+            var rot_tol: number = 6;
 
             // Bone default transform
             var mat: Mat4 = bone.node.getLocalMatrix();
