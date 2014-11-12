@@ -173,10 +173,16 @@ var threejs_objects: any = {};
 function initThreejs() {
 
     // Camera
-    threejs_objects.camera = new THREE.PerspectiveCamera(27, elements.canvas.width / elements.canvas.height, 1, 100);
-    threejs_objects.camera.position.x = 5;
-    threejs_objects.camera.position.y = 2;
-    threejs_objects.camera.position.z = 20;
+    var camera = new THREE.PerspectiveCamera(27, elements.canvas.width / elements.canvas.height, 1, 100);
+    camera.position.x = 10;
+    camera.position.y = 3;
+    camera.position.z = 5;
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.up.x = 0;
+    camera.up.y = 0;
+    camera.up.z = 1;
+    threejs_objects.camera = camera;
+
 
     // Scene
     threejs_objects.scene = new THREE.Scene();
