@@ -42,7 +42,7 @@ class RMXModelLoader {
         result.data_normal     = this.loadFloatData(json.normal,     data);
         result.data_texcoord   = this.loadFloatData(json.texcoord,   data);
         result.data_boneweight = this.loadFloatData(json.boneweight, data);
-        result.data_boneindex  = this.loadUint8Data(json.boneindex,  data);
+        result.data_boneindex  = new Float32Array(this.loadUint8Data(json.boneindex,  data));
         result.data_indices    = this.loadUint32Data(json.indices,   data);
 
         return result;
@@ -409,10 +409,17 @@ class RMXSkeletalAnimation {
         var quat1 = RMXSkeletalAnimation.quat1;
         var quat2 = RMXSkeletalAnimation.quat2;
 
-        frame = Math.max(Math.min(frame, animation.frames - 1 - 1e6), 0);
+        var looped = true;
+        if (looped) {
+            frame = frame % animation.frames;
+        } else {
+            frame = Math.max(Math.min(frame, animation.frames - 1), 0);
+        }
 
         var f1: number = Math.floor(frame);
+        f1 = f1 % animation.frames;
         var f2: number = Math.ceil(frame);
+        f2 = f2 % animation.frames;
 
         var f13: number = f1 * 3;
         var f14: number = f1 * 4;

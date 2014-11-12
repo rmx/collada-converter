@@ -55,7 +55,7 @@ class ThreejsModelLoader {
             return cached_material;
         } else {
             var result = new THREE.MeshPhongMaterial();
-            result.skinning = false;
+            result.skinning = true;
             result.color = new THREE.Color(1, 1, 1);
             result.map = this.createTexture(material.diffuse);
             result.specularMap = this.createTexture(material.specular);
@@ -111,6 +111,7 @@ class ThreejsSkeletonAdapter {
     constructor(skeleton: RMXSkeleton) {
         this.skeleton = skeleton;
         this.pose = new RMXPose(skeleton.bones.length);
+        RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
 
         this.useVertexTexture = true;
         this.boneTextureWidth = RMXBoneMatrixTexture.optimalSize(skeleton.bones.length);
@@ -125,8 +126,8 @@ class ThreejsSkeletonAdapter {
     }
 
     update() {
-        RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
         RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.boneMatrices);
+        this.boneTexture.needsUpdate = true;
     }
 }
 
@@ -155,7 +156,12 @@ class ThreejsModel {
 
             // Trick three.js into thinking this is a skinned mesh
             if (this.skeleton) {
-                (<any>mesh).skeleton = skeletonAdapter;
+                var anymesh = <any>mesh;
+                anymesh.skeleton = skeletonAdapter;
+                anymesh.bindMatrixInverse = new THREE.Matrix4();
+                anymesh.bindMatrixInverse.identity();
+                anymesh.bindMatrix = new THREE.Matrix4();
+                anymesh.bindMatrix.identity();
             }
 
             result.add(mesh);
@@ -239,9 +245,10 @@ function tickThreejs(timestamp: number) {
 
     if (timestamp === null) {
         last_timestamp = null
+        threejs_objects.time = 0;
     } else if (last_timestamp === null) {
-        time = 0
         last_timestamp = timestamp;
+        threejs_objects.time = 0;
     } else {
         delta_time = timestamp - last_timestamp;
         last_timestamp = timestamp;
@@ -257,7 +264,11 @@ function drawSceneThreejs() {
 }
 
 function animateThreejs(delta_time: number) {
+    threejs_objects.time += delta_time / (1000);
+
     if (threejs_objects.mesh && threejs_objects.mesh.skeleton) {
+        RMXSkeletalAnimation.sampleAnimation(threejs_objects.mesh.userData.animations[0], threejs_objects.mesh.skeleton.skeleton,
+            threejs_objects.mesh.skeleton.pose, threejs_objects.time * 5);
         threejs_objects.mesh.skeleton.update();
     }
 }
