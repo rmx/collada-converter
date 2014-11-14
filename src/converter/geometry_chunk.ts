@@ -276,6 +276,18 @@ module COLLADA.Converter {
             }
         }
 
+        /**
+        * Scales the positions of the given Chunk
+        */
+        static scaleChunk(chunk: COLLADA.Converter.GeometryChunk, scale: number, context: COLLADA.Converter.Context) {
+            var position: Float32Array = chunk.data.position;
+            if (position !== null) {
+                for (var i = 0; i < position.length; ++i) {
+                    position[i] = position[i] * scale;
+                }
+            }
+        }
+
 
         /**
         * Merges the geometric data from all the chunks into a single set of buffers.

@@ -18,7 +18,7 @@ module COLLADA.Threejs {
             var rot_tol: number = 4;
 
             // Bone default transform
-            var mat: Mat4 = bone.node.getLocalMatrix();
+            var mat: Mat4 = bone.node.initialLocalMatrix;
             var pos: number[] = [0, 0, 0];
             var rot: number[] = [0, 0, 0, 1];
             var scl: number[] = [1, 1, 1];

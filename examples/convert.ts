@@ -172,6 +172,7 @@ function convertAsync() {
     var options: any = {};
     options.fps = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
     options.animations = (<HTMLInputElement>document.getElementById("option-animations")).checked;
+    options.scale = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
     worker_data.options = options;
 
     worker.postMessage(worker_data);
@@ -204,6 +205,7 @@ function convertSync() {
     // Convert
     converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
     converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
+    converter.options.worldScale.value = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
     timeStart("COLLADA conversion");
     var convertData = converter.convert(load_data);
     timeEnd("COLLADA conversion");

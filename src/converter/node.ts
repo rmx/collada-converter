@@ -14,6 +14,7 @@ module COLLADA.Converter {
         transformations: COLLADA.Converter.Transform[];
         matrix: Mat4;
         worldMatrix: Mat4;
+        initialLocalMatrix: Mat4;
 
         constructor() {
             this.name = "";
@@ -23,16 +24,26 @@ module COLLADA.Converter {
             this.transformations = [];
             this.matrix = mat4.create();
             this.worldMatrix = mat4.create();
+            this.initialLocalMatrix = null;
+        }
+
+        addTransform(mat: Mat4) {
+            var loader_transform = new COLLADA.Loader.NodeTransform();
+            loader_transform.data = <Float32Array>mat;
+            loader_transform.type = "matrix";
+            loader_transform.name = "virtual static transform";
+            var transform = new TransformMatrix(loader_transform);
+            this.transformations.unshift(transform);
         }
 
         /**
         * Returns the world transformation matrix of this node
         */
-        getWorldMatrix(): Mat4 {
+        getWorldMatrix(context: COLLADA.Converter.Context): Mat4 {
             if (this.parent != null) {
-                mat4.multiply(this.worldMatrix, this.parent.getWorldMatrix(), this.getLocalMatrix());
+                mat4.multiply(this.worldMatrix, this.parent.getWorldMatrix(context), this.getLocalMatrix(context));
             } else {
-                mat4.copy(this.worldMatrix, this.getLocalMatrix());
+                mat4.copy(this.worldMatrix, this.getLocalMatrix(context));
             }
             return this.worldMatrix;
         }
@@ -40,12 +51,19 @@ module COLLADA.Converter {
         /**
         * Returns the local transformation matrix of this node
         */
-        getLocalMatrix() {
+        getLocalMatrix(context: COLLADA.Converter.Context) {
             mat4.identity(this.matrix);
 
             for (var i: number = 0; i < this.transformations.length; i++) {
                 var transform: COLLADA.Converter.Transform = this.transformations[i];
                 transform.applyTransformation(this.matrix);
+            }
+
+            var scale = context.options.worldScale.value;
+            if (scale !== 1) {
+                this.matrix[12] *= scale;
+                this.matrix[13] *= scale;
+                this.matrix[14] *= scale;
             }
 
             return this.matrix;
@@ -141,7 +159,8 @@ module COLLADA.Converter {
                     converterNode.transformations.push(converterTransform);
                 }
             }
-            converterNode.getLocalMatrix();
+            converterNode.getLocalMatrix(context);
+            converterNode.initialLocalMatrix = mat4.clone(converterNode.matrix);
 
             // Create children
             for (var i: number = 0; i < node.children.length; i++) {
@@ -231,7 +250,7 @@ module COLLADA.Converter {
                 var node: COLLADA.Converter.Node = nodes[i];
                 var is_static: boolean = ((geometry.bones.length === 0) && (!node.isAnimated(true)));
                 if (is_static) {
-                    COLLADA.Converter.Geometry.transformGeometry(geometry, node.getWorldMatrix(), context);
+                    COLLADA.Converter.Geometry.transformGeometry(geometry, node.getWorldMatrix(context), context);
                 }
             }
 

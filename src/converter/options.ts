@@ -48,6 +48,7 @@ module COLLADA.Converter {
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
+        worldScale: OptionFloat;
 
         constructor() {
             this.singleAnimation = new OptionBool(true,
@@ -76,6 +77,8 @@ module COLLADA.Converter {
                 "If enabled, only the filename and extension of textures are kept and the remaining path is discarded.");
             this.sortBones = new OptionBool(true,
                 "If enabled, bones are sorted so that child bones always appear after their parent bone in the list of bones.");
+            this.worldScale = new OptionFloat(0.01, 1e-6, 1e6,
+                "The model is scaled by this factor.");
         }
 
     }

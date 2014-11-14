@@ -67,8 +67,9 @@ function worker_convert(data) {
     var converter = new COLLADA.Converter.ColladaConverter();
     var converterlog = converter.log = new COLLADA.LogCallback;
     converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { worker_postLog("converter", message, level); }
-    converter.options.animationFps.value = data.options.fps;
-    converter.options.enableAnimations.value = data.options.animations;
+    converter.options.animationFps.value = data.options.fps || 25;
+    converter.options.enableAnimations.value = data.options.animations || true;
+    converter.options.worldScale.value = data.options.scale || 1;
 
     // Convert
     worker_postStart("COLLADA conversion");

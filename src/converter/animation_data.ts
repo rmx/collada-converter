@@ -139,7 +139,7 @@ module COLLADA.Converter {
                     var bone: COLLADA.Converter.Bone = bones[b];
                     var track: COLLADA.Converter.AnimationDataTrack = result_tracks[b];
 
-                    var mat: Mat4 = bone.node.getLocalMatrix();
+                    var mat: Mat4 = bone.node.getLocalMatrix(context);
                     COLLADA.MathUtils.decompose(mat, pos, rot, scl);
                     var mat2: Mat4 = mat4.create();
                     mat4.fromRotationTranslation(mat2, rot, pos);
@@ -182,7 +182,7 @@ module COLLADA.Converter {
                 var track: COLLADA.Converter.AnimationDataTrack = result_tracks[b];
 
                 // Get rest pose transformation of the current bone
-                var mat0: Mat4 = bone.node.getLocalMatrix();
+                var mat0: Mat4 = bone.node.getLocalMatrix(context);
                 COLLADA.MathUtils.decompose(mat0, pos0, rot0, scl0);
 
                 quat.invert(inv_rot0, rot0);

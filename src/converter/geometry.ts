@@ -360,6 +360,25 @@ module COLLADA.Converter {
         }
 
         /**
+        * Scales the given geometry
+        */
+        static scaleGeometry(geometry: COLLADA.Converter.Geometry, scale: number, context: COLLADA.Converter.Context) {
+            for (var i = 0; i < geometry.chunks.length; ++i) {
+                var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
+                GeometryChunk.scaleChunk(chunk, scale, context);
+            }
+
+            if (geometry.bones) {
+                var s: Vec3 = vec3.fromValues(scale, scale, scale);
+                geometry.bones.forEach((bone) => {
+                    bone.invBindMatrix[12] *= scale;
+                    bone.invBindMatrix[13] *= scale;
+                    bone.invBindMatrix[14] *= scale;
+                });
+            }
+        }
+
+        /**
         * Applies the bind shape matrix to the given geometry.
         *
         * This transforms the geometry by the bind shape matrix, and resets the bind shape matrix to identity.
