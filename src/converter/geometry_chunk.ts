@@ -161,12 +161,16 @@ module COLLADA.Converter {
             // Make sure the geometry only contains triangles
             if (triangles.type !== "triangles") {
                 var vcount: Uint32Array = triangles.vcount;
-                for (var i: number = 0; i < vcount.length; i++) {
-                    var c: number = vcount[i];
-                    if (c !== 3) {
-                        context.log.write("Geometry " + geometry.id + " has non-triangle polygons, geometry ignored", LogLevel.Warning);
-                        return null;
+                if (vcount) {
+                    for (var i: number = 0; i < vcount.length; i++) {
+                        var c: number = vcount[i];
+                        if (c !== 3) {
+                            context.log.write("Geometry " + geometry.id + " has non-triangle polygons, geometry ignored.", LogLevel.Warning);
+                            return null;
+                        }
                     }
+                } else {
+                    context.log.write("Geometry " + geometry.id + " has polygons with an unknown number of vertices per polygon. Assuming all triangles.", LogLevel.Warning);
                 }
             }
 
