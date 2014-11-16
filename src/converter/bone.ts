@@ -150,7 +150,9 @@ module COLLADA.Converter {
                 return false;
             }
             for (var i = 0; i < 16; ++i) {
-                if (a.invBindMatrix[i] !== b.invBindMatrix[i]) {
+                var ai = a.invBindMatrix[i];
+                var bi = b.invBindMatrix[i];
+                if (Math.abs(ai - bi) > 1e-5) {
                     return false;
                 }
             }
@@ -244,7 +246,8 @@ module COLLADA.Converter {
         * Sorts bones so that child bones appear after their parents in the list.
         */
         static sortBones(bones: COLLADA.Converter.Bone[]): COLLADA.Converter.Bone[]{
-            var result: COLLADA.Converter.Bone[] = bones.slice(0).sort((a, b) => {
+            var result: COLLADA.Converter.Bone[] = bones.slice(0);
+            result = result.sort((a, b) => {
                 var ad = a.depth();
                 var bd = b.depth();
                 if (ad < bd) {
