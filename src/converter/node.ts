@@ -15,6 +15,7 @@ module COLLADA.Converter {
         matrix: Mat4;
         worldMatrix: Mat4;
         initialLocalMatrix: Mat4;
+        initialWorldMatrix: Mat4;
 
         constructor() {
             this.name = "";
@@ -25,6 +26,7 @@ module COLLADA.Converter {
             this.matrix = mat4.create();
             this.worldMatrix = mat4.create();
             this.initialLocalMatrix = null;
+            this.initialWorldMatrix = null;
         }
 
         addTransform(mat: Mat4) {
@@ -161,6 +163,9 @@ module COLLADA.Converter {
             }
             converterNode.getLocalMatrix(context);
             converterNode.initialLocalMatrix = mat4.clone(converterNode.matrix);
+
+            converterNode.getWorldMatrix(context);
+            converterNode.initialWorldMatrix = mat4.clone(converterNode.worldMatrix);
 
             // Create children
             for (var i: number = 0; i < node.children.length; i++) {

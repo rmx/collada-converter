@@ -17,8 +17,20 @@ module COLLADA.Threejs {
             var scl_tol: number = 3;
             var rot_tol: number = 4;
 
+            // Matrices
+            var mat = mat4.clone(bone.node.initialLocalMatrix);
+            var matWorld = mat4.clone(bone.node.initialWorldMatrix);
+            var matBindInv = mat4.clone(bone.invBindMatrix);
+            var matBind = mat4.create();
+            mat4.invert(matBind, matBindInv);
+
+            if (bone.parent) {
+                mat4.multiply(mat, bone.parent.invBindMatrix, matBind);
+            } else {
+                mat = matBind;
+            }
+
             // Bone default transform
-            var mat: Mat4 = bone.node.initialLocalMatrix;
             var pos: number[] = [0, 0, 0];
             var rot: number[] = [0, 0, 0, 1];
             var scl: number[] = [1, 1, 1];
