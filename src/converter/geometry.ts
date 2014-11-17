@@ -223,9 +223,9 @@ module COLLADA.Converter {
                         skinWeights[i * bonesPerVertex + w] = boneWeight;
                     } else {
                         // Find bone with least weight
-                        var min_weight = 0;
+                        var min_weight = Infinity;
                         var min_weight_index = 0;
-                        for (var w2: number = 0; w2 < weightCount; ++w2) {
+                        for (var w2: number = 0; w2 < bonesPerVertex; ++w2) {
                             var weight = skinWeights[i * bonesPerVertex + w2];
                             if (weight < min_weight) {
                                 min_weight = weight;
