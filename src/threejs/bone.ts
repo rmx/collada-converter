@@ -11,12 +11,6 @@ module COLLADA.Threejs {
                 return null;
             }
 
-            // TODO: options for this
-            var mat_tol: number = 5;
-            var pos_tol: number = 4;
-            var scl_tol: number = 3;
-            var rot_tol: number = 4;
-
             // Matrices
             var mat = mat4.clone(bone.node.initialLocalMatrix);
             var matWorld = mat4.clone(bone.node.initialWorldMatrix);
@@ -44,10 +38,10 @@ module COLLADA.Threejs {
             return {
                 "parent": bone.parentIndex(),
                 "name": bone.name,
-                "pos": pos.map((x) => COLLADA.MathUtils.round(x, pos_tol)),
-                "rotq": rot.map((x) => COLLADA.MathUtils.round(x, rot_tol)),
-                "scl": scl.map((x) => COLLADA.MathUtils.round(x, scl_tol)),
-                "inv_bind_mat": inv_bind_mat.map((x) => COLLADA.MathUtils.round(x, mat_tol))
+                "pos": pos.map((x) => COLLADA.MathUtils.round(x, context.pos_tol)),
+                "rotq": rot.map((x) => COLLADA.MathUtils.round(x, context.rot_tol)),
+                "scl": scl.map((x) => COLLADA.MathUtils.round(x, context.scl_tol)),
+                "inv_bind_mat": inv_bind_mat.map((x) => COLLADA.MathUtils.round(x, context.mat_tol))
             };
         }
     };

@@ -173,5 +173,29 @@ module COLLADA.Converter {
             }
             return result;
         }
+
+        static spawElements(array: Float32Array, i1: number, i2: number): void {
+            var temp = array[i1];
+            array[i1] = array[i2];
+            array[i2] = temp;
+        }
+
+        static insertBone(indices: Float32Array, weights: Float32Array, index: number, weight: number, offsetBegin: number, offsetEnd: number) {
+
+            if (weights[offsetEnd] < weight) {
+
+                // Insert at last position
+                weights[offsetEnd] = weight;
+                indices[offsetEnd] = index;
+
+                // Bubble towards the front
+                for (var i = offsetEnd; i > offsetBegin; --i) {
+                    if (weights[i] > weights[i - 1]) {
+                        Utils.spawElements(weights, i, i - 1);
+                        Utils.spawElements(indices, i, i - 1);
+                    }
+                }
+            }
+        }
     }
 }

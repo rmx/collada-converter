@@ -207,41 +207,27 @@ module COLLADA.Converter {
             var vindex: number = 0;
             var verticesWithTooManyInfluences: number = 0;
             var verticesWithInvalidTotalWeight: number = 0;
+            var weightCounts: Float32Array = new Float32Array(32);
             for (var i = 0; i < skinVertexCount; ++i) {
 
-                // Extract weights and indices
+                // Number of bone references for the current vertex
                 var weightCount: number = weightsCounts[i];
+                if (weightCount > bonesPerVertex) {
+                    verticesWithTooManyInfluences++;
+                }
+                weightCounts[Math.min(weightCount, weightCounts.length-1)]++;
+
+                // Insert all bone references
                 for (var w: number = 0; w < weightCount; ++w) {
                     var boneIndex: number = weightsIndices[vindex];
                     boneIndex = index_map[boneIndex];
                     var boneWeightIndex: number = weightsIndices[vindex + 1];
                     vindex += 2;
                     var boneWeight: number = weightsData[boneWeightIndex];
-                    if (w < bonesPerVertex) {
-                        // Append bone
-                        skinIndices[i * bonesPerVertex + w] = boneIndex;
-                        skinWeights[i * bonesPerVertex + w] = boneWeight;
-                    } else {
-                        // Find bone with least weight
-                        var min_weight = Infinity;
-                        var min_weight_index = 0;
-                        for (var w2: number = 0; w2 < bonesPerVertex; ++w2) {
-                            var weight = skinWeights[i * bonesPerVertex + w2];
-                            if (weight < min_weight) {
-                                min_weight = weight;
-                                min_weight_index = w2;
-                            }
-                        }
 
-                        // Replace that bone
-                        if (boneWeight > min_weight) {
-                            skinIndices[i * bonesPerVertex + min_weight_index] = boneIndex;
-                            skinWeights[i * bonesPerVertex + min_weight_index] = boneWeight;
-                        }
-                    }
-                }
-                if (weightCount > bonesPerVertex) {
-                    verticesWithTooManyInfluences++;
+                    var offsetBegin: number = i * bonesPerVertex;
+                    var offsetEnd: number = i * bonesPerVertex + bonesPerVertex - 1;
+                    Utils.insertBone(skinIndices, skinWeights, boneIndex, boneWeight, offsetBegin, offsetEnd);
                 }
 
                 // Total weight

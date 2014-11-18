@@ -14,7 +14,7 @@ module COLLADA.Threejs {
         }
 
         export(doc: COLLADA.Converter.Document): any {
-            var context: COLLADA.Exporter.Context = new COLLADA.Exporter.Context(this.log);
+            var context: COLLADA.Threejs.Context = new COLLADA.Threejs.Context(this.log);
 
             if (doc === null) {
                 context.log.write("No document to convert", LogLevel.Warning);
@@ -38,6 +38,7 @@ module COLLADA.Threejs {
             var faces: number[] = [];
             var skinIndices: number[] = [];
             var skinWeights: number[] = [];
+            var baseIndexOffset: number = 0;
 
             for (var c: number = 0; c < converter_geometry.chunks.length; ++c) {
                 var chunk: COLLADA.Converter.GeometryChunk = converter_geometry.chunks[c];
@@ -70,13 +71,13 @@ module COLLADA.Threejs {
                     }
 
                     if (chunk.data.texcoord) {
-                        var i0 = 2 * chunk.vertexBufferOffset + 2 * i;
+                        var i0: number = 2 * chunk.vertexBufferOffset + 2 * i;
                         uvs.push(chunk.data.texcoord[i0 + 0]);
                         uvs.push(chunk.data.texcoord[i0 + 1]);
                     }
 
                     if (chunk.data.boneindex) {
-                        var i0 = 4 * chunk.vertexBufferOffset + 4 * i;
+                        var i0: number = 4 * chunk.vertexBufferOffset + 4 * i;
                         skinIndices.push(chunk.data.boneindex[i0 + 0]);
                         skinIndices.push(chunk.data.boneindex[i0 + 1]);
                         //skinIndices.push(chunk.data.boneindex[i0 + 2]);
@@ -84,9 +85,16 @@ module COLLADA.Threejs {
                     }
 
                     if (chunk.data.boneweight) {
-                        var i0 = 4 * chunk.vertexBufferOffset + 4 * i;
-                        skinWeights.push(chunk.data.boneweight[i0 + 0]);
-                        skinWeights.push(chunk.data.boneweight[i0 + 1]);
+                        var i0: number = 4 * chunk.vertexBufferOffset + 4 * i;
+                        var w0: number = chunk.data.boneweight[i0 + 0];
+                        var w1: number = chunk.data.boneweight[i0 + 1];
+                        var total = w0 + w1;
+                        if (total > 0) {
+                            w0 = w0 / total;
+                            w1 = w1 / total;
+                        }
+                        skinWeights.push(w0);
+                        skinWeights.push(w1);
                         //skinWeights.push(chunk.data.boneweight[i0 + 2]);
                         //skinWeights.push(chunk.data.boneweight[i0 + 3]);
                     }
@@ -95,23 +103,28 @@ module COLLADA.Threejs {
                 // Add faces
                 for (var i: number = 0; i < chunk.triangleCount; ++i) {
                     var i0 = chunk.indexBufferOffset + 3 * i;
+                    var index0 = baseIndexOffset + chunk.data.indices[i0 + 0];
+                    var index1 = baseIndexOffset + chunk.data.indices[i0 + 1];
+                    var index2 = baseIndexOffset + chunk.data.indices[i0 + 2];
 
                     faces.push(42);
 
-                    faces.push(chunk.data.indices[i0 + 0]);
-                    faces.push(chunk.data.indices[i0 + 1]);
-                    faces.push(chunk.data.indices[i0 + 2]);
+                    faces.push(index0);
+                    faces.push(index1);
+                    faces.push(index2);
 
                     faces.push(material_index);
 
-                    faces.push(chunk.data.indices[i0 + 0]);
-                    faces.push(chunk.data.indices[i0 + 1]);
-                    faces.push(chunk.data.indices[i0 + 2]);
+                    faces.push(index0);
+                    faces.push(index1);
+                    faces.push(index2);
 
-                    faces.push(chunk.data.indices[i0 + 0]);
-                    faces.push(chunk.data.indices[i0 + 1]);
-                    faces.push(chunk.data.indices[i0 + 2]);
+                    faces.push(index0);
+                    faces.push(index1);
+                    faces.push(index2);
                 }
+
+                baseIndexOffset += chunk.vertexCount;
             }
 
             var bones: any[] = converter_geometry.bones.map((bone) => { return COLLADA.Threejs.Bone.toJSON(bone, context); });
@@ -126,14 +139,14 @@ module COLLADA.Threejs {
                 },
                 "scale": 1,
                 "materials": materials,
-                "vertices": vertices,
+                "vertices": vertices.map((x) => COLLADA.MathUtils.round(x, context.pos_tol)),
                 "morphTargets": [],
-                "normals": normals,
+                "normals": normals.map((x) => COLLADA.MathUtils.round(x, context.nrm_tol)),
                 "colors": [],
-                "uvs": [uvs],
+                "uvs": [uvs.map((x) => COLLADA.MathUtils.round(x, context.uvs_tol))],
                 "faces": faces,
                 "skinIndices": skinIndices,
-                "skinWeights": skinWeights,
+                "skinWeights": skinWeights.map((x) => COLLADA.MathUtils.round(x, context.uvs_tol)),
                 "bones": bones,
                 "animation": animations[0]
             };
