@@ -202,7 +202,7 @@ module COLLADA.Converter {
 
         /**
         * Given two arrays a and b, such that each bone from a is contained in b,
-        * compute a map that maps the old index of each bone to the new index.
+        * compute a map that maps the old index (a) of each bone to the new index (b).
         */
         static getBoneIndexMap(a: COLLADA.Converter.Bone[], b: COLLADA.Converter.Bone[]): Uint32Array {
             var result: Uint32Array = new Uint32Array(a.length);

@@ -16,8 +16,12 @@
             margin-left: 0.5em;
         }
 
-        .long-label {
+        .input-cell > .long-label {
             flex: 0 0 150px;
+        }
+
+        .input-cell > .noflex-label {
+            flex: none;
         }
 
         textarea, a, input {
@@ -104,7 +108,7 @@
         }
 
         .short-cell {
-            flex: 0 0 200px;
+            flex: 0 0 150px;
         }
 
         canvas {
@@ -237,16 +241,34 @@
             </div>
         </div>
         <div class="input-row">
-            <div class="input-cell short-cell">
-                <label for="option-animations" class="long-label">Animations</label>
+            <div class="input-cell input-cell">
+                <label for="option-animations" class="noflex-label">Animations</label>
                 <input id="option-animations" type="checkbox" name="option-animations" class="option-checkbox" checked />
             </div>
+            <div class="input-cell input-cell">
+                <label for="option-bindshape" class="noflex-label">Apply Bind Shape</label>
+                <input id="option-bindshape" type="checkbox" name="option-bindshape" class="option-checkbox" checked />
+            </div>
+            <div class="input-cell input-cell">
+                <label for="option-sortbones" class="noflex-label">Sort Bones</label>
+                <input id="option-sortbones" type="checkbox" name="option-sortbones" class="option-checkbox" checked />
+            </div>
+            <!--
+            <div class="input-cell input-cell">
+                <label for="option-worldscale" class="long-label">World Scale</label>
+                <input id="option-worldscale" type="checkbox" name="option-worldscale" class="option-checkbox" checked />
+            </div>
+            -->
+            <div class="input-cell input-cell">
+                <label for="option-singlebuffer" class="noflex-label">Single Buffer</label>
+                <input id="option-singlebuffer" type="checkbox" name="option-singlebuffer" class="option-checkbox" />
+            </div>
             <div class="input-cell">
-                <label for="option-fps" class="long-label">FPS</label>
+                <label for="option-fps" class="noflex-label">FPS</label>
                 <input id="option-fps" type="text" name="option-fps" value="10" />
             </div>
             <div class="input-cell">
-                <label for="option-scale" class="long-label">Scale</label>
+                <label for="option-scale" class="noflex-label">Scale</label>
                 <input id="option-scale" type="text" name="option-scale" value="1" />
             </div>
         </div>
