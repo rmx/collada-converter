@@ -189,8 +189,9 @@ function convertSync() {
 
     // Loader
     var loader = new COLLADA.Loader.ColladaLoader();
-    var loaderlog = loader.log = new COLLADA.LogCallback;
+    var loaderlog = new COLLADA.LogCallback;
     loaderlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("loader", message, level); }
+    loader.log = new COLLADA.LogFilter(loaderlog, COLLADA.LogLevel.Info);
 
     // Load
     timeStart("COLLADA parsing");

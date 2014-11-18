@@ -68,4 +68,21 @@ module COLLADA {
             this.area.textContent += line + "\n";
         }
     }
+
+    export class LogFilter implements Log {
+        level: LogLevel;
+        log: Log;
+
+        constructor(log: Log, level: LogLevel) {
+            this.log = log;
+            this.level = level;
+        }
+
+
+        write(message: string, level: LogLevel) {
+            if (level > this.level) {
+                this.log.write(message, level);
+            }
+        }
+    }
 }

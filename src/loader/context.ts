@@ -277,7 +277,7 @@ module COLLADA.Loader {
         }
 
         reportUnhandledChild(child: Node) {
-            this.log.write("Element " + (this.getNodePath(child)) + " is legal, but not handled by this loader.", LogLevel.Warning);
+            this.log.write("Element " + (this.getNodePath(child)) + " is legal, but not handled by this loader.", LogLevel.Trace);
         }
 
         resolveAllLinks() {
