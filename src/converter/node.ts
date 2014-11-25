@@ -48,7 +48,7 @@ module COLLADA.Converter {
             } else if (context.options.worldTransform.value && context.options.worldTransformBake.value == false) {
                 // Parent: world transformation (full)
                 mat4.multiply(this.worldMatrix, Utils.getWorldTransform(context), this.getLocalMatrix(context));
-            } else if (context.options.worldTransform.value && !context.options.worldTransformBake.value == true) {
+            } else if (context.options.worldTransform.value && context.options.worldTransformBake.value == true) {
                 // Parent: world transformation (partial)
                 mat4.multiply(this.worldMatrix, Utils.getWorldRotation(context), this.getLocalMatrix(context));
             } else {

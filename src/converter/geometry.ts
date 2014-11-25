@@ -343,6 +343,12 @@ module COLLADA.Converter {
 
                 GeometryChunk.transformChunk(chunk, transformMatrix, normalMatrix, context);
             }
+
+            if (geometry.bones) {
+                geometry.bones.forEach((bone) => {
+                    mat4.multiply(bone.invBindMatrix, transformMatrix, bone.invBindMatrix);
+                });
+            }
         }
 
         /**
@@ -355,7 +361,6 @@ module COLLADA.Converter {
             }
 
             if (geometry.bones) {
-                var s: Vec3 = vec3.fromValues(scale, scale, scale);
                 geometry.bones.forEach((bone) => {
                     bone.invBindMatrix[12] *= scale;
                     bone.invBindMatrix[13] *= scale;
