@@ -66,7 +66,7 @@ module COLLADA.Converter {
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
         worldTransform: OptionBool;
-        worldTransformBake: OptionsBool;
+        worldTransformBake: OptionBool;
         worldTransformScale: OptionFloat;
         worldTransformRotationAxis: OptionSelect;
         worldTransformRotationAngle: OptionFloat;
