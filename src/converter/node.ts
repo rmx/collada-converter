@@ -43,8 +43,16 @@ module COLLADA.Converter {
         */
         getWorldMatrix(context: COLLADA.Converter.Context): Mat4 {
             if (this.parent != null) {
+                // Parent: parent node
                 mat4.multiply(this.worldMatrix, this.parent.getWorldMatrix(context), this.getLocalMatrix(context));
+            } else if (context.options.worldTransform.value && context.options.worldTransformBake.value == false) {
+                // Parent: world transformation (full)
+                mat4.multiply(this.worldMatrix, Utils.getWorldTransform(context), this.getLocalMatrix(context));
+            } else if (context.options.worldTransform.value && !context.options.worldTransformBake.value == true) {
+                // Parent: world transformation (partial)
+                mat4.multiply(this.worldMatrix, Utils.getWorldRotation(context), this.getLocalMatrix(context));
             } else {
+                // Parent: none
                 mat4.copy(this.worldMatrix, this.getLocalMatrix(context));
             }
             return this.worldMatrix;
@@ -61,11 +69,19 @@ module COLLADA.Converter {
                 transform.applyTransformation(this.matrix);
             }
 
-            var scale = context.options.worldScale.value;
-            if (scale !== 1) {
-                this.matrix[12] *= scale;
-                this.matrix[13] *= scale;
-                this.matrix[14] *= scale;
+            if (context.options.worldTransform.value && context.options.worldTransformBake.value) {
+                // Apply the decomposed world transform to all nodes of the scene (more complex).
+                var worldScale: Vec3 = Utils.getWorldScale(context);
+                var worldRotation: Mat4 = Utils.getWorldRotation(context);
+                var worldTransform: Mat4 = Utils.getWorldTransform(context);
+
+                // Apply the world tranform to all local translations
+                var translation: Vec3 = vec3.fromValues(this.matrix[12], this.matrix[13], this.matrix[14]);
+                // vec3.transformMat4(translation, translation, worldTransform);
+                vec3.multiply(translation, translation, worldScale);
+                this.matrix[12] = translation[0];
+                this.matrix[13] = translation[1];
+                this.matrix[14] = translation[2];
             }
 
             return this.matrix;

@@ -47,22 +47,16 @@ module COLLADA.Converter {
                 });
             }
 
-            // Scale the scene
-            if (context.options.worldScale.value !== 1) {
-                var scale: number = context.options.worldScale.value;
-                var mat: Mat4 = mat4.create();
-                mat4.identity(mat);
-                mat4.scale(mat, mat, vec3.fromValues(scale, scale, scale));
+            // Transform the scene
+            if (context.options.worldTransform.value) {
+
+                // Get the world transformation
+                var mat: Mat4 = Utils.getWorldTransform(context);
 
                 // Scale all detached geometries
                 for (var i: number = 0; i < result.geometries.length; ++i) {
-                    COLLADA.Converter.Geometry.scaleGeometry(result.geometries[i], scale, context);
+                    COLLADA.Converter.Geometry.transformGeometry(result.geometries[i], mat, context);
                 }
-
-                // Scale all scene nodes
-                //COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
-                //    node.addTransform(mat);
-                //});
             }
 
             // Merge chunk data

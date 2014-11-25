@@ -1,6 +1,11 @@
 module COLLADA.Converter {
 
-    export class OptionBool {
+    export interface Option {
+        value: any;
+        description: string;
+    }
+
+    export class OptionBool implements Option {
         value: boolean;
         description: string;
 
@@ -10,7 +15,7 @@ module COLLADA.Converter {
         }
     }
 
-    export class OptionFloat {
+    export class OptionFloat implements Option {
         value: number;
         min: number;
         max: number;
@@ -24,7 +29,19 @@ module COLLADA.Converter {
         }
     }
 
-    export class OptionArray<T> {
+    export class OptionSelect implements Option {
+        value: string;
+        description: string;
+        options: string[]
+
+        constructor(defaultValue: string, options: string[], description: string) {
+            this.value = defaultValue;
+            this.options = options;
+            this.description = description;
+        }
+    }
+
+    export class OptionArray<T> implements Option {
         value: T[];
         description: string;
 
@@ -48,7 +65,11 @@ module COLLADA.Converter {
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
-        worldScale: OptionFloat;
+        worldTransform: OptionBool;
+        worldTransformBake: OptionsBool;
+        worldTransformScale: OptionFloat;
+        worldTransformRotationAxis: OptionSelect;
+        worldTransformRotationAngle: OptionFloat;
 
         constructor() {
             this.singleAnimation = new OptionBool(true,
@@ -77,8 +98,16 @@ module COLLADA.Converter {
                 "If enabled, only the filename and extension of textures are kept and the remaining path is discarded.");
             this.sortBones = new OptionBool(true,
                 "If enabled, bones are sorted so that child bones always appear after their parent bone in the list of bones.");
-            this.worldScale = new OptionFloat(0.01, 1e-6, 1e6,
-                "The model is scaled by this factor.");
+            this.worldTransform = new OptionBool(false,
+                "If enabled, all objects (geometries, animations, skeletons) are transformed as specified by the corresponding options.");
+            this.worldTransformBake = new OptionBool(true,
+                "If enabled, the world tranformation is applied to all scene nodes. Otherwise, it is applied to the scene root only.");
+            this.worldTransformScale = new OptionFloat(1.0, 1e-6, 1e6,
+                "Scale factor. See the 'worldTransform' option.");
+            this.worldTransformRotationAxis = new OptionSelect("none", ["none", "x", "y", "z"],
+                "Rotation axis. See the 'worldTransform' option.");
+            this.worldTransformRotationAngle = new OptionFloat(0, 0, 360,
+                "Rotation angle (in degrees). See the 'worldTransform' option.");
         }
 
     }

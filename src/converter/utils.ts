@@ -197,5 +197,47 @@ module COLLADA.Converter {
                 }
             }
         }
+
+        static getWorldTransform(context: COLLADA.Converter.Context): Mat4 {
+            // Rotation
+            var mat: Mat4 = Utils.getWorldRotation(context);
+
+            // Scale
+            var scale: Vec3 = Utils.getWorldScale(context);
+            mat4.scale(mat, mat, scale);
+
+            return mat;
+        }
+
+        static worldScale: Vec3 = vec3.create();
+        static getWorldScale(context: COLLADA.Converter.Context): Vec3 {
+            var scale: number = context.options.worldTransformScale.value;
+
+            var vec = Utils.worldScale;
+
+            vec3.set(vec, scale, scale, scale);
+
+            return vec;
+        }
+
+        static worldRotation: Mat4 = mat4.create();
+        static getWorldRotation(context: COLLADA.Converter.Context): Mat4 {
+            var rotationAxis: string = context.options.worldTransformRotationAxis.value;
+            var rotationAngle: number = context.options.worldTransformRotationAngle.value * Math.PI / 180;
+
+            var mat: Mat4 = Utils.worldRotation;
+
+            mat4.identity(mat);
+
+            switch (rotationAxis) {
+                case "none": break;
+                case "x": mat4.rotateX(mat, mat, rotationAngle); break;
+                case "y": mat4.rotateY(mat, mat, rotationAngle); break;
+                case "z": mat4.rotateZ(mat, mat, rotationAngle); break;
+                default: context.log.write("Unknown rotation axis", LogLevel.Warning); break;
+            }
+
+            return mat;
+        }
     }
 }
