@@ -34,12 +34,20 @@
                     <div class="form-group">
                         <div class="col-md-12">
                             <div class="form-control drop-target" id="drop-target">
-                                <div class="drop-target-instructions">
+                                <div id="drop-target-instructions">
                                     <div class="drop-target-icon">
                                         <span class="glyphicon glyphicon-inbox"></span>
                                     </div>
                                     <p class="drop-target-title">
                                         Drop your COLLADA (.dae) file here!
+                                    </p>
+                                </div>
+                                <div id="drop-target-result" class="hidden">
+                                    <div class="drop-target-icon">
+                                        <span class="glyphicon glyphicon-file"></span>
+                                    </div>
+                                    <p class="drop-target-title" id="input_file_size">
+                                        File loaded (0 kB).
                                     </p>
                                 </div>
                             </div>
@@ -50,7 +58,7 @@
                             <button type="button" class="btn btn-primary btn-block" id="convert">Convert</button>
                         </div>
                         <div class="col-sm-8">
-                            <div class="progress" id="progress-container">
+                            <div class="progress hidden" id="progress-container">
                                 <div class="progress-bar progress-bar-striped" role="progressbar" id="progress" style="width: 45%">
                                     <span class="sr-only">45% Complete</span>
                                 </div>

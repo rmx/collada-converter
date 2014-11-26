@@ -55,14 +55,19 @@ var conversion_data: i_conversion_data = {
 // ----------------------------------------------------------------------------
 
 function fileSizeStr(bytes: number): string {
-    if (bytes < 1024) {
+    var kilo = 1024;
+    var mega = 1024 * 1024;
+    var giga = 1024 * 1024 * 1024;
+    var tera = 1024 * 1024 * 1024 * 1024;
+
+    if (bytes < kilo) {
         return "" + (bytes) + " B";
-    } else if (bytes < 1024 * 1024) {
-        return "" + (bytes / 1024).toFixed(2) + " kB";
-    } else if (bytes < 1024 * 1024) {
-        return "" + (bytes / (1024 * 1024)).toFixed(2) + " MB";
-    } else if (bytes < 1024 * 1024 * 1024) {
-        return "" + (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+    } else if (bytes < mega) {
+        return "" + (bytes / kilo).toFixed(2) + " kB";
+    } else if (bytes < giga) {
+        return "" + (bytes / mega).toFixed(2) + " MB";
+    } else if (bytes < tera) {
+        return "" + (bytes / giga).toFixed(2) + " GB";
     } else {
         return ">1TB";
     }
@@ -160,7 +165,14 @@ function updateUIProgress() {
 }
 
 function updateUIInput() {
-
+    if (conversion_data.s0_source.length > 0) {
+        $("#drop-target-result").removeClass("hidden");
+        $("#drop-target-instructions").addClass("hidden");
+        $("#input_file_size").text("File loaded (" + fileSizeStr(conversion_data.s0_source.length) + ")");
+    } else {
+        $("#drop-target-result").addClass("hidden");
+        $("#drop-target-instructions").removeClass("hidden");
+    }
 }
 
 function updateUIOutput() {
@@ -285,6 +297,7 @@ function convertSetup(src: string) {
     // Set the source data
     conversion_data.s0_source = src;
     conversion_data.stage = 1;
+    updateUIInput();
 }
 
 function convertTick() {
