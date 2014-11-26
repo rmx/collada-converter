@@ -112,78 +112,6 @@ function onFileLoaded(ev: Event) {
     elements.input.textContent = "COLLADA loaded (" + (data.length/1024).toFixed(1) + " kB)";
 }
 
-function convertAsync() {
-
-    var url = window.location.href.replace("convert.html", "");
-    var script_urls = ["convert-task.js", "../js/xmlsax.js", "../js/xmlw3cdom.js", "../lib/collada.js", "../js/gl-matrix.js"].map((value) => ("'" + url + value + "'"));
-    var worker_script = new Blob(["importScripts(" + script_urls.join(",") + ");"]);
-    var worker_script_url = URL.createObjectURL(worker_script);
-    var worker = new Worker(worker_script_url);
-    URL.revokeObjectURL(worker_script_url);
-
-    worker.onmessage = function (event) {
-        var message: any = event.data;
-        if (message.progress_start) {
-            timeStart(message.progress_start);
-        }
-        if (message.progress_end) {
-            timeEnd(message.progress_end);
-        }
-        if (message.log_name) {
-            writeLog(message.log_name, message.log_message, message.log_level);
-        }
-        if (message.result_json) {
-            var json = message.result_json;
-            var data = message.result_data;
-
-            // Download links
-            elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
-            elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
-            elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(data.buffer);
-            elements.download_data.textContent = "Download (" + (data.length / 1024).toFixed(1) + " kB)";
-
-            // Output
-            elements.output.textContent = JSON.stringify(json, null, 2);
-            resetCheckboxes(json.chunks);
-
-            // Start rendering
-            timeStart("WebGL loading");
-            if (use_threejs) {
-                fillBuffersThreejs(json, data.buffer);
-            } else {
-                fillBuffers(json, data.buffer);
-                setupCamera(json);
-            }
-            timeEnd("WebGL loading");
-
-            timeStart("WebGL rendering");
-            if (use_threejs) {
-                tickThreejs(null);
-            } else {
-                tick(null);
-            }
-            timeEnd("WebGL rendering");
-        }
-    };
-
-    // Worker data
-    var worker_data: any = {};
-    worker_data.input_data = input_data;
-    
-    // Start the worker
-    var options: any = {};
-    options.fps = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
-    options.animations = (<HTMLInputElement>document.getElementById("option-animations")).checked;
-    options.worldTransform = (<HTMLInputElement>document.getElementById("option-worldtransform")).checked;
-    options.worldTransformScale = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
-    options.sortBones = (<HTMLInputElement>document.getElementById("option-sortbones")).checked;
-    options.applyBindShape = (<HTMLInputElement>document.getElementById("option-bindshape")).checked;
-    options.singleBufferPerGeometry = (<HTMLInputElement>document.getElementById("option-singlebuffer")).checked;
-    worker_data.options = options;
-
-    worker.postMessage(worker_data);
-}
-
 function convertSync() {
     // Parser
     var parser = new DOMParser();
@@ -210,15 +138,6 @@ function convertSync() {
     converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
 
     // Convert
-    converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
-    converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
-    converter.options.worldTransform.value = (<HTMLInputElement>document.getElementById("option-worldtransform")).checked;
-    converter.options.worldTransformScale.value = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
-    converter.options.worldTransformRotationAxis.value = (<HTMLInputElement>document.getElementById("option-axis")).value;
-    converter.options.worldTransformRotationAngle.value = parseFloat((<HTMLInputElement>document.getElementById("option-angle")).value);
-    converter.options.sortBones.value = (<HTMLInputElement>document.getElementById("option-sortbones")).checked;
-    converter.options.applyBindShape.value = (<HTMLInputElement>document.getElementById("option-bindshape")).checked;
-    converter.options.singleBufferPerGeometry.value = (<HTMLInputElement>document.getElementById("option-singlebuffer")).checked;
     timeStart("COLLADA conversion");
     var convertData = converter.convert(load_data);
     timeEnd("COLLADA conversion");
@@ -281,11 +200,7 @@ function convertSync() {
 function onConvertClick() {
     clearOutput();
 
-    if (true) {
-        convertSync();
-    } else {
-        convertAsync();
-    }
+    convertSync();
 }
 
 function onColladaProgress(id: string, loaded: number, total: number) {
