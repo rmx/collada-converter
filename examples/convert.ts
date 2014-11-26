@@ -5,6 +5,10 @@
 
 var use_threejs: boolean = true;
 
+
+// ----------------------------------------------------------------------------
+// Evil global data
+// ----------------------------------------------------------------------------
 interface i_elements {
     input?: HTMLInputElement;
     log_progress?: HTMLTextAreaElement;
@@ -21,23 +25,64 @@ interface i_elements {
 var elements: i_elements = {};
 
 var timestamps: {[name: string]:number} = {};
-var input_data: string = "";
 var options: COLLADA.Converter.Options = new COLLADA.Converter.Options();
 var optionElements: ColladaConverterOption[] = [];
 
+interface i_conversion_data {
+    stage: number;
+    exception: boolean;
+    s0_source: string;                             // Stage 0: raw file string
+    s1_xml: Document;                              // Stage 1: XML document
+    s2_loaded: COLLADA.Loader.Document;            // Stage 2: COLLADA document
+    s3_converted: COLLADA.Converter.Document;      // Stage 3: Converted document
+    s4_exported_custom: COLLADA.Exporter.Document; // Stage 4: JSON + binary
+    s5_exported_threejs: any;                      // Stage 5: JSON
+}
+
+var conversion_data: i_conversion_data = {
+    stage: null,
+    exception: null,
+    s0_source: null,
+    s1_xml: null,
+    s2_loaded: null,
+    s3_converted: null,
+    s4_exported_custom: null,
+    s5_exported_threejs: null
+}
+
+// ----------------------------------------------------------------------------
+// Misc
+// ----------------------------------------------------------------------------
+
+function fileSizeStr(bytes: number): string {
+    if (bytes < 1024) {
+        return "" + (bytes) + " B";
+    } else if (bytes < 1024 * 1024) {
+        return "" + (bytes / 1024).toFixed(2) + " kB";
+    } else if (bytes < 1024 * 1024) {
+        return "" + (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    } else if (bytes < 1024 * 1024 * 1024) {
+        return "" + (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+    } else {
+        return ">1TB";
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Log
+// ----------------------------------------------------------------------------
+
 function writeProgress(msg: string) {
-    elements.log_progress.textContent += msg + "\n";
-    console.log(msg);
+    $("#log").append(msg + "\n");
 }
 
 function writeLog(name: string, message: string, level: COLLADA.LogLevel) {
     var line: string = COLLADA.LogLevelToString(level) + ": " + message;
-    switch (name) {
-        case "loader": elements.log_loader.textContent += line + "\n"; break;
-        case "converter": elements.log_converter.textContent += line + "\n"; break;
-        case "exporter": elements.log_exporter.textContent += line + "\n"; break;
-        case "progress": elements.log_progress.textContent += line + "\n"; break;
-    }
+    $("#log").append("[" + name + "] " + line + "\n");
+}
+
+function clearLog() {
+    $("#log").val("");
 }
 
 function timeStart(name: string) {
@@ -51,110 +96,66 @@ function timeEnd(name: string) {
     writeProgress(name + " finished (" + (endTime - startTime).toFixed(2) + "ms)"); 
 }
 
-function clearInput() {
-    elements.input.textContent = "";
-    clearOutput();
+// ----------------------------------------------------------------------------
+// Reset
+// ----------------------------------------------------------------------------
+
+function reset() {
+
+    conversion_data = {
+        stage: -1,
+        exception: null,
+        s0_source: "",
+        s1_xml: null,
+        s2_loaded: null,
+        s3_converted: null,
+        s4_exported_custom: null,
+        s5_exported_threejs: null
+    }
+
+    clearLog();
+    updateUIInput();
+    updateUIOutput();
+    updateUIRenderer();
+    updateUIProgress();
 }
 
-function clearOutput() {
-    if (use_threejs) {
-        clearBuffersThreejs();
+function resetOutput() {
+
+    conversion_data.stage = -1;
+    conversion_data.exception = null;
+    conversion_data.s1_xml = null;
+    conversion_data.s2_loaded = null;
+    conversion_data.s3_converted = null;
+    conversion_data.s4_exported_custom = null;
+    conversion_data.s5_exported_threejs = null;
+
+    clearLog();
+    updateUIInput();
+    updateUIOutput();
+    updateUIRenderer();
+    updateUIProgress();
+}
+
+// ----------------------------------------------------------------------------
+// UI
+// ----------------------------------------------------------------------------
+
+function updateUIProgress() {
+    if (conversion_data.stage >= 0) {
+        $("#progress-container").removeClass("hidden");
+        $("#progress").css("width", (100*conversion_data.stage / 5).toFixed(1) + "%");
     } else {
-        clearBuffers();
+        $("#progress-container").addClass("hidden");
     }
-
-    resetCheckboxes([]);
-    elements.log_progress.textContent = "";
-    elements.log_loader.textContent = "";
-    elements.log_converter.textContent = "";
-    elements.log_exporter.textContent = "";
-    elements.output.textContent = "";
-    elements.download_json.textContent = "No file converted";
-    elements.download_json.href = "javascript:void(0)";
-    elements.download_data.textContent = "No file converted";
-    elements.download_data.href = "javascript:void(0)";
 }
 
-function onFileDrag(ev: JQueryEventObject) {
-    ev.preventDefault();
+function updateUIInput() {
+
 }
 
-function onFileDrop(ev: JQueryEventObject) {
-    clearInput();
-    writeProgress("Something dropped.");
-    ev.preventDefault();
-    var dt = ev.data.dataTransfer;
-    var files = dt.files;
-    if (files.length == 0) {
-        writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
-        return;
-    }
-    if (files.length > 1) {
-        writeProgress("You dropped multiple files. Please only drop a single file.");
-        return;
-    }
-    var file = files[0];
-    var reader = new FileReader();
-    reader.onload = onFileLoaded;
-    reader.onerror = onFileError;
-    timeStart("Reading file");
-    reader.readAsText(file);
-}
-
-function onFileError() {
-    writeProgress("Error reading file.");
-}
-
-function onFileLoaded(ev: Event) {
-    timeEnd("Reading file");
-    var data = this.result;
-    input_data = data;
-    elements.input.textContent = "COLLADA loaded (" + (data.length/1024).toFixed(1) + " kB)";
-}
-
-function convertSync() {
-    // Parser
-    var parser = new DOMParser();
-
-    // Parse
-    timeStart("XML parsing");
-    var xmlDoc = parser.parseFromString(input_data, "text/xml");
-    timeEnd("XML parsing");
-
-    // Loader
-    var loader = new COLLADA.Loader.ColladaLoader();
-    var loaderlog = new COLLADA.LogCallback;
-    loaderlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("loader", message, level); }
-    loader.log = new COLLADA.LogFilter(loaderlog, COLLADA.LogLevel.Info);
-
-    // Load
-    timeStart("COLLADA parsing");
-    var load_data = loader.loadFromXML("id", xmlDoc);
-    timeEnd("COLLADA parsing");
-
-    // Converter
-    var converter = new COLLADA.Converter.ColladaConverter();
-    var converterlog = converter.log = new COLLADA.LogCallback;
-    converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
-
-    // Convert
-    timeStart("COLLADA conversion");
-    var convertData = converter.convert(load_data);
-    timeEnd("COLLADA conversion");
-
-    // Exporter
-    var exporter = new COLLADA.Exporter.ColladaExporter();
-    var exporterlog = exporter.log = new COLLADA.LogCallback;
-    exporterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
-
-    // Export
-    timeStart("COLLADA export");
-    var exportData = exporter.export(convertData);
-    timeEnd("COLLADA export");
-
-    var json = exportData.json;
-    var data = exportData.data;
-
+function updateUIOutput() {
+    /*
     // Download links
     elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
     elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
@@ -165,19 +166,38 @@ function convertSync() {
     elements.output.textContent = JSON.stringify(json, null, 2);
     resetCheckboxes(json.chunks);
 
-    // Exporter2
-    var exporter2 = new COLLADA.Threejs.ThreejsExporter();
-    var exporter2log = exporter2.log = new COLLADA.LogCallback;
-    exporter2log.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
-
-    // Export2
-    timeStart("Threejs export");
-    var threejsData = exporter2.export(convertData);
-    timeEnd("Threejs export");
-
     elements.download_threejs.href = COLLADA.Exporter.Utils.jsonToBlobURI(threejsData);
     elements.download_threejs.textContent = "Download (" + (JSON.stringify(threejsData).length / 1024).toFixed(1) + " kB)";
+    */
 
+    /*
+    for (var i: number = 0; i < elements.mesh_parts_checkboxes.length; ++i) {
+        var checkbox: HTMLInputElement = elements.mesh_parts_checkboxes[i];
+        var label: HTMLLabelElement = elements.mesh_parts_labels[i];
+        checkbox.checked = true;
+        if (chunks.length <= i) {
+            checkbox.style.setProperty("display", "none");
+            label.style.setProperty("display", "none");
+        } else {
+            checkbox.style.removeProperty("display");
+            label.style.removeProperty("display");
+            label.textContent = chunks[i].name;
+        }
+    }
+    */
+}
+
+function updateUIRenderer() {
+
+    /*
+    if (use_threejs) {
+        clearBuffersThreejs();
+    } else {
+        clearBuffers();
+    }
+    */
+
+    /*
     // Start rendering
     timeStart("WebGL loading");
     if (use_threejs) {
@@ -195,17 +215,181 @@ function convertSync() {
         tick(null);
     }
     timeEnd("WebGL rendering");
+    */
+}
+
+// ----------------------------------------------------------------------------
+// Drag & Drop
+// ----------------------------------------------------------------------------
+
+function onFileDrag(ev: JQueryEventObject) {
+    ev.preventDefault();
+}
+
+function onFileDrop(ev: JQueryEventObject) {
+    writeProgress("Something dropped.");
+    ev.preventDefault();
+    var dt = (<any>ev.originalEvent).dataTransfer;
+    if (!dt) {
+        writeProgress("Your browser does not support drag&drop for files (?).");
+        return;
+    }
+    var files = dt.files;
+    if (files.length == 0) {
+        writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
+        return;
+    }
+    if (files.length > 1) {
+        writeProgress("You dropped multiple files. Please only drop a single file.");
+        return;
+    }
+
+    onFileLoad(files[0]);
+}
+
+
+function onFileLoad(file: File) {
+    // Reset all data
+    reset();
+
+    // File reader
+    var reader = new FileReader();
+    reader.onload = () => {
+        timeEnd("Reading file");
+        var result: string = reader.result;
+        convertSetup(result);
+    };
+    reader.onerror = () => {
+        writeProgress("Error reading file.");
+    };
+    timeStart("Reading file");
+
+    // Read
+    reader.readAsText(file);
+}
+
+// ----------------------------------------------------------------------------
+// Conversion
+// ----------------------------------------------------------------------------
+
+function convertSetup(src: string) {
+    // Set the source data
+    conversion_data.s0_source = src;
+    conversion_data.stage = 1;
+}
+
+function convertTick() {
+    // Synchronously perform one step of the conversion
+    try {
+        switch (conversion_data.stage) {
+            case 1: convertParse(); break;
+            case 2: convertLoad(); break;
+            case 3: convertConvert(); break;
+            case 4: convertExportCustom(); break;
+            case 5: convertExportThreejs(); break;
+            case 6: updateUIOutput(); updateUIRenderer(); break;
+            default: throw new Error("Unknown stage");
+        }
+    } catch (e) {
+        conversion_data.exception = true;
+    }
+
+    // Update the progress bar
+    updateUIProgress();
+}
+
+function convertNextStage() {
+    conversion_data.stage++;
+    setTimeout(convertTick, 10);
+}
+
+function convertParse() {
+    // Parser
+    var parser = new DOMParser();
+
+    // Parse
+    timeStart("XML parsing");
+    conversion_data.s1_xml = parser.parseFromString(conversion_data.s0_source, "text/xml");
+    timeEnd("XML parsing");
+
+    // Next stage
+    convertNextStage();
+}
+
+function convertLoad() {
+    // Loader
+    var loader = new COLLADA.Loader.ColladaLoader();
+    var loaderlog = new COLLADA.LogCallback;
+    loaderlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("loader", message, level); }
+    loader.log = new COLLADA.LogFilter(loaderlog, COLLADA.LogLevel.Info);
+
+    // Load
+    timeStart("COLLADA parsing");
+    conversion_data.s2_loaded = loader.loadFromXML("id", conversion_data.s1_xml);
+    timeEnd("COLLADA parsing");
+
+    // Next stage
+    convertNextStage();
+}
+
+function convertConvert() {
+    // Converter
+    var converter = new COLLADA.Converter.ColladaConverter();
+    var converterlog = converter.log = new COLLADA.LogCallback;
+    converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
+    converter.options = options;
+
+    // Convert
+    timeStart("COLLADA conversion");
+    conversion_data.s3_converted = converter.convert(conversion_data.s2_loaded);
+    timeEnd("COLLADA conversion");
+
+    // Next stage
+    convertNextStage();
+}
+
+function convertExportCustom() {
+    // Exporter
+    var exporter = new COLLADA.Exporter.ColladaExporter();
+    var exporterlog = exporter.log = new COLLADA.LogCallback;
+    exporterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
+
+    // Export
+    timeStart("COLLADA export");
+    conversion_data.s4_exported_custom = exporter.export(conversion_data.s3_converted);
+    timeEnd("COLLADA export");
+
+    // Next stage
+    convertNextStage();
+}
+
+function convertExportThreejs() {
+    // Exporter2
+    var exporter = new COLLADA.Threejs.ThreejsExporter();
+    var exporterlog = exporter.log = new COLLADA.LogCallback;
+    exporterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("threejs", message, level); }
+
+    // Export2
+    timeStart("Threejs export");
+    conversion_data.s5_exported_threejs = exporter.export(conversion_data.s3_converted);
+    timeEnd("Threejs export");
+
+    // Next stage
+    convertNextStage();
 }
 
 function onConvertClick() {
-    clearOutput();
+    // Delete any previously converted data
+    resetOutput();
 
-    convertSync();
+    // Start the conversion
+    conversion_data.stage = 1;
+    setTimeout(convertTick, 10);
 }
 
-function onColladaProgress(id: string, loaded: number, total: number) {
-    writeProgress("Collada loading progress");
-}
+// ----------------------------------------------------------------------------
+// Initialization
+// ----------------------------------------------------------------------------
 
 function init() {
     // Initialize WebGL
@@ -234,22 +418,6 @@ function init() {
     $("#drop-target").on("drop", onFileDrop);
     $("#convert").click(onConvertClick);
 
-    //
-    // clearOutput();
-}
-
-function resetCheckboxes(chunks: COLLADA.Exporter.GeometryJSON[]) {
-    for (var i: number = 0; i < elements.mesh_parts_checkboxes.length; ++i) {
-        var checkbox: HTMLInputElement = elements.mesh_parts_checkboxes[i];
-        var label: HTMLLabelElement = elements.mesh_parts_labels[i];
-        checkbox.checked = true;
-        if (chunks.length <= i) {
-            checkbox.style.setProperty("display", "none");
-            label.style.setProperty("display", "none");
-        } else {
-            checkbox.style.removeProperty("display");
-            label.style.removeProperty("display");
-            label.textContent = chunks[i].name;
-        }
-    }
+    // Update all UI elements
+    reset();
 }

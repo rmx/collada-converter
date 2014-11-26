@@ -50,8 +50,8 @@
                             <button type="button" class="btn btn-primary btn-block" id="convert">Convert</button>
                         </div>
                         <div class="col-sm-8">
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-striped active" role="progressbar" style="width: 45%">
+                            <div class="progress" id="progress-container">
+                                <div class="progress-bar progress-bar-striped active" role="progressbar" id="progress" style="width: 45%">
                                     <span class="sr-only">45% Complete</span>
                                 </div>
                             </div>
@@ -66,7 +66,7 @@
                 <form class="form-horizontal" role="form">
                     <div class="form-group">
                         <div class="col-sm-12">
-                            <textarea class="form-control" rows="8"></textarea>
+                            <textarea class="form-control" rows="8" id="log"></textarea>
                         </div>
                     </div>
                 </form>
