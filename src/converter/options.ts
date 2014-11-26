@@ -1,6 +1,11 @@
 module COLLADA.Converter {
 
-    export class OptionBool {
+    export interface Option {
+        value: any;
+        description: string;
+    }
+
+    export class OptionBool implements Option {
         value: boolean;
         description: string;
 
@@ -10,7 +15,7 @@ module COLLADA.Converter {
         }
     }
 
-    export class OptionFloat {
+    export class OptionFloat implements Option {
         value: number;
         min: number;
         max: number;
@@ -24,7 +29,19 @@ module COLLADA.Converter {
         }
     }
 
-    export class OptionArray<T> {
+    export class OptionSelect implements Option {
+        value: string;
+        description: string;
+        options: string[]
+
+        constructor(defaultValue: string, options: string[], description: string) {
+            this.value = defaultValue;
+            this.options = options;
+            this.description = description;
+        }
+    }
+
+    export class OptionArray<T> implements Option {
         value: T[];
         description: string;
 
@@ -48,13 +65,18 @@ module COLLADA.Converter {
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
-        worldScale: OptionFloat;
+        worldTransform: OptionBool;
+        worldTransformBake: OptionBool;
+        worldTransformUnitScale: OptionBool;
+        worldTransformScale: OptionFloat;
+        worldTransformRotationAxis: OptionSelect;
+        worldTransformRotationAngle: OptionFloat;
 
         constructor() {
             this.singleAnimation = new OptionBool(true,
                 "If enabled, all animations are merged into a single animation. Enable if each bone has a separate top level animation.");
             this.singleGeometry = new OptionBool(true,
-                "If enabled, all geometries are merged into a single geometry. Only has an effect if 'extractGeometry' is enabled.");
+                "If enabled, all geometries are merged into a single geometry. Only has an effect if 'enableExtractGeometry' is enabled.");
             this.singleBufferPerGeometry = new OptionBool(false,
                 "If enabled, all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of each buffer.");
             this.enableAnimations = new OptionBool(true,
@@ -77,8 +99,18 @@ module COLLADA.Converter {
                 "If enabled, only the filename and extension of textures are kept and the remaining path is discarded.");
             this.sortBones = new OptionBool(true,
                 "If enabled, bones are sorted so that child bones always appear after their parent bone in the list of bones.");
-            this.worldScale = new OptionFloat(0.01, 1e-6, 1e6,
-                "The model is scaled by this factor.");
+            this.worldTransform = new OptionBool(false,
+                "If enabled, all objects (geometries, animations, skeletons) are transformed as specified by the corresponding options.");
+            this.worldTransformBake = new OptionBool(true,
+                "If enabled, the world transformation is applied to skinned geometry. Otherwise, it is only applied to the bones.");
+            this.worldTransformUnitScale = new OptionBool(true,
+                "If enabled, the world scale will not add any scaling transformation to any nodes.");
+            this.worldTransformScale = new OptionFloat(1.0, 1e-6, 1e6,
+                "Scale factor. See the 'worldTransform' option.");
+            this.worldTransformRotationAxis = new OptionSelect("none", ["none", "x", "y", "z"],
+                "Rotation axis. See the 'worldTransform' option.");
+            this.worldTransformRotationAngle = new OptionFloat(0, 0, 360,
+                "Rotation angle (in degrees). See the 'worldTransform' option.");
         }
 
     }

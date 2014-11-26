@@ -69,7 +69,8 @@ function worker_convert(data) {
     converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { worker_postLog("converter", message, level); }
     converter.options.animationFps.value = data.options.fps || 25;
     converter.options.enableAnimations.value = data.options.animations || true;
-    converter.options.worldScale.value = data.options.scale || 1;
+    converter.options.worldTransform.value = data.options.worldTransform || true;
+    converter.options.worldTransformScale.value = data.options.worldTransformScale || 1;
 
     // Convert
     worker_postStart("COLLADA conversion");

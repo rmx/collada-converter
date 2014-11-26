@@ -18,6 +18,17 @@ module COLLADA.Converter {
             this.options = new COLLADA.Converter.Options();
         }
 
+        private forEachGeometry(doc: COLLADA.Converter.Document, fn: (geometry: Converter.Geometry) => void): void {
+            for (var i: number = 0; i < doc.geometries.length; ++i) {
+                fn(doc.geometries[i]);
+            }
+            COLLADA.Converter.Node.forEachNode(doc.nodes, (node: Node) => {
+                for (var i: number = 0; i < node.geometries.length; ++i) {
+                    fn(node.geometries[i]);
+                }
+            });
+        }
+
         convert(doc: COLLADA.Loader.Document): COLLADA.Converter.Document {
             var context: COLLADA.Converter.Context = new COLLADA.Converter.Context(this.log, this.options);
 
@@ -31,50 +42,45 @@ module COLLADA.Converter {
             // Scene nodes
             result.nodes = ColladaConverter.createScene(doc, context);
 
+            // Set up the world transform
+            if (context.options.worldTransform.value) {
+
+                // Add the world transform to scene nodes
+                for (var i: number = 0; i < result.nodes.length; ++i) {
+                    Node.setupWorldTransform(result.nodes[i], context);
+                }
+
+                // Adapt inverse bind matrices
+                this.forEachGeometry(result, (geometry) => {
+                    COLLADA.Converter.Geometry.setupWorldTransform(geometry, context);
+                });
+
+                // Bake: Apply the world transform to skinned geometries
+                if (context.options.worldTransformBake.value) {
+                    var mat: Mat4 = Utils.getWorldTransform(context);
+                    this.forEachGeometry(result, (geometry) => {
+                        if (geometry.bones.length > 0) {
+                            COLLADA.Converter.Geometry.transformGeometry(geometry, mat, context);
+                        }
+                    });
+                }
+            }
+
             // Extract geometries
             if (context.options.enableExtractGeometry.value === true) {
                 result.geometries = COLLADA.Converter.Node.extractGeometries(result.nodes, context);
             }
 
-            var forEachGeometry = (fn: (geometry: Converter.Geometry)=>void) => {
-                for (var i: number = 0; i < result.geometries.length; ++i) {
-                    fn(result.geometries[i]);
-                }
-                COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
-                    for (var i: number = 0; i < node.geometries.length; ++i) {
-                        fn(node.geometries[i]);
-                    }
-                });
-            }
-
-            // Scale the scene
-            if (context.options.worldScale.value !== 1) {
-                var scale: number = context.options.worldScale.value;
-                var mat: Mat4 = mat4.create();
-                mat4.identity(mat);
-                mat4.scale(mat, mat, vec3.fromValues(scale, scale, scale));
-
-                // Scale all detached geometries
-                for (var i: number = 0; i < result.geometries.length; ++i) {
-                    COLLADA.Converter.Geometry.scaleGeometry(result.geometries[i], scale, context);
-                }
-
-                // Scale all scene nodes
-                //COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
-                //    node.addTransform(mat);
-                //});
-            }
-
             // Merge chunk data
             if (context.options.singleBufferPerGeometry.value === true) {
-                forEachGeometry((geometry) => {
+                this.forEachGeometry(result, (geometry) => {
                     COLLADA.Converter.GeometryChunk.mergeChunkData(geometry.chunks, context);
                 });
             }
 
             // Compute bounding boxes
             COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
-                forEachGeometry((geometry) => {
+                this.forEachGeometry(result, (geometry) => {
                     COLLADA.Converter.Geometry.computeBoundingBox(geometry, context);
                 });
             });
@@ -109,7 +115,7 @@ module COLLADA.Converter {
             // Create converted nodes
             for (var i: number = 0; i < scene.children.length; ++i) {
                 var topLevelNode: COLLADA.Loader.VisualSceneNode = scene.children[i];
-                result.push(COLLADA.Converter.Node.createNode(topLevelNode, context));
+                result.push(COLLADA.Converter.Node.createNode(topLevelNode, null, context));
             }
 
             // Create data (geometries, ...) for the converted nodes

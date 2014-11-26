@@ -12,6 +12,8 @@ module COLLADA.Converter {
         children: COLLADA.Converter.Node[];
         geometries: COLLADA.Converter.Geometry[];
         transformations: COLLADA.Converter.Transform[];
+        transformation_pre: Mat4;
+        transformation_post: Mat4;
         matrix: Mat4;
         worldMatrix: Mat4;
         initialLocalMatrix: Mat4;
@@ -25,8 +27,12 @@ module COLLADA.Converter {
             this.transformations = [];
             this.matrix = mat4.create();
             this.worldMatrix = mat4.create();
-            this.initialLocalMatrix = null;
-            this.initialWorldMatrix = null;
+            this.initialLocalMatrix = mat4.create();
+            this.initialWorldMatrix = mat4.create();
+            this.transformation_pre = mat4.create();
+            mat4.identity(this.transformation_pre);
+            this.transformation_post = mat4.create();
+            mat4.identity(this.transformation_post);
         }
 
         addTransform(mat: Mat4) {
@@ -54,19 +60,18 @@ module COLLADA.Converter {
         * Returns the local transformation matrix of this node
         */
         getLocalMatrix(context: COLLADA.Converter.Context) {
-            mat4.identity(this.matrix);
+            
+            // Static pre-transform
+            mat4.copy(this.matrix, this.transformation_pre);
 
+            // Original transformations
             for (var i: number = 0; i < this.transformations.length; i++) {
                 var transform: COLLADA.Converter.Transform = this.transformations[i];
                 transform.applyTransformation(this.matrix);
             }
 
-            var scale = context.options.worldScale.value;
-            if (scale !== 1) {
-                this.matrix[12] *= scale;
-                this.matrix[13] *= scale;
-                this.matrix[14] *= scale;
-            }
+            // Static post-transform
+            mat4.multiply(this.matrix, this.matrix, this.transformation_post);
 
             return this.matrix;
         }
@@ -129,9 +134,13 @@ module COLLADA.Converter {
         /**
         * Recursively creates a converter node tree from the given collada node root node
         */
-        static createNode(node: COLLADA.Loader.VisualSceneNode, context: COLLADA.Converter.Context): COLLADA.Converter.Node {
+        static createNode(node: COLLADA.Loader.VisualSceneNode, parent: COLLADA.Converter.Node, context: COLLADA.Converter.Context): COLLADA.Converter.Node {
             // Create new node
             var converterNode: COLLADA.Converter.Node = new COLLADA.Converter.Node();
+            converterNode.parent = parent;
+            if (parent) {
+                parent.children.push(converterNode);
+            }
             context.nodes.register(node, converterNode);
 
             converterNode.name = node.name || node.id || node.sid || "Unnamed node";
@@ -161,21 +170,24 @@ module COLLADA.Converter {
                     converterNode.transformations.push(converterTransform);
                 }
             }
-            converterNode.getLocalMatrix(context);
-            converterNode.initialLocalMatrix = mat4.clone(converterNode.matrix);
 
-            converterNode.getWorldMatrix(context);
-            converterNode.initialWorldMatrix = mat4.clone(converterNode.worldMatrix);
-
+            Node.updateInitialMatrices(converterNode, context);
+            
             // Create children
             for (var i: number = 0; i < node.children.length; i++) {
                 var colladaChild: COLLADA.Loader.VisualSceneNode = node.children[i];
-                var converterChild: COLLADA.Converter.Node = COLLADA.Converter.Node.createNode(colladaChild, context);
-                converterChild.parent = converterNode;
-                converterNode.children.push(converterChild);
+                var converterChild: COLLADA.Converter.Node = COLLADA.Converter.Node.createNode(colladaChild, converterNode, context);
             }
 
             return converterNode;
+        }
+
+        static updateInitialMatrices(node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
+            node.getLocalMatrix(context);
+            mat4.copy(node.initialLocalMatrix, node.matrix);
+
+            node.getWorldMatrix(context);
+            mat4.copy(node.initialWorldMatrix, node.worldMatrix);
         }
 
         static createNodeData(converter_node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
@@ -253,8 +265,13 @@ module COLLADA.Converter {
             for (var i: number = 0; i < geometries.length; ++i) {
                 var geometry: COLLADA.Converter.Geometry = geometries[i];
                 var node: COLLADA.Converter.Node = nodes[i];
-                var is_static: boolean = ((geometry.bones.length === 0) && (!node.isAnimated(true)));
-                if (is_static) {
+                var is_skinned: boolean = geometry.bones.length > 0;
+                var is_animated: boolean = node.isAnimated(true);
+                if (!is_skinned) {
+                    if (is_animated) {
+                        context.log.write("Geometry '" + geometry.name + "' is not skinned, but attached to an animated node. " +
+                            "This animation will be lost because the geometry is being detached from the node.", LogLevel.Warning);
+                    }
                     COLLADA.Converter.Geometry.transformGeometry(geometry, node.getWorldMatrix(context), context);
                 }
             }
@@ -266,6 +283,39 @@ module COLLADA.Converter {
             }
 
             return geometries;
+        }
+
+        static setupWorldTransform(node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
+            var worldScale: Vec3 = Utils.getWorldScale(context);
+            var worldInvScale: Vec3 = Utils.getWorldInvScale(context);
+            var worldRotation: Mat4 = Utils.getWorldRotation(context);
+            var worldTransform: Mat4 = Utils.getWorldTransform(context);
+
+            var uniform_scale: boolean = context.options.worldTransformUnitScale.value;
+
+            // Pre-transformation
+            // Root nodes: the world transformation
+            // All other nodes: undo whatever post-transformation the parent has added
+            if (node.parent == null) {  
+                mat4.copy(node.transformation_pre, worldTransform);
+            } else if (uniform_scale) {
+                mat4.invert(node.transformation_pre, node.parent.transformation_post);
+            }
+
+            // Post-transformation
+            if (uniform_scale) {
+                // This way, the node transformation will not contain any scaling
+                // Only the translation part will be scaled
+                mat4.identity(node.transformation_post);
+                mat4.scale(node.transformation_post, node.transformation_post, worldInvScale);
+            }
+
+            Node.updateInitialMatrices(node, context);
+
+            // Recursively set up children
+            for (var i = 0; i < node.children.length; ++i) {
+                Node.setupWorldTransform(node.children[i], context);
+            }
         }
     }
 }

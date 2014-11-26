@@ -197,5 +197,54 @@ module COLLADA.Converter {
                 }
             }
         }
+
+        private static worldTransform: Mat4 = mat4.create();
+        static getWorldTransform(context: COLLADA.Converter.Context): Mat4 {
+            var mat: Mat4 = Utils.worldTransform;
+            mat4.copy(mat, Utils.getWorldRotation(context));
+            mat4.scale(mat, mat, Utils.getWorldScale(context));
+            return mat;
+        }
+
+        private static worldInvTransform: Mat4 = mat4.create();
+        static getWorldInvTransform(context: COLLADA.Converter.Context): Mat4 {
+            var mat: Mat4 = Utils.getWorldTransform(context);
+            mat4.invert(Utils.worldInvTransform, mat);
+            return Utils.worldInvTransform;
+        }
+
+        private static worldScale: Vec3 = vec3.create();
+        static getWorldScale(context: COLLADA.Converter.Context): Vec3 {
+            var scale: number = context.options.worldTransformScale.value;
+            vec3.set(Utils.worldScale, scale, scale, scale);
+            return Utils.worldScale;
+        }
+
+        private static worldInvScale: Vec3 = vec3.create();
+        static getWorldInvScale(context: COLLADA.Converter.Context): Vec3 {
+            var invScale: number = 1 / context.options.worldTransformScale.value;
+            vec3.set(Utils.worldInvScale, invScale, invScale, invScale);
+            return Utils.worldInvScale;
+        }
+
+        private static worldRotation: Mat4 = mat4.create();
+        static getWorldRotation(context: COLLADA.Converter.Context): Mat4 {
+            var rotationAxis: string = context.options.worldTransformRotationAxis.value;
+            var rotationAngle: number = context.options.worldTransformRotationAngle.value * Math.PI / 180;
+
+            var mat: Mat4 = Utils.worldRotation;
+
+            mat4.identity(mat);
+
+            switch (rotationAxis) {
+                case "none": break;
+                case "x": mat4.rotateX(mat, mat, rotationAngle); break;
+                case "y": mat4.rotateY(mat, mat, rotationAngle); break;
+                case "z": mat4.rotateZ(mat, mat, rotationAngle); break;
+                default: context.log.write("Unknown rotation axis", LogLevel.Warning); break;
+            }
+
+            return mat;
+        }
     }
 }

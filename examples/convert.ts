@@ -172,7 +172,8 @@ function convertAsync() {
     var options: any = {};
     options.fps = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
     options.animations = (<HTMLInputElement>document.getElementById("option-animations")).checked;
-    options.scale = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
+    options.worldTransform = (<HTMLInputElement>document.getElementById("option-worldtransform")).checked;
+    options.worldTransformScale = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
     options.sortBones = (<HTMLInputElement>document.getElementById("option-sortbones")).checked;
     options.applyBindShape = (<HTMLInputElement>document.getElementById("option-bindshape")).checked;
     options.singleBufferPerGeometry = (<HTMLInputElement>document.getElementById("option-singlebuffer")).checked;
@@ -209,7 +210,10 @@ function convertSync() {
     // Convert
     converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
     converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
-    converter.options.worldScale.value = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
+    converter.options.worldTransform.value = (<HTMLInputElement>document.getElementById("option-worldtransform")).checked;
+    converter.options.worldTransformScale.value = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
+    converter.options.worldTransformRotationAxis.value = (<HTMLInputElement>document.getElementById("option-axis")).value;
+    converter.options.worldTransformRotationAngle.value = parseFloat((<HTMLInputElement>document.getElementById("option-angle")).value);
     converter.options.sortBones.value = (<HTMLInputElement>document.getElementById("option-sortbones")).checked;
     converter.options.applyBindShape.value = (<HTMLInputElement>document.getElementById("option-bindshape")).checked;
     converter.options.singleBufferPerGeometry.value = (<HTMLInputElement>document.getElementById("option-singlebuffer")).checked;

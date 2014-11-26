@@ -58,25 +58,66 @@ module COLLADA {
             mat4.transpose(dest, dest);
         }
 
+        private static _decomposeVec3: Vec3 = vec3.create();
+        private static _decomposeMat3: Mat3 = mat3.create();
+        private static _decomposeMat4: Mat4 = mat4.create();
         static decompose(mat: Mat4, pos: Vec3, rot: Quat, scl: Vec3) {
-            var tempMat3: Mat3 = mat3.create();
+            var tempVec3: Vec3 = MathUtils._decomposeVec3;
+            var tempMat3: Mat3 = MathUtils._decomposeMat3;
+            var tempMat4: Mat4 = MathUtils._decomposeMat4;
 
             // Translation
             vec3.set(pos, mat[12], mat[13], mat[14]);
-
-            // Rotation
-            mat3.normalFromMat4(tempMat3, mat);
-            quat.fromMat3(rot, tempMat3);
-            quat.normalize(rot, rot);
-            rot[3] = -rot[3]; // Because glmatrix matrix-to-quaternion somehow gives the inverse rotation
-            // mat3.fromQuat(tempMat3, rot); // For checking the precision of the conversion
 
             // Scale
             scl[0] = vec3.length(vec3.fromValues(mat[0], mat[1], mat[2]));
             scl[1] = vec3.length(vec3.fromValues(mat[4], mat[5], mat[6]));
             scl[2] = vec3.length(vec3.fromValues(mat[8], mat[9], mat[10]));
+
+            // Remove the scaling from the remaining transformation matrix
+            // This will greatly improve the precision of the matrix -> quaternion conversion
+            vec3.set(tempVec3, 1 / scl[0], 1 / scl[1], 1 / scl[2]);
+            mat4.scale(tempMat4, mat, tempVec3);
+
+            // Rotation
+            mat3.fromMat4(tempMat3, tempMat4);
+            quat.fromMat3(rot, tempMat3);
+            quat.normalize(rot, rot);
+            rot[3] = -rot[3]; // Because glmatrix matrix-to-quaternion somehow gives the inverse rotation
+
+            // Checking the precision of the conversion
+            if (false) {
+                MathUtils.compose(pos, rot, scl, tempMat4);
+                for (var i = 0; i < 16; ++i) {
+                    if (Math.abs(tempMat4[i] - mat[i]) > 1e-6) {
+                        throw new Error("Low precision decomposition");
+                    }
+                }
+            }
         }
 
+        static compose(pos: Vec3, rot: Quat, scl: Vec3, mat: Mat4): void {
+            mat4.identity(mat);
+            mat4.fromRotationTranslation(mat, rot, pos);
+            mat4.scale(mat, mat, scl);
+        }
+
+        static bakeTransform(mat: Mat4, scale: Vec3, rotation: Mat4, transform: Mat4) {
+
+            // Old translation
+            var translation: Vec3 = vec3.fromValues(mat[12], mat[13], mat[14]);
+
+            // Compute new translation
+            vec3.transformMat4(translation, translation, transform);
+
+            // Compute new rotation
+            mat4.multiply(mat, rotation, mat);
+
+            // Set new translation
+            mat[12] = translation[0];
+            mat[13] = translation[1];
+            mat[14] = translation[2];
+        }
 
         static bezier(p0: number, c0: number, c1: number, p1: number, s: number): number {
             if (s < 0 || s > 1) throw new Error("Invalid Bezier parameter: " + s);
