@@ -198,14 +198,11 @@ module COLLADA.Converter {
             }
         }
 
+        private static worldTransform: Mat4 = mat4.create();
         static getWorldTransform(context: COLLADA.Converter.Context): Mat4 {
-            // Rotation
-            var mat: Mat4 = Utils.getWorldRotation(context);
-
-            // Scale
-            var scale: Vec3 = Utils.getWorldScale(context);
-            mat4.scale(mat, mat, scale);
-
+            var mat: Mat4 = Utils.worldTransform;
+            mat4.copy(mat, Utils.getWorldRotation(context));
+            mat4.scale(mat, mat, Utils.getWorldScale(context));
             return mat;
         }
 

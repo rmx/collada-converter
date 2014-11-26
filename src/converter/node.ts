@@ -27,8 +27,8 @@ module COLLADA.Converter {
             this.transformations = [];
             this.matrix = mat4.create();
             this.worldMatrix = mat4.create();
-            this.initialLocalMatrix = null;
-            this.initialWorldMatrix = null;
+            this.initialLocalMatrix = mat4.create();
+            this.initialWorldMatrix = mat4.create();
             this.transformation_pre = mat4.create();
             mat4.identity(this.transformation_pre);
             this.transformation_post = mat4.create();
@@ -170,12 +170,9 @@ module COLLADA.Converter {
                     converterNode.transformations.push(converterTransform);
                 }
             }
-            converterNode.getLocalMatrix(context);
-            converterNode.initialLocalMatrix = mat4.clone(converterNode.matrix);
 
-            converterNode.getWorldMatrix(context);
-            converterNode.initialWorldMatrix = mat4.clone(converterNode.worldMatrix);
-
+            Node.updateInitialMatrices(converterNode, context);
+            
             // Create children
             for (var i: number = 0; i < node.children.length; i++) {
                 var colladaChild: COLLADA.Loader.VisualSceneNode = node.children[i];
@@ -183,6 +180,14 @@ module COLLADA.Converter {
             }
 
             return converterNode;
+        }
+
+        static updateInitialMatrices(node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
+            node.getLocalMatrix(context);
+            mat4.copy(node.initialLocalMatrix, node.matrix);
+
+            node.getWorldMatrix(context);
+            mat4.copy(node.initialWorldMatrix, node.worldMatrix);
         }
 
         static createNodeData(converter_node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
@@ -304,6 +309,8 @@ module COLLADA.Converter {
                 mat4.identity(node.transformation_post);
                 mat4.scale(node.transformation_post, node.transformation_post, worldInvScale);
             }
+
+            Node.updateInitialMatrices(node, context);
 
             // Recursively set up children
             for (var i = 0; i < node.children.length; ++i) {
