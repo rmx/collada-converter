@@ -102,6 +102,23 @@ module COLLADA {
             mat4.scale(mat, mat, scl);
         }
 
+        static bakeTransform(mat: Mat4, scale: Vec3, rotation: Mat4, transform: Mat4) {
+
+            // Old translation
+            var translation: Vec3 = vec3.fromValues(mat[12], mat[13], mat[14]);
+
+            // Compute new translation
+            vec3.transformMat4(translation, translation, transform);
+
+            // Compute new rotation
+            mat4.multiply(mat, rotation, mat);
+
+            // Set new translation
+            mat[12] = translation[0];
+            mat[13] = translation[1];
+            mat[14] = translation[2];
+        }
+
         static bezier(p0: number, c0: number, c1: number, p1: number, s: number): number {
             if (s < 0 || s > 1) throw new Error("Invalid Bezier parameter: " + s);
             return p0 * (1 - s) * (1 - s) * (1 - s) + 3 * c0 * s * (1 - s) * (1 - s) + 3 * c1 * s * s * (1 - s) + p1 * s * s * s;

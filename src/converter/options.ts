@@ -67,6 +67,7 @@ module COLLADA.Converter {
         sortBones: OptionBool;
         worldTransform: OptionBool;
         worldTransformBake: OptionBool;
+        worldTransformUnitScale: OptionBool;
         worldTransformScale: OptionFloat;
         worldTransformRotationAxis: OptionSelect;
         worldTransformRotationAngle: OptionFloat;
@@ -102,6 +103,8 @@ module COLLADA.Converter {
                 "If enabled, all objects (geometries, animations, skeletons) are transformed as specified by the corresponding options.");
             this.worldTransformBake = new OptionBool(true,
                 "If enabled, the world transformation is applied to skinned geometry. Otherwise, it is only applied to the bones.");
+            this.worldTransformUnitScale = new OptionBool(true,
+                "If enabled, the world scale will not add any scaling transformation to any nodes.");
             this.worldTransformScale = new OptionFloat(1.0, 1e-6, 1e6,
                 "Scale factor. See the 'worldTransform' option.");
             this.worldTransformRotationAxis = new OptionSelect("none", ["none", "x", "y", "z"],

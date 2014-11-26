@@ -209,18 +209,28 @@ module COLLADA.Converter {
             return mat;
         }
 
-        static worldScale: Vec3 = vec3.create();
-        static getWorldScale(context: COLLADA.Converter.Context): Vec3 {
-            var scale: number = context.options.worldTransformScale.value;
-
-            var vec = Utils.worldScale;
-
-            vec3.set(vec, scale, scale, scale);
-
-            return vec;
+        private static worldInvTransform: Mat4 = mat4.create();
+        static getWorldInvTransform(context: COLLADA.Converter.Context): Mat4 {
+            var mat: Mat4 = Utils.getWorldTransform(context);
+            mat4.invert(Utils.worldInvTransform, mat);
+            return Utils.worldInvTransform;
         }
 
-        static worldRotation: Mat4 = mat4.create();
+        private static worldScale: Vec3 = vec3.create();
+        static getWorldScale(context: COLLADA.Converter.Context): Vec3 {
+            var scale: number = context.options.worldTransformScale.value;
+            vec3.set(Utils.worldScale, scale, scale, scale);
+            return Utils.worldScale;
+        }
+
+        private static worldInvScale: Vec3 = vec3.create();
+        static getWorldInvScale(context: COLLADA.Converter.Context): Vec3 {
+            var invScale: number = 1 / context.options.worldTransformScale.value;
+            vec3.set(Utils.worldInvScale, invScale, invScale, invScale);
+            return Utils.worldInvScale;
+        }
+
+        private static worldRotation: Mat4 = mat4.create();
         static getWorldRotation(context: COLLADA.Converter.Context): Mat4 {
             var rotationAxis: string = context.options.worldTransformRotationAxis.value;
             var rotationAngle: number = context.options.worldTransformRotationAngle.value * Math.PI / 180;

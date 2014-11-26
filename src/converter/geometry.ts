@@ -346,16 +346,27 @@ module COLLADA.Converter {
         }
 
         /**
-        * Adapts inverse bind matrices (after the geometry has been transformed by transformMatrix)
+        * Adapts inverse bind matrices to account for any additional transformations due to the world transform
         */
-        static transformInvBindMatrices(geometry: COLLADA.Converter.Geometry, transformMatrix: Mat4, context: COLLADA.Converter.Context) {
+        static setupWorldTransform(geometry: COLLADA.Converter.Geometry, context: COLLADA.Converter.Context) {
             if (geometry.bones == null) return;
 
-            var inverse: Mat4 = mat4.create();
-            mat4.invert(inverse, transformMatrix);
-
+            // Skinning equation:                [worldMatrix]     * [invBindMatrix]        * [pos]
+            // Same with transformation A added: [worldMatrix]     * [invBindMatrix * A^-1] * [A * pos]
+            // Same with transformation B added: [worldMatrix * B] * [B^-1 * invBindMatrix] * [pos]
             geometry.bones.forEach((bone) => {
-                mat4.multiply(bone.invBindMatrix, bone.invBindMatrix, inverse);
+                
+                // Transformation A (the world scale)
+                if (context.options.worldTransformBake) {
+                    mat4.multiply(bone.invBindMatrix, bone.invBindMatrix, Utils.getWorldInvTransform(context));
+                }
+
+                // Transformation B (the post-transformation of the corresponding node)
+                if (context.options.worldTransformUnitScale) {
+                    var mat: Mat4 = mat4.create();
+                    mat4.invert(mat, bone.node.transformation_post);
+                    mat4.multiply(bone.invBindMatrix, mat, bone.invBindMatrix);
+                }
             });
         }
 

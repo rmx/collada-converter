@@ -12,6 +12,8 @@ module COLLADA.Converter {
         children: COLLADA.Converter.Node[];
         geometries: COLLADA.Converter.Geometry[];
         transformations: COLLADA.Converter.Transform[];
+        transformation_pre: Mat4;
+        transformation_post: Mat4;
         matrix: Mat4;
         worldMatrix: Mat4;
         initialLocalMatrix: Mat4;
@@ -27,6 +29,10 @@ module COLLADA.Converter {
             this.worldMatrix = mat4.create();
             this.initialLocalMatrix = null;
             this.initialWorldMatrix = null;
+            this.transformation_pre = mat4.create();
+            mat4.identity(this.transformation_pre);
+            this.transformation_post = mat4.create();
+            mat4.identity(this.transformation_post);
         }
 
         addTransform(mat: Mat4) {
@@ -54,34 +60,18 @@ module COLLADA.Converter {
         * Returns the local transformation matrix of this node
         */
         getLocalMatrix(context: COLLADA.Converter.Context) {
-            mat4.identity(this.matrix);
+            
+            // Static pre-transform
+            mat4.copy(this.matrix, this.transformation_pre);
 
+            // Original transformations
             for (var i: number = 0; i < this.transformations.length; i++) {
                 var transform: COLLADA.Converter.Transform = this.transformations[i];
                 transform.applyTransformation(this.matrix);
             }
 
-            if (context.options.worldTransform.value) {
-                if (false && context.options.worldTransformBake.value == true) {
-                    // Apply the decomposed world transform to all nodes of the scene (more complex).
-                    var worldScale: Vec3 = Utils.getWorldScale(context);
-                    var worldRotation: Mat4 = Utils.getWorldRotation(context);
-                    var worldTransform: Mat4 = Utils.getWorldTransform(context);
-
-                    // Apply the world transform to all local translations
-                    var translation: Vec3 = vec3.fromValues(this.matrix[12], this.matrix[13], this.matrix[14]);
-                    // vec3.transformMat4(translation, translation, worldTransform);
-                    vec3.multiply(translation, translation, worldScale);
-                    this.matrix[12] = translation[0];
-                    this.matrix[13] = translation[1];
-                    this.matrix[14] = translation[2];
-                } else {
-                    // Apply world transformation to root nodes
-                    if (this.parent == null) {
-                        mat4.multiply(this.matrix, Utils.getWorldTransform(context), this.matrix);
-                    }
-                }
-            }
+            // Static post-transform
+            mat4.multiply(this.matrix, this.matrix, this.transformation_post);
 
             return this.matrix;
         }
@@ -288,6 +278,37 @@ module COLLADA.Converter {
             }
 
             return geometries;
+        }
+
+        static setupWorldTransform(node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
+            var worldScale: Vec3 = Utils.getWorldScale(context);
+            var worldInvScale: Vec3 = Utils.getWorldInvScale(context);
+            var worldRotation: Mat4 = Utils.getWorldRotation(context);
+            var worldTransform: Mat4 = Utils.getWorldTransform(context);
+
+            var uniform_scale: boolean = context.options.worldTransformUnitScale.value;
+
+            // Pre-transformation
+            // Root nodes: the world transformation
+            // All other nodes: undo whatever post-transformation the parent has added
+            if (node.parent == null) {  
+                mat4.copy(node.transformation_pre, worldTransform);
+            } else if (uniform_scale) {
+                mat4.invert(node.transformation_pre, node.parent.transformation_post);
+            }
+
+            // Post-transformation
+            if (uniform_scale) {
+                // This way, the node transformation will not contain any scaling
+                // Only the translation part will be scaled
+                mat4.identity(node.transformation_post);
+                mat4.scale(node.transformation_post, node.transformation_post, worldInvScale);
+            }
+
+            // Recursively set up children
+            for (var i = 0; i < node.children.length; ++i) {
+                Node.setupWorldTransform(node.children[i], context);
+            }
         }
     }
 }
