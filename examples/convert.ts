@@ -72,17 +72,21 @@ function fileSizeStr(bytes: number): string {
 // Log
 // ----------------------------------------------------------------------------
 
+function escapeHTML(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function writeProgress(msg: string) {
     $("#log").append(msg + "\n");
 }
 
 function writeLog(name: string, message: string, level: COLLADA.LogLevel) {
-    var line: string = COLLADA.LogLevelToString(level) + ": " + message;
+    var line: string = COLLADA.LogLevelToString(level) + ": " + escapeHTML(message);
     $("#log").append("[" + name + "] " + line + "\n");
 }
 
 function clearLog() {
-    $("#log").val("");
+    $("#log").text("");
 }
 
 function timeStart(name: string) {
@@ -144,9 +148,14 @@ function resetOutput() {
 function updateUIProgress() {
     if (conversion_data.stage >= 0) {
         $("#progress-container").removeClass("hidden");
+        $("#progress-container").css("display", "");
         $("#progress").css("width", (100*conversion_data.stage / 5).toFixed(1) + "%");
     } else {
         $("#progress-container").addClass("hidden");
+    }
+
+    if (conversion_data.stage >= 6) {
+        $("#progress-container").fadeOut(2000);
     }
 }
 
@@ -420,4 +429,6 @@ function init() {
 
     // Update all UI elements
     reset();
+
+    writeProgress("Converter initialized");
 }
