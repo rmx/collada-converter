@@ -177,10 +177,10 @@ class ThreejsModel {
 var threejs_objects: any = {};
 
 function zoomThreejsCamera(scale: number) {
-    threejs_objects.camera.position.set(10 * scale, 3 * scale, 5 * scale);
+    threejs_objects.camera.position.set(1 * scale, 0.3 * scale, 0.5 * scale);
     threejs_objects.camera.up.set(0, 0, 1);
     threejs_objects.camera.lookAt(new THREE.Vector3(0, 0, 0));
-    threejs_objects.camera.far = 20 * scale + 20;
+    threejs_objects.camera.far = 2 * scale + 20;
     threejs_objects.camera.updateProjectionMatrix();
 }
 
@@ -191,7 +191,7 @@ function initThreejs(canvas: HTMLCanvasElement) {
     // Camera
     var camera = new THREE.PerspectiveCamera(27, canvas.width / canvas.height, 1, 10);
     threejs_objects.camera = camera;
-    zoomThreejsCamera(1.0);
+    zoomThreejsCamera(10.0);
 
     // Scene
     threejs_objects.scene = new THREE.Scene();
@@ -210,7 +210,11 @@ function initThreejs(canvas: HTMLCanvasElement) {
     // Grid
     var gridXY = new THREE.GridHelper(5, 1);
     gridXY.rotation.x = Math.PI / 2;
+    gridXY.position.z = -0.001;
     threejs_objects.scene.add(gridXY);
+
+    // Axes
+    threejs_objects.scene.add(new THREE.AxisHelper(2));
 
     // Renderer
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
