@@ -1,7 +1,7 @@
 .canvas-container {
     padding: 4px;
-    width: 100%;
-    height: 410px;
+    width: 490px;
+    height: 330px;
 }
 
 .drop-target {
@@ -29,4 +29,10 @@
 .progress  {
     height: 34px;
     margin: 0;
+}
+
+.form-horizontal {
+    border: 1px dashed gray;
+    border-radius: 4px;
+    padding: 15px;
 }
