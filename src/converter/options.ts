@@ -75,7 +75,7 @@ module COLLADA.Converter {
             this.singleAnimation = new OptionBool(true,
                 "If enabled, all animations are merged into a single animation. Enable if each bone has a separate top level animation.");
             this.singleGeometry = new OptionBool(true,
-                "If enabled, all geometries are merged into a single geometry. Only has an effect if 'extractGeometry' is enabled.");
+                "If enabled, all geometries are merged into a single geometry. Only has an effect if 'enableExtractGeometry' is enabled.");
             this.singleBufferPerGeometry = new OptionBool(false,
                 "If enabled, all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of each buffer.");
             this.enableAnimations = new OptionBool(true,
@@ -101,7 +101,7 @@ module COLLADA.Converter {
             this.worldTransform = new OptionBool(false,
                 "If enabled, all objects (geometries, animations, skeletons) are transformed as specified by the corresponding options.");
             this.worldTransformBake = new OptionBool(true,
-                "If enabled, the world tranformation is applied to all scene nodes. Otherwise, it is applied to the scene root only.");
+                "If enabled, the world transformation is applied to skinned geometry. Otherwise, it is only applied to the bones.");
             this.worldTransformScale = new OptionFloat(1.0, 1e-6, 1e6,
                 "Scale factor. See the 'worldTransform' option.");
             this.worldTransformRotationAxis = new OptionSelect("none", ["none", "x", "y", "z"],

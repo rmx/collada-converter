@@ -43,16 +43,8 @@ module COLLADA.Converter {
         */
         getWorldMatrix(context: COLLADA.Converter.Context): Mat4 {
             if (this.parent != null) {
-                // Parent: parent node
                 mat4.multiply(this.worldMatrix, this.parent.getWorldMatrix(context), this.getLocalMatrix(context));
-            } else if (context.options.worldTransform.value && context.options.worldTransformBake.value == false) {
-                // Parent: world transformation (full)
-                mat4.multiply(this.worldMatrix, Utils.getWorldTransform(context), this.getLocalMatrix(context));
-            } else if (context.options.worldTransform.value && context.options.worldTransformBake.value == true) {
-                // Parent: world transformation (partial)
-                mat4.multiply(this.worldMatrix, Utils.getWorldRotation(context), this.getLocalMatrix(context));
             } else {
-                // Parent: none
                 mat4.copy(this.worldMatrix, this.getLocalMatrix(context));
             }
             return this.worldMatrix;
@@ -69,19 +61,26 @@ module COLLADA.Converter {
                 transform.applyTransformation(this.matrix);
             }
 
-            if (context.options.worldTransform.value && context.options.worldTransformBake.value) {
-                // Apply the decomposed world transform to all nodes of the scene (more complex).
-                var worldScale: Vec3 = Utils.getWorldScale(context);
-                var worldRotation: Mat4 = Utils.getWorldRotation(context);
-                var worldTransform: Mat4 = Utils.getWorldTransform(context);
+            if (context.options.worldTransform.value) {
+                if (false && context.options.worldTransformBake.value == true) {
+                    // Apply the decomposed world transform to all nodes of the scene (more complex).
+                    var worldScale: Vec3 = Utils.getWorldScale(context);
+                    var worldRotation: Mat4 = Utils.getWorldRotation(context);
+                    var worldTransform: Mat4 = Utils.getWorldTransform(context);
 
-                // Apply the world tranform to all local translations
-                var translation: Vec3 = vec3.fromValues(this.matrix[12], this.matrix[13], this.matrix[14]);
-                // vec3.transformMat4(translation, translation, worldTransform);
-                vec3.multiply(translation, translation, worldScale);
-                this.matrix[12] = translation[0];
-                this.matrix[13] = translation[1];
-                this.matrix[14] = translation[2];
+                    // Apply the world transform to all local translations
+                    var translation: Vec3 = vec3.fromValues(this.matrix[12], this.matrix[13], this.matrix[14]);
+                    // vec3.transformMat4(translation, translation, worldTransform);
+                    vec3.multiply(translation, translation, worldScale);
+                    this.matrix[12] = translation[0];
+                    this.matrix[13] = translation[1];
+                    this.matrix[14] = translation[2];
+                } else {
+                    // Apply world transformation to root nodes
+                    if (this.parent == null) {
+                        mat4.multiply(this.matrix, Utils.getWorldTransform(context), this.matrix);
+                    }
+                }
             }
 
             return this.matrix;
@@ -145,9 +144,13 @@ module COLLADA.Converter {
         /**
         * Recursively creates a converter node tree from the given collada node root node
         */
-        static createNode(node: COLLADA.Loader.VisualSceneNode, context: COLLADA.Converter.Context): COLLADA.Converter.Node {
+        static createNode(node: COLLADA.Loader.VisualSceneNode, parent: COLLADA.Converter.Node, context: COLLADA.Converter.Context): COLLADA.Converter.Node {
             // Create new node
             var converterNode: COLLADA.Converter.Node = new COLLADA.Converter.Node();
+            converterNode.parent = parent;
+            if (parent) {
+                parent.children.push(converterNode);
+            }
             context.nodes.register(node, converterNode);
 
             converterNode.name = node.name || node.id || node.sid || "Unnamed node";
@@ -186,9 +189,7 @@ module COLLADA.Converter {
             // Create children
             for (var i: number = 0; i < node.children.length; i++) {
                 var colladaChild: COLLADA.Loader.VisualSceneNode = node.children[i];
-                var converterChild: COLLADA.Converter.Node = COLLADA.Converter.Node.createNode(colladaChild, context);
-                converterChild.parent = converterNode;
-                converterNode.children.push(converterChild);
+                var converterChild: COLLADA.Converter.Node = COLLADA.Converter.Node.createNode(colladaChild, converterNode, context);
             }
 
             return converterNode;
@@ -269,8 +270,13 @@ module COLLADA.Converter {
             for (var i: number = 0; i < geometries.length; ++i) {
                 var geometry: COLLADA.Converter.Geometry = geometries[i];
                 var node: COLLADA.Converter.Node = nodes[i];
-                var is_static: boolean = ((geometry.bones.length === 0) && (!node.isAnimated(true)));
-                if (is_static) {
+                var is_skinned: boolean = geometry.bones.length > 0;
+                var is_animated: boolean = node.isAnimated(true);
+                if (!is_skinned) {
+                    if (is_animated) {
+                        context.log.write("Geometry '" + geometry.name + "' is not skinned, but attached to an animated node. " +
+                            "This animation will be lost because the geometry is being detached from the node.", LogLevel.Warning);
+                    }
                     COLLADA.Converter.Geometry.transformGeometry(geometry, node.getWorldMatrix(context), context);
                 }
             }

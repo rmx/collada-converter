@@ -47,15 +47,16 @@ module COLLADA.Converter {
                 });
             }
 
-            // Transform the scene
-            if (context.options.worldTransform.value) {
-
-                // Get the world transformation
+            // Apply the world transform to skinned geometries
+            if (context.options.worldTransform.value && context.options.worldTransformBake.value) {
                 var mat: Mat4 = Utils.getWorldTransform(context);
 
-                // Scale all detached geometries
                 for (var i: number = 0; i < result.geometries.length; ++i) {
-                    COLLADA.Converter.Geometry.transformGeometry(result.geometries[i], mat, context);
+                    var geometry = result.geometries[i];
+                    if (geometry.bones.length > 0) {
+                        COLLADA.Converter.Geometry.transformGeometry(result.geometries[i], mat, context);
+                        COLLADA.Converter.Geometry.transformInvBindMatrices(result.geometries[i], mat, context);
+                    }
                 }
             }
 
@@ -103,7 +104,7 @@ module COLLADA.Converter {
             // Create converted nodes
             for (var i: number = 0; i < scene.children.length; ++i) {
                 var topLevelNode: COLLADA.Loader.VisualSceneNode = scene.children[i];
-                result.push(COLLADA.Converter.Node.createNode(topLevelNode, context));
+                result.push(COLLADA.Converter.Node.createNode(topLevelNode, null, context));
             }
 
             // Create data (geometries, ...) for the converted nodes

@@ -343,12 +343,20 @@ module COLLADA.Converter {
 
                 GeometryChunk.transformChunk(chunk, transformMatrix, normalMatrix, context);
             }
+        }
 
-            if (geometry.bones) {
-                geometry.bones.forEach((bone) => {
-                    mat4.multiply(bone.invBindMatrix, transformMatrix, bone.invBindMatrix);
-                });
-            }
+        /**
+        * Adapts inverse bind matrices (after the geometry has been transformed by transformMatrix)
+        */
+        static transformInvBindMatrices(geometry: COLLADA.Converter.Geometry, transformMatrix: Mat4, context: COLLADA.Converter.Context) {
+            if (geometry.bones == null) return;
+
+            var inverse: Mat4 = mat4.create();
+            mat4.invert(inverse, transformMatrix);
+
+            geometry.bones.forEach((bone) => {
+                mat4.multiply(bone.invBindMatrix, bone.invBindMatrix, inverse);
+            });
         }
 
         /**

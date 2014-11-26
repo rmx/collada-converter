@@ -75,8 +75,23 @@ module COLLADA {
             scl[0] = vec3.length(vec3.fromValues(mat[0], mat[1], mat[2]));
             scl[1] = vec3.length(vec3.fromValues(mat[4], mat[5], mat[6]));
             scl[2] = vec3.length(vec3.fromValues(mat[8], mat[9], mat[10]));
+
+            if (true) {
+                var tempMat: Mat4 = mat4.create();
+                MathUtils.compose(pos, rot, scl, tempMat);
+                for (var i = 0; i < 16; ++i) {
+                    if (Math.abs(tempMat[i] - mat[i]) > 1e-6) {
+                        throw new Error("Low precision decomposition");
+                    }
+                }
+            }
         }
 
+        static compose(pos: Vec3, rot: Quat, scl: Vec3, mat: Mat4): void {
+            mat4.identity(mat);
+            mat4.fromRotationTranslation(mat, rot, pos);
+            mat4.scale(mat, mat, scl);
+        }
 
         static bezier(p0: number, c0: number, c1: number, p1: number, s: number): number {
             if (s < 0 || s > 1) throw new Error("Invalid Bezier parameter: " + s);
