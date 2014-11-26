@@ -48,6 +48,8 @@ interface i_gl_track {
 }
 
 interface i_gl_objects {
+    canvas?: HTMLCanvasElement;
+
     extensions?: {
         vao?: any;
         euint?: any;
@@ -89,10 +91,12 @@ var time: number = 0;
 var last_timestamp: number = null;
 
 
-function initGL() {
+function initGL(canvas: HTMLCanvasElement) {
+    gl_objects.canvas = canvas;
+
     // Get context
     try {
-        gl = elements.canvas.getContext("webgl");
+        gl = canvas.getContext("webgl");
     } catch (e) {
     }
 
@@ -456,8 +460,8 @@ function fillBuffers(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
 function drawScene() {
 
     // Recompute view matrices
-    var viewportWidth: number = elements.canvas.width;
-    var viewportHeight: number = elements.canvas.height;
+    var viewportWidth: number =  gl_objects.canvas.width;
+    var viewportHeight: number = gl_objects.canvas.height;
 
     gl.viewport(0, 0, viewportWidth, viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);

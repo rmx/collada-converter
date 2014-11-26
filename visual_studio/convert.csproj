@@ -21,6 +21,9 @@
     <TypeScriptCompile Include="..\examples\convert.ts">
       <Link>convert.ts</Link>
     </TypeScriptCompile>
+	<TypeScriptCompile Include="..\examples\convert-options.ts">
+      <Link>convert-renderer.ts</Link>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="..\examples\convert-renderer.ts">
       <Link>convert-renderer.ts</Link>
     </TypeScriptCompile>
@@ -33,6 +36,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\examples\convert.html">
+      <Link>convert.html</Link>
+    </Content>
+	<Content Include="..\examples\convert.css">
       <Link>convert.html</Link>
     </Content>
   </ItemGroup>

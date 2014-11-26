@@ -1,5 +1,7 @@
 /// <reference path="../lib/collada.d.ts" />
+/// <reference path="external/jquery/jquery.d.ts" />
 /// <reference path="convert-renderer.ts" />
+/// <reference path="convert-options.ts" />
 
 var use_threejs: boolean = true;
 
@@ -10,8 +12,6 @@ interface i_elements {
     log_converter?: HTMLTextAreaElement;
     log_exporter?: HTMLTextAreaElement;
     output?: HTMLTextAreaElement;
-    convert?: HTMLButtonElement;
-    canvas?: HTMLCanvasElement;
     download_json?: HTMLAnchorElement;
     download_data?: HTMLAnchorElement;
     download_threejs?: HTMLAnchorElement;
@@ -22,6 +22,8 @@ var elements: i_elements = {};
 
 var timestamps: {[name: string]:number} = {};
 var input_data: string = "";
+var options: COLLADA.Converter.Options = new COLLADA.Converter.Options();
+var optionElements: ColladaConverterOption[] = [];
 
 function writeProgress(msg: string) {
     elements.log_progress.textContent += msg + "\n";
@@ -73,15 +75,15 @@ function clearOutput() {
     elements.download_data.href = "javascript:void(0)";
 }
 
-function onFileDrag(ev: DragEvent) {
+function onFileDrag(ev: JQueryEventObject) {
     ev.preventDefault();
 }
 
-function onFileDrop(ev: DragEvent) {
+function onFileDrop(ev: JQueryEventObject) {
     clearInput();
     writeProgress("Something dropped.");
     ev.preventDefault();
-    var dt = ev.dataTransfer;
+    var dt = ev.data.dataTransfer;
     var files = dt.files;
     if (files.length == 0) {
         writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
@@ -291,40 +293,34 @@ function onColladaProgress(id: string, loaded: number, total: number) {
 }
 
 function init() {
-    // Find elements
-    elements.input = <HTMLInputElement> document.getElementById("input");
-    elements.log_progress = <HTMLTextAreaElement> document.getElementById("log_progress");
-    elements.log_loader = <HTMLTextAreaElement> document.getElementById("log_loader");
-    elements.log_converter = <HTMLTextAreaElement> document.getElementById("log_converter");
-    elements.log_exporter = <HTMLTextAreaElement> document.getElementById("log_exporter");
-    elements.output = <HTMLTextAreaElement> document.getElementById("output");
-    elements.convert = <HTMLButtonElement> document.getElementById("convert");
-    elements.canvas = <HTMLCanvasElement> document.getElementById("canvas");
-    elements.download_json = <HTMLAnchorElement> document.getElementById("download_json");
-    elements.download_data = <HTMLAnchorElement> document.getElementById("download_data");
-    elements.download_threejs = <HTMLAnchorElement> document.getElementById("download_threejs");
-    elements.mesh_parts_checkboxes = [];
-    elements.mesh_parts_labels = [];
-    for (var i: number = 0; i < 18; ++i) {
-        var id: string = "part_" + ("0" + (i+1)).slice(-2);
-        elements.mesh_parts_checkboxes[i] = <HTMLInputElement> document.getElementById(id);
-        elements.mesh_parts_labels[i] = <HTMLLabelElement> document.getElementById(id + "_label");
+    // Initialize WebGL
+    var canvas: HTMLCanvasElement = <HTMLCanvasElement>$("#canvas")[0];
+    if (use_threejs) {
+        initThreejs(canvas);
+    } else {
+        initGL(canvas);
     }
 
-    // Initialize WebGL
-    if (use_threejs) {
-        initThreejs();
-    } else {
-        initGL();
-    }
+    // Create option elements
+    var optionsForm = $("#form-options");
+    optionElements.push(new ColladaConverterOption(options.enableAnimations, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.animationFps, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransform, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransformScale, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransformRotationAxis, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransformRotationAngle, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.sortBones, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.applyBindShape, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.singleBufferPerGeometry, optionsForm));
 
     // Register events
-    elements.input.ondragover = onFileDrag;
-    elements.input.ondrop = onFileDrop;
-    elements.convert.onclick = onConvertClick;
+    $("#drop-target").on("dragover", onFileDrag);
+    $("#drop-target").on("drop", onFileDrop);
+    $("#drop-target").on("drop", onFileDrop);
+    $("#convert").click(onConvertClick);
 
     //
-    clearOutput();
+    // clearOutput();
 }
 
 function resetCheckboxes(chunks: COLLADA.Exporter.GeometryJSON[]) {

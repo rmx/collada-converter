@@ -8,6 +8,7 @@
     padding: 30px;
     text-align: center;
     height: auto;
+    margin-bottom: 10px;
 }
 
 .drop-target-icon {
@@ -19,11 +20,15 @@
 }
 
 .form-group {
-    margin-bottom: 10px;
+    margin-bottom: 4px;
 }
 
 .form-control-static {
     padding-bottom: 0px;
+}
+
+.popover {
+    width: 300px;
 }
 
 .progress  {

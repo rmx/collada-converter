@@ -47,7 +47,7 @@
                     </div>
                     <div class="form-group">
                         <div class="col-sm-4">
-                            <button type="submit" class="btn btn-primary btn-block">Convert</button>
+                            <button type="button" class="btn btn-primary btn-block" id="convert">Convert</button>
                         </div>
                         <div class="col-sm-8">
                             <div class="progress">
@@ -59,91 +59,8 @@
                     </div>
                 </form>
                 <h3>Options</h3>
-                <form class="form-horizontal" role="form">
-                    <div class="form-group">
-                        <!-- Option -->
-                        <label class="col-sm-4 control-label">Animations</label>
-                        <div class="col-sm-6">
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox"> Enable
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-info btn-block">
-                                <span class="glyphicon glyphicon-info-sign"></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <!-- Option -->
-                        <label class="col-sm-4 control-label">Apply Bind Shape</label>
-                        <div class="col-sm-6">
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox"> Enable
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-info btn-block">
-                                <span class="glyphicon glyphicon-info-sign"></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <!-- Option -->
-                        <label class="col-sm-4 control-label">Sort Bones</label>
-                        <div class="col-sm-6">
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox"> Enable
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-info btn-block">
-                                <span class="glyphicon glyphicon-info-sign"></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <!-- FPS -->
-                        <label class="col-sm-4 control-label">FPS</label>
-                        <div class="col-sm-6">
-                            <input type="text" class="form-control" id="inputEmail3" placeholder="FPS">
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-info btn-block">
-                                <span class="glyphicon glyphicon-info-sign"></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <!-- FPS -->
-                        <label class="col-sm-4 control-label">FPS</label>
-                        <div class="col-sm-6">
-                            <input type="number" class="form-control" id="inputEmail3" placeholder="FPS">
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-info btn-block">
-                                <span class="glyphicon glyphicon-info-sign"></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <!-- FPS -->
-                        <label class="col-sm-4 control-label">FPS</label>
-                        <div class="col-sm-6">
-                            <input type="number" class="form-control" id="inputEmail3" placeholder="FPS">
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-info btn-block">
-                                <span class="glyphicon glyphicon-info-sign"></span>
-                            </button>
-                        </div>
-                    </div>
+                <form class="form-horizontal" role="form" id="form-options">
+                    <!-- Content generated -->
                 </form>
                 <h3>Log</h3>
                 <form class="form-horizontal" role="form">
@@ -216,29 +133,38 @@
                 <form class="form-horizontal" role="form">
                     <div class="form-group">
                         <label class="col-sm-4 control-label">Custom (JSON)</label>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary btn-block">Download</button>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary btn-block">Download</button>
                         </div>
-                        <div class="col-sm-4">
-                            <p class="form-control-static">Unknown size</p>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info btn-block">View</button>
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static">1000 kB</p>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="col-sm-4 control-label">Custom (binary)</label>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary btn-block">Download</button>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary btn-block">Download</button>
                         </div>
-                        <div class="col-sm-4">
-                            <p class="form-control-static">Unknown size</p>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info btn-block">View</button>
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static">1000 kB</p>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="col-sm-4 control-label">Three.js (JSON)</label>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary btn-block">Download</button>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary btn-block">Download</button>
                         </div>
-                        <div class="col-sm-4">
-                            <p class="form-control-static">Unknown size</p>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info btn-block">View</button>
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static">1000 kB</p>
                         </div>
                     </div>
                </form>
