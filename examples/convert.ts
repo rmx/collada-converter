@@ -60,16 +60,30 @@ function fileSizeStr(bytes: number): string {
     var giga = 1024 * 1024 * 1024;
     var tera = 1024 * 1024 * 1024 * 1024;
 
+    var value: number = 0;
+    var unit: string = "";
     if (bytes < kilo) {
-        return "" + (bytes) + " B";
+        value = bytes;
+        unit = "B";
     } else if (bytes < mega) {
-        return "" + (bytes / kilo).toFixed(2) + " kB";
+        value = bytes / kilo;
+        unit = "kB";
     } else if (bytes < giga) {
-        return "" + (bytes / mega).toFixed(2) + " MB";
+        value = bytes / mega;
+        unit = "MB";
     } else if (bytes < tera) {
-        return "" + (bytes / giga).toFixed(2) + " GB";
+        value = bytes / giga;
+        unit = "GB";
     } else {
         return ">1TB";
+    }
+
+    if (value < 10) {
+        return value.toFixed(3) + " " + unit;
+    } else if (value < 100) {
+        return value.toFixed(2) + " " + unit;
+    } else {
+        return value.toFixed(1) + " " + unit;
     }
 }
 
@@ -151,20 +165,25 @@ function resetOutput() {
 // ----------------------------------------------------------------------------
 
 function downloadJSON(data: any, name: string) {
-    var url = COLLADA.Exporter.Utils.jsonToBlobURI(data);
-    downloadUrl(url, name);
+    var mime = "application/json";
+    var url = COLLADA.Exporter.Utils.jsonToBlobURI(data, mime);
+    downloadUrl(url, name, mime);
 }
 
 function downloadBinary(data: Uint8Array, name: string) {
-    var url = COLLADA.Exporter.Utils.bufferToDataURI(data, "application/octet-stream");
-    downloadUrl(url, name);
+    var mime = "application/octet-stream";
+    var url = COLLADA.Exporter.Utils.bufferToBlobURI(data, mime);
+    downloadUrl(url, name, mime);
 }
 
-function downloadUrl(url: string, name: string) {
+function downloadUrl(url: string, name: string, mime: string) {
     var a: any = $("#download-link")[0];
     a.href = url;
     a.download = name;
+    a.type = mime;
     a.click();
+    // TODO: Find a reliable way of releasing the blob URI,
+    // so that the blob can be freed from memory.
 }
 
 // ----------------------------------------------------------------------------
@@ -190,9 +209,11 @@ function updateUIInput() {
         $("#drop-target-result").removeClass("hidden");
         $("#drop-target-instructions").addClass("hidden");
         $("#input_file_size").text("File loaded (" + fileSizeStr(conversion_data.s0_source.length) + ")");
+        $("#convert").removeAttr("disabled");
     } else {
         $("#drop-target-result").addClass("hidden");
         $("#drop-target-instructions").removeClass("hidden");
+        $("#convert").attr("disabled", "disabled");
     }
 }
 
@@ -239,47 +260,29 @@ function updateUIOutput() {
         // File sizes
         $("#output-custom-json .output-size").text(fileSizeStr(JSON.stringify(data).length));
         $("#output-custom-binary .output-size").text(fileSizeStr(binary.length));
-        $(".output-group button").removeAttr("disabled");
+        $("#output-custom-json button").removeAttr("disabled");
+        $("#output-custom-binary button").removeAttr("disabled");
     } else {
         $("#output-geometry-complexity").text("");
         $("#output-animation-complexity").text("");
         $("#output-geometry-size").text("");
         $(".chunk-checkbox-container").addClass("hidden");
+
+        // Output
         $("#output-custom-json .output-size").text("");
         $("#output-custom-binary .output-size").text("");
-        $(".output-group button").attr("disabled", "disabled");
+        $("#output-custom-json button").attr("disabled", "disabled");
+        $("#output-custom-binary button").attr("disabled", "disabled");
     }
 
-    /*
-    // Download links
-    elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
-    elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
-    elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(data);
-    elements.download_data.textContent = "Download (" + (data.length / 1024).toFixed(1) + " kB)";
-
-    // Output
-    elements.output.textContent = JSON.stringify(json, null, 2);
-    resetCheckboxes(json.chunks);
-
-    elements.download_threejs.href = COLLADA.Exporter.Utils.jsonToBlobURI(threejsData);
-    elements.download_threejs.textContent = "Download (" + (JSON.stringify(threejsData).length / 1024).toFixed(1) + " kB)";
-    */
-
-    /*
-    for (var i: number = 0; i < elements.mesh_parts_checkboxes.length; ++i) {
-        var checkbox: HTMLInputElement = elements.mesh_parts_checkboxes[i];
-        var label: HTMLLabelElement = elements.mesh_parts_labels[i];
-        checkbox.checked = true;
-        if (chunks.length <= i) {
-            checkbox.style.setProperty("display", "none");
-            label.style.setProperty("display", "none");
-        } else {
-            checkbox.style.removeProperty("display");
-            label.style.removeProperty("display");
-            label.textContent = chunks[i].name;
-        }
+    if (conversion_data.s5_exported_threejs) {
+        var threejs_data = conversion_data.s5_exported_threejs;
+        $("#output-threejs .output-size").text(fileSizeStr(JSON.stringify(threejs_data).length));
+        $("#output-threejs button").removeAttr("disabled");
+    } else {
+        $("#output-threejs .output-size").text("");
+        $("#output-threejs button").attr("disabled", "disabled");
     }
-    */
 }
 
 function updateUIRenderer() {
@@ -513,6 +516,13 @@ function init() {
     $("#drop-target").on("drop", onFileDrop);
     $("#drop-target").on("drop", onFileDrop);
     $("#convert").click(onConvertClick);
+
+    $("#output-custom-json .output-download").click(() =>
+        downloadJSON(conversion_data.s4_exported_custom.json, "model.json"));
+    $("#output-custom-binary .output-download").click(() =>
+        downloadJSON(conversion_data.s4_exported_custom.data, "model.bin"));
+    $("#output-custom-json .output-download").click(() =>
+        downloadJSON(conversion_data.s5_exported_threejs, "model-threejs.json"));
 
     // Update all UI elements
     reset();
