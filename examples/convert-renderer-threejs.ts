@@ -119,7 +119,7 @@ class ThreejsSkeletonAdapter {
         this.boneMatrices = new Float32Array(this.boneTextureWidth * this.boneTextureWidth * 4);
 
         this.boneTexture = new THREE.DataTexture(<any>this.boneMatrices, this.boneTextureWidth, this.boneTextureHeight,
-            THREE.RGBAFormat, THREE.FloatType, THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,
+            THREE.RGBAFormat, THREE.FloatType, new THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,
             THREE.NearestFilter, THREE.NearestFilter);
         this.boneTexture.generateMipmaps = false;
         this.boneTexture.flipY = false;
