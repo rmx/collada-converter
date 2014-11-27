@@ -147,6 +147,27 @@ function resetOutput() {
 }
 
 // ----------------------------------------------------------------------------
+// Download
+// ----------------------------------------------------------------------------
+
+function downloadJSON(data: any, name: string) {
+    var url = COLLADA.Exporter.Utils.jsonToBlobURI(data);
+    downloadUrl(url, name);
+}
+
+function downloadBinary(data: Uint8Array, name: string) {
+    var url = COLLADA.Exporter.Utils.bufferToDataURI(data, "application/octet-stream");
+    downloadUrl(url, name);
+}
+
+function downloadUrl(url: string, name: string) {
+    var a: any = $("#download-link")[0];
+    a.href = url;
+    a.download = name;
+    a.click();
+}
+
+// ----------------------------------------------------------------------------
 // UI
 // ----------------------------------------------------------------------------
 
@@ -178,6 +199,7 @@ function updateUIInput() {
 function updateUIOutput() {
     if (conversion_data.s4_exported_custom) {
         var data = conversion_data.s4_exported_custom.json;
+        var binary = conversion_data.s4_exported_custom.data;
 
         // Geometry complexity
         var geometry_complexity: string = "";
@@ -213,11 +235,19 @@ function updateUIOutput() {
             $("#chunk-" + i).removeClass("hidden");
             $("#chunk-" + i + " > span").text(data.chunks[i].name || ("" + i));
         }
+
+        // File sizes
+        $("#output-custom-json .output-size").text(fileSizeStr(JSON.stringify(data).length));
+        $("#output-custom-binary .output-size").text(fileSizeStr(binary.length));
+        $(".output-group button").removeAttr("disabled");
     } else {
         $("#output-geometry-complexity").text("");
         $("#output-animation-complexity").text("");
         $("#output-geometry-size").text("");
         $(".chunk-checkbox-container").addClass("hidden");
+        $("#output-custom-json .output-size").text("");
+        $("#output-custom-binary .output-size").text("");
+        $(".output-group button").attr("disabled", "disabled");
     }
 
     /*

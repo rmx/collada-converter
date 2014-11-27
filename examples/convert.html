@@ -139,19 +139,20 @@
                 </form>
                 <h3>Output</h3>
                 <form class="form-horizontal" role="form">
-                    <div class="form-group">
+                    <a class="hidden" id="download-link">Hidden download link</a>
+                    <div class="form-group output-group" id="output-custom-json">
                         <label class="col-sm-4 control-label">Custom (JSON)</label>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-primary btn-block">Download</button>
+                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-info btn-block">View</button>
+                            <button type="button" class="btn btn-info btn-block output-view">View</button>
                         </div>
                         <div class="col-sm-2">
-                            <p class="form-control-static">1000 kB</p>
+                            <p class="form-control-static output-size"></p>
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group output-group" id="output-custom-binary">
                         <label class="col-sm-4 control-label">Custom (binary)</label>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-primary btn-block">Download</button>
@@ -160,10 +161,10 @@
                             <button type="button" class="btn btn-info btn-block">View</button>
                         </div>
                         <div class="col-sm-2">
-                            <p class="form-control-static">1000 kB</p>
+                            <p class="form-control-static output-size"></p>
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group output-group" id="output-threejs">
                         <label class="col-sm-4 control-label">Three.js (JSON)</label>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-primary btn-block">Download</button>
