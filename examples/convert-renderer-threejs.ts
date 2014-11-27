@@ -1,5 +1,5 @@
 /// <reference path="convert-renderer-rmx.ts" />
-/// <reference path="external/three.d.ts" />
+/// <reference path="external/threejs/three.d.ts" />
 
 class ThreejsModelLoader {
 
@@ -177,19 +177,21 @@ class ThreejsModel {
 var threejs_objects: any = {};
 
 function zoomThreejsCamera(scale: number) {
-    threejs_objects.camera.position.set(10 * scale, 3 * scale, 5 * scale);
+    threejs_objects.camera.position.set(1 * scale, 0.3 * scale, 0.5 * scale);
     threejs_objects.camera.up.set(0, 0, 1);
     threejs_objects.camera.lookAt(new THREE.Vector3(0, 0, 0));
-    threejs_objects.camera.far = 20 * scale + 20;
+    threejs_objects.camera.far = 2 * scale + 20;
     threejs_objects.camera.updateProjectionMatrix();
 }
 
-function initThreejs() {
+function initThreejs(canvas: HTMLCanvasElement) {
+
+    threejs_objects.canvas = canvas;
 
     // Camera
-    var camera = new THREE.PerspectiveCamera(27, elements.canvas.width / elements.canvas.height, 1, 10);
+    var camera = new THREE.PerspectiveCamera(27, canvas.width / canvas.height, 1, 10);
     threejs_objects.camera = camera;
-    zoomThreejsCamera(1.0);
+    zoomThreejsCamera(10.0);
 
     // Scene
     threejs_objects.scene = new THREE.Scene();
@@ -208,11 +210,15 @@ function initThreejs() {
     // Grid
     var gridXY = new THREE.GridHelper(5, 1);
     gridXY.rotation.x = Math.PI / 2;
+    gridXY.position.z = -0.001;
     threejs_objects.scene.add(gridXY);
 
+    // Axes
+    threejs_objects.scene.add(new THREE.AxisHelper(2));
+
     // Renderer
-    var renderer = new THREE.WebGLRenderer({ canvas: elements.canvas, antialias: false });
-    renderer.setSize(elements.canvas.width, elements.canvas.height);
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
+    renderer.setSize(canvas.width, canvas.height);
     renderer.setClearColor(new THREE.Color(0.5, 0.5, 0.5), 1);
     threejs_objects.renderer = renderer;
 
@@ -228,10 +234,10 @@ function initThreejs() {
 
 function onWindowResize() {
 
-    threejs_objects.camera.aspect = elements.canvas.width / elements.canvas.height;
+    threejs_objects.camera.aspect = threejs_objects.canvas.width / threejs_objects.canvas.height;
     threejs_objects.camera.updateProjectionMatrix();
 
-    threejs_objects.renderer.setSize(elements.canvas.width, elements.canvas.height);
+    threejs_objects.renderer.setSize(threejs_objects.canvas.width, threejs_objects.canvas.height);
 }
 
 function fillBuffersThreejs(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {

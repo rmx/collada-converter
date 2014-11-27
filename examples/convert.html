@@ -2,398 +2,181 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Collada Animation Loader/Converter</title>
-    <style>
-        .input-cell > label {
-            line-height: normal;
-            flex: 0 0 75px;
-            border-radius: 2px 0 0 2px;
-            border: 1px solid rgba(147,128,108,.25);
-            padding: .5em .75em;
-            background-color: rgba(147,128,108,.1);
-            color: #666;
-            font-weight: 400;
-            margin-left: 0.5em;
-        }
-
-        .input-cell > .long-label {
-            flex: 0 0 150px;
-        }
-
-        .input-cell > .noflex-label {
-            flex: none;
-        }
-
-        textarea, a, input {
-            display: block;
-            line-height: normal;
-            flex: 1 0 100px;
-            border-radius: 0 2px 2px 0;
-            border: 1px solid rgba(147,128,108,.25);
-            border-left: 0;
-            padding: .5em .75em;
-            margin: 0;
-        }
-
-        button {
-            display: block;
-            line-height: normal;
-            flex: 1 0 100px;
-            border-radius: 2px;
-            border: 1px solid rgba(147,128,108,.25);
-            padding: .5em .75em;
-            margin: 0;
-            margin-left: 0.5em;
-        }
-
-        #container {
-            flex:1;
-            margin:0 auto;
-        }
-
-        .cell-container {
-            display: flex;
-            flex: 1;
-            flex-wrap: wrap;
-            border-radius: 0 2px 2px 0;
-            border: 1px solid rgba(147,128,108,.25);
-            border-left: 0;
-            padding: .5em .75em;
-            margin: 0;
-        }
-
-        .checkbox-cell {
-            flex: 1 0 150px;
-            flex-wrap: wrap;
-            display: flex;
-        }
-
-        .checkbox-label {
-            flex: 1 0 50px;
-            display: block;
-            vertical-align: middle;
-            line-height: normal;
-            margin-top:3px;
-            margin-left: 0.5em;
-            height: 24px;
-        }
-
-        .checkbox {
-            line-height: normal;
-            margin: 3px;
-            margin-left: 0.5em;
-            height: 24px;
-            width: 24px;
-        }
-
-        .option-checkbox {
-            line-height: normal;
-            flex: 0 0 32px;
-            margin: auto;
-            margin-left: 0.5em;
-            height: 24px;
-            width: 24px;
-        }
-
-        .input-row {
-            display: flex;
-            flex-wrap: wrap;
-        }
-
-        .input-cell {
-            display: flex;
-            flex-wrap: wrap;
-            flex: 1 0 250px;
-            margin-bottom: 0.5em;
-        }
-
-        .short-cell {
-            flex: 0 0 150px;
-        }
-
-        canvas {
-            display: block;
-            line-height: normal;
-            flex: 1 0 100px;
-            border: 1px solid rgba(147,128,108,.25);
-            padding: .5em .75em;
-            margin: 0;
-            border-left: 0;
-            min-height: 480px;
-        }
-
-        body {
-            display:flex;
-        }
-    </style>
-    <script type="text/javascript" src="external/three.js"></script>
-    <script type="text/javascript" src="../js/gl-matrix.js"></script>
-    <script type="text/javascript" src="../lib/collada.js"></script>
-    <script type="text/javascript" src="convert.js"></script>
-    <script id="shader-fs" type="x-shader/x-fragment">
-        precision mediump float;
-
-        varying vec2 v_texcoord;
-        varying vec3 v_normal;
-        varying vec3 v_position;
-
-        uniform vec3 u_ambient_color;
-        uniform vec3 u_light_direction;
-        uniform vec3 u_light_color;
-
-        void main(void) {
-            float diffuse = max(dot(v_normal, u_light_direction), 0.0);
-            vec3 light = u_ambient_color + u_light_color * diffuse;
-            gl_FragColor = vec4(light, 1) + vec4(0.001*v_texcoord, 0, 0);
-        }
-    </script>
-    <script id="shader-vs" type="x-shader/x-vertex">
-        attribute vec3 va_position;
-        attribute vec3 va_normal;
-        attribute vec2 va_texcoord;
-
-        uniform mat4 u_modelview_matrix;
-        uniform mat4 u_projection_matrix;
-        uniform mat3 u_normal_matrix;
-
-        varying vec2 v_texcoord;
-        varying vec3 v_normal;
-        varying vec3 v_position;
-
-        void main(void) {
-            gl_Position = u_projection_matrix * u_modelview_matrix * vec4(va_position, 1.0);
-            v_texcoord = va_texcoord;
-            vec4 pos = u_modelview_matrix * vec4(va_position, 1);
-            v_position = pos.xyz;
-            v_normal = u_normal_matrix * va_normal;
-        }
-    </script>
-    <script id="shader-skinning-vs" type="x-shader/x-vertex">
-        attribute vec3 va_position;
-        attribute vec3 va_normal;
-        attribute vec2 va_texcoord;
-        attribute vec4 va_boneindex;
-        attribute vec4 va_boneweight;
-
-        uniform mat4 u_modelview_matrix;
-        uniform mat4 u_projection_matrix;
-        uniform mat3 u_normal_matrix;
-        uniform sampler2D u_bone_matrix;
-
-        varying vec2 v_texcoord;
-        varying vec3 v_normal;
-        varying vec3 v_position;
-
-        const float bone_texture_size = 32.0;
-
-        mat4 get_bone_matrix(float index) {
-            float x = mod( index * 4.0, bone_texture_size );
-            float y = floor( index * 4.0 / bone_texture_size );
-            float texel_size = 1.0 / bone_texture_size;
-
-            float u = (x + 0.5) * texel_size;
-            float v = (y + 0.5) * texel_size;
-            vec4 du = vec4(0, 1, 2, 3) * texel_size;
-
-            vec4 v1 = texture2D(u_bone_matrix, vec2( u + du.x, v ));
-            vec4 v2 = texture2D(u_bone_matrix, vec2( u + du.y, v ));
-            vec4 v3 = texture2D(u_bone_matrix, vec2( u + du.z, v ));
-            vec4 v4 = texture2D(u_bone_matrix, vec2( u + du.w, v ));
-
-            return mat4(v1, v2, v3, v4);
-        }
-
-        void main(void) {
-            mat4 bone1_mat = get_bone_matrix(va_boneindex.x);
-            mat4 bone2_mat = get_bone_matrix(va_boneindex.y);
-            mat4 bone3_mat = get_bone_matrix(va_boneindex.z);
-            mat4 bone4_mat = get_bone_matrix(va_boneindex.w);
-
-            mat4 skin_mat =
-                va_boneweight.x * bone1_mat + 
-                va_boneweight.y * bone2_mat + 
-                va_boneweight.z * bone3_mat + 
-                va_boneweight.w * bone4_mat;
-
-            vec4 world_pos = skin_mat * vec4(va_position, 1.0);
-            vec4 world_normal = skin_mat * vec4(va_normal, 0.0);
-
-            vec4 eye_pos = u_modelview_matrix * vec4(world_pos.xyz, 1);
-            vec3 eye_normal = u_normal_matrix * normalize(world_normal.xyz);
-            gl_Position = u_projection_matrix * eye_pos;
-
-            v_texcoord = va_texcoord;
-            v_position = eye_pos.xyz;
-            v_normal = eye_normal;
-        }
-    </script>
+    <!-- Library: three.js -->
+    <script type="text/javascript"     src="external/threejs/three.js" charset="utf-8"></script>
+    <!-- Library: jQuery -->
+    <script type="text/javascript"     src="external/jquery/jquery.min.js" charset="utf-8"></script>
+    <!-- Library: Bootstrap -->
+    <script type="text/javascript"     src="external/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+    <link   type="text/css"            href="external/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link   type="text/css"            href="external/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet" />
+    <!-- Library: gl-matrix -->
+    <script type="text/javascript"     src="../js/gl-matrix.js" charset="utf-8"></script>
+    <!-- Project: Collada converter -->
+    <script type="text/javascript"     src="../lib/collada.js" charset="utf-8"></script>
+    <!-- Project: Converter example -->
+    <script type="text/javascript"     src="convert.js" charset="utf-8"></script>
+    <link   type="text/css"            href="convert.css" rel="stylesheet" />
+    <!-- Project: Custom renderer shaders -->
+    <script type="x-shader/x-fragment" src="renderer/shader-fs.glsl" charset="utf-8" id="shader-fs"></script>
+    <script type="x-shader/x-vertex"   src="renderer/shader-vs.glsl" charset="utf-8" id="shader-vs"></script>
+    <script type="x-shader/x-vertex"   src="renderer/shader-skinning-vs.glsl" charset="utf-8" id="shader-skinning-vs"></script>
 </head>
 <body>
-    <div id="container">
-        <div class="input-row">
-            <div class="input-cell">
-                <label for="input">Input</label>
-                <textarea id="input" rows="5" cols="40"></textarea>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Input</h3>
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <div class="form-control drop-target" id="drop-target">
+                                <div id="drop-target-instructions">
+                                    <div class="drop-target-icon">
+                                        <span class="glyphicon glyphicon-inbox"></span>
+                                    </div>
+                                    <p class="drop-target-title">
+                                        Drop your COLLADA (.dae) file here!
+                                    </p>
+                                </div>
+                                <div id="drop-target-result" class="hidden">
+                                    <div class="drop-target-icon">
+                                        <span class="glyphicon glyphicon-file"></span>
+                                    </div>
+                                    <p class="drop-target-title" id="input_file_size">
+                                        File loaded (0 kB).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-4">
+                            <button type="button" class="btn btn-primary btn-block" id="convert">Convert</button>
+                        </div>
+                        <div class="col-sm-8">
+                            <div class="progress hidden" id="progress-container">
+                                <div class="progress-bar progress-bar-striped" role="progressbar" id="progress" style="width: 45%">
+                                    <span class="sr-only">45% Complete</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <h3>Options</h3>
+                <form class="form-horizontal" role="form" id="form-options">
+                    <!-- Content generated -->
+                </form>
+                <h3>Log</h3>
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <div class="col-sm-12">
+                            <textarea class="form-control" rows="8" id="log" readonly></textarea>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="input-cell">
-                <label for="output">Output</label>
-                <textarea id="output" rows="5" cols="40"></textarea>
-            </div>
-        </div>
-        <div class="input-row">
-            <div class="input-cell">
-                <label for="option-animations" class="noflex-label">Animations</label>
-                <input id="option-animations" type="checkbox" name="option-animations" class="option-checkbox" checked />
-            </div>
-            <div class="input-cell">
-                <label for="option-bindshape" class="noflex-label">Apply Bind Shape</label>
-                <input id="option-bindshape" type="checkbox" name="option-bindshape" class="option-checkbox" checked />
-            </div>
-            <div class="input-cell">
-                <label for="option-sortbones" class="noflex-label">Sort Bones</label>
-                <input id="option-sortbones" type="checkbox" name="option-sortbones" class="option-checkbox" checked />
-            </div>
-            <div class="input-cell">
-                <label for="option-singlebuffer" class="noflex-label">Single Buffer</label>
-                <input id="option-singlebuffer" type="checkbox" name="option-singlebuffer" class="option-checkbox" />
-            </div>
-            <div class="input-cell">
-                <label for="option-fps" class="noflex-label">FPS</label>
-                <input id="option-fps" type="text" name="option-fps" value="10" />
-            </div>
-            <div class="input-cell">
-                <label for="option-worldtransform" class="long-label">World Scale</label>
-                <input id="option-worldtransform" type="checkbox" name="option-worldtransform" class="option-checkbox" checked />
-            </div>
-            <div class="input-cell">
-                <label for="option-scale" class="noflex-label">Scale</label>
-                <input id="option-scale" type="text" name="option-scale" value="1" />
-            </div>
-            <div class="input-cell">
-                <label for="option-axis" class="noflex-label">Axis</label>
-                <input id="option-axis" type="text" name="option-axis" value="none" />
-            </div>
-            <div class="input-cell">
-                <label for="option-angle" class="noflex-label">Angle</label>
-                <input id="option-angle" type="text" name="option-angle" value="90" />
-            </div>
-        </div>
-        <div class="input-row">
-            <button id="convert" class="input-cell">Convert</button>
-        </div>
-        <div class="input-row">
-            <div class="input-cell">
-                <label for="download_json">JSON</label>
-                <a id="download_json" href="" download="model.json">Download link</a>
-            </div>
-            <div class="input-cell">
-                <label for="download_data">Data</label>
-                <a id="download_data" href="" download="model.bin">Download link</a>
-            </div>
-            <div class="input-cell">
-                <label for="download_data">threejs</label>
-                <a id="download_threejs" href="" download="model.js">Download link</a>
-            </div>
-        </div>
-        <div class="input-row">
-            <div class="input-cell">
-                <label for="log_progress">Progress</label>
-                <textarea id="log_progress" rows="6" cols="20"></textarea>
-            </div>
-            <div class="input-cell">
-                <label for="log_loader">Loader Log</label>
-                <textarea id="log_loader" rows="6" cols="20"></textarea>
-            </div>
-        </div>
-        <div class="input-row">
-            <div class="input-cell">
-                <label for="log_converter">Converter Log</label>
-                <textarea id="log_converter" rows="6" cols="40"></textarea>
-            </div>
-            <div class="input-cell">
-                <label for="log_exporter">Exporter Log</label>
-                <textarea id="log_exporter" rows="6" cols="40"></textarea>
-            </div>
-        </div>
-        <div class="input-row input-cell">
-            <label for="canvas">Preview</label>
-            <canvas id="canvas" width="600" height="400"></canvas>
-        </div>
-        <div class="input-row input-cell">
-            <label for="parts">Mesh parts</label>
-            <div class="cell-container">
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_01" name="part_01" value="1" class="checkbox" checked>
-                    <label for="part_01" class="checkbox-label" id="part_01_label">Part 1</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_02" name="part_02" value="2" class="checkbox" checked>
-                    <label for="part_02" class="checkbox-label" id="part_02_label">Part 2</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_03" name="part_03" value="3" class="checkbox" checked>
-                    <label for="part_03" class="checkbox-label" id="part_03_label">Part 3</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_04" name="part_04" value="4" class="checkbox" checked>
-                    <label for="part_04" class="checkbox-label" id="part_04_label">Part 4</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_05" name="part_05" value="5" class="checkbox" checked>
-                    <label for="part_05" class="checkbox-label" id="part_05_label">Part 5</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_06" name="part_06" value="6" class="checkbox" checked>
-                    <label for="part_06" class="checkbox-label" id="part_06_label">Part 6</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_07" name="part_07" value="7" class="checkbox" checked>
-                    <label for="part_07" class="checkbox-label" id="part_07_label">Part 7</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_08" name="part_08" value="8" class="checkbox" checked>
-                    <label for="part_08" class="checkbox-label" id="part_08_label">Part 8</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_09" name="part_09" value="9" class="checkbox" checked>
-                    <label for="part_09" class="checkbox-label" id="part_09_label">Part 9</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_10" name="part_10" value="10" class="checkbox" checked>
-                    <label for="part_10" class="checkbox-label" id="part_10_label">Part 10</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_11" name="part_11" value="11" class="checkbox" checked>
-                    <label for="part_11" class="checkbox-label" id="part_11_label">Part 11</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_12" name="part_12" value="12" class="checkbox" checked>
-                    <label for="part_12" class="checkbox-label" id="part_12_label">Part 12</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_13" name="part_13" value="13" class="checkbox" checked>
-                    <label for="part_13" class="checkbox-label" id="part_13_label">Part 13</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_14" name="part_14" value="14" class="checkbox" checked>
-                    <label for="part_14" class="checkbox-label" id="part_14_label">Part 14</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_15" name="part_15" value="15" class="checkbox" checked>
-                    <label for="part_15" class="checkbox-label" id="part_15_label">Part 15</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_16" name="part_16" value="16" class="checkbox" checked>
-                    <label for="part_16" class="checkbox-label" id="part_16_label">Part 16</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_17" name="part_17" value="17" class="checkbox" checked>
-                    <label for="part_17" class="checkbox-label" id="part_17_label">Part 17</label>
-                </div>
-                <div class="checkbox-cell">
-                    <input type="checkbox" id="part_18" name="part_18" value="18" class="checkbox" checked>
-                    <label for="part_18" class="checkbox-label" id="part_18_label">Part 18</label>
-                </div>
+            <div class="col-md-6">
+                <h3>Preview</h3>
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <div class="form-control canvas-container center-block">
+                                <canvas class="canvas" id="canvas" width="480" height="320"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Geometry complexity</label>
+                        <div class="col-md-8">
+                            <p class="form-control-static" id="output-geometry-complexity"></p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Geometry size</label>
+                        <div class="col-md-8">
+                            <p class="form-control-static" id="output-geometry-size"></p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Animation complexity</label>
+                        <div class="col-md-8">
+                            <p class="form-control-static" id="output-animation-complexity"></p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Rendered chunks</label>
+                        <div class="col-md-8">
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-0">
+                                <input type="checkbox" class="chunk-checkbox" value="0"><span>0</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-1">
+                                <input type="checkbox" class="chunk-checkbox" value="1"><span>1</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-2">
+                                <input type="checkbox" class="chunk-checkbox" value="2"><span>2</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-3">
+                                <input type="checkbox" class="chunk-checkbox" value="3"><span>3</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-4">
+                                <input type="checkbox" class="chunk-checkbox" value="4"><span>4</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-5">
+                                <input type="checkbox" class="chunk-checkbox" value="5"><span>5</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-6">
+                                <input type="checkbox" class="chunk-checkbox" value="6"><span>6</span>
+                            </label>
+                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-7">
+                                <input type="checkbox" class="chunk-checkbox" value="7"><span>7</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+                <h3>Output</h3>
+                <form class="form-horizontal" role="form">
+                    <a class="hidden" id="download-link">Hidden download link</a>
+                    <div class="form-group output-group" id="output-custom-json">
+                        <label class="col-sm-4 control-label">Custom (JSON)</label>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info btn-block output-view">View</button>
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static output-size"></p>
+                        </div>
+                    </div>
+                    <div class="form-group output-group" id="output-custom-binary">
+                        <label class="col-sm-4 control-label">Custom (binary)</label>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info btn-block output-view">View</button>
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static output-size"></p>
+                        </div>
+                    </div>
+                    <div class="form-group output-group" id="output-threejs">
+                        <label class="col-sm-4 control-label">Three.js (JSON)</label>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info btn-block output-view">View</button>
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static output-size"></p>
+                        </div>
+                    </div>
+               </form>
             </div>
         </div>
     </div>

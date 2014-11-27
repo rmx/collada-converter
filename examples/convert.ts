@@ -1,8 +1,14 @@
 /// <reference path="../lib/collada.d.ts" />
+/// <reference path="external/jquery/jquery.d.ts" />
 /// <reference path="convert-renderer.ts" />
+/// <reference path="convert-options.ts" />
 
 var use_threejs: boolean = true;
 
+
+// ----------------------------------------------------------------------------
+// Evil global data
+// ----------------------------------------------------------------------------
 interface i_elements {
     input?: HTMLInputElement;
     log_progress?: HTMLTextAreaElement;
@@ -10,8 +16,6 @@ interface i_elements {
     log_converter?: HTMLTextAreaElement;
     log_exporter?: HTMLTextAreaElement;
     output?: HTMLTextAreaElement;
-    convert?: HTMLButtonElement;
-    canvas?: HTMLCanvasElement;
     download_json?: HTMLAnchorElement;
     download_data?: HTMLAnchorElement;
     download_threejs?: HTMLAnchorElement;
@@ -21,21 +25,87 @@ interface i_elements {
 var elements: i_elements = {};
 
 var timestamps: {[name: string]:number} = {};
-var input_data: string = "";
+var options: COLLADA.Converter.Options = new COLLADA.Converter.Options();
+var optionElements: ColladaConverterOption[] = [];
+
+interface i_conversion_data {
+    stage: number;
+    exception: boolean;
+    s0_source: string;                             // Stage 0: raw file string
+    s1_xml: Document;                              // Stage 1: XML document
+    s2_loaded: COLLADA.Loader.Document;            // Stage 2: COLLADA document
+    s3_converted: COLLADA.Converter.Document;      // Stage 3: Converted document
+    s4_exported_custom: COLLADA.Exporter.Document; // Stage 4: JSON + binary
+    s5_exported_threejs: any;                      // Stage 5: JSON
+}
+
+var conversion_data: i_conversion_data = {
+    stage: null,
+    exception: null,
+    s0_source: null,
+    s1_xml: null,
+    s2_loaded: null,
+    s3_converted: null,
+    s4_exported_custom: null,
+    s5_exported_threejs: null
+}
+
+// ----------------------------------------------------------------------------
+// Misc
+// ----------------------------------------------------------------------------
+
+function fileSizeStr(bytes: number): string {
+    var kilo = 1024;
+    var mega = 1024 * 1024;
+    var giga = 1024 * 1024 * 1024;
+    var tera = 1024 * 1024 * 1024 * 1024;
+
+    var value: number = 0;
+    var unit: string = "";
+    if (bytes < kilo) {
+        value = bytes;
+        unit = "B";
+    } else if (bytes < mega) {
+        value = bytes / kilo;
+        unit = "kB";
+    } else if (bytes < giga) {
+        value = bytes / mega;
+        unit = "MB";
+    } else if (bytes < tera) {
+        value = bytes / giga;
+        unit = "GB";
+    } else {
+        return ">1TB";
+    }
+
+    if (value < 10) {
+        return value.toFixed(3) + " " + unit;
+    } else if (value < 100) {
+        return value.toFixed(2) + " " + unit;
+    } else {
+        return value.toFixed(1) + " " + unit;
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Log
+// ----------------------------------------------------------------------------
+
+function escapeHTML(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 function writeProgress(msg: string) {
-    elements.log_progress.textContent += msg + "\n";
-    console.log(msg);
+    $("#log").append(msg + "\n");
 }
 
 function writeLog(name: string, message: string, level: COLLADA.LogLevel) {
-    var line: string = COLLADA.LogLevelToString(level) + ": " + message;
-    switch (name) {
-        case "loader": elements.log_loader.textContent += line + "\n"; break;
-        case "converter": elements.log_converter.textContent += line + "\n"; break;
-        case "exporter": elements.log_exporter.textContent += line + "\n"; break;
-        case "progress": elements.log_progress.textContent += line + "\n"; break;
-    }
+    var line: string = COLLADA.LogLevelToString(level) + ": " + escapeHTML(message);
+    $("#log").append("[" + name + "] " + line + "\n");
+}
+
+function clearLog() {
+    $("#log").text("");
 }
 
 function timeStart(name: string) {
@@ -49,39 +119,208 @@ function timeEnd(name: string) {
     writeProgress(name + " finished (" + (endTime - startTime).toFixed(2) + "ms)"); 
 }
 
-function clearInput() {
-    elements.input.textContent = "";
-    clearOutput();
+// ----------------------------------------------------------------------------
+// Reset
+// ----------------------------------------------------------------------------
+
+function reset() {
+
+    resetInput();
+    resetOutput();
 }
 
-function clearOutput() {
-    if (use_threejs) {
-        clearBuffersThreejs();
+function resetInput() {
+    conversion_data.s0_source = ""
+
+    updateUIInput();
+}
+
+function resetOutput() {
+
+    conversion_data.stage = -1;
+    conversion_data.exception = null;
+    conversion_data.s1_xml = null;
+    conversion_data.s2_loaded = null;
+    conversion_data.s3_converted = null;
+    conversion_data.s4_exported_custom = null;
+    conversion_data.s5_exported_threejs = null;
+
+    renderSetModel(null, null);
+    clearLog();
+    updateUIOutput();
+    updateUIProgress();
+}
+
+// ----------------------------------------------------------------------------
+// Renderer
+// ----------------------------------------------------------------------------
+
+function renderSetModel(json: any, data: Uint8Array) {
+    if (!json) {
+        if (use_threejs) {
+            clearBuffersThreejs();
+        } else {
+            clearBuffers();
+        }
     } else {
-        clearBuffers();
+        if (use_threejs) {
+            fillBuffersThreejs(json, data.buffer);
+        } else {
+            fillBuffers(json, data.buffer);
+            setupCamera(json);
+        }
+    }
+}
+
+function renderStartRendering() {
+    if (use_threejs) {
+        tickThreejs(null);
+    } else {
+        tick(null);
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Download
+// ----------------------------------------------------------------------------
+
+function downloadJSON(data: any, name: string) {
+    var mime = "application/json";
+    var url = COLLADA.Exporter.Utils.jsonToBlobURI(data, mime);
+    downloadUrl(url, name, mime);
+}
+
+function downloadBinary(data: Uint8Array, name: string) {
+    var mime = "application/octet-stream";
+    var url = COLLADA.Exporter.Utils.bufferToBlobURI(data, mime);
+    downloadUrl(url, name, mime);
+}
+
+function downloadUrl(url: string, name: string, mime: string) {
+    var a: any = $("#download-link")[0];
+    a.href = url;
+    a.download = name;
+    a.type = mime;
+    a.click();
+    // TODO: Find a reliable way of releasing the blob URI,
+    // so that the blob can be freed from memory.
+}
+
+// ----------------------------------------------------------------------------
+// UI
+// ----------------------------------------------------------------------------
+
+function updateUIProgress() {
+    if (conversion_data.stage >= 0) {
+        $("#progress-container").removeClass("hidden");
+        $("#progress-container").css("display", "");
+        $("#progress").css("width", (100*conversion_data.stage / 5).toFixed(1) + "%");
+    } else {
+        $("#progress-container").addClass("hidden");
     }
 
-    resetCheckboxes([]);
-    elements.log_progress.textContent = "";
-    elements.log_loader.textContent = "";
-    elements.log_converter.textContent = "";
-    elements.log_exporter.textContent = "";
-    elements.output.textContent = "";
-    elements.download_json.textContent = "No file converted";
-    elements.download_json.href = "javascript:void(0)";
-    elements.download_data.textContent = "No file converted";
-    elements.download_data.href = "javascript:void(0)";
+    if (conversion_data.stage >= 6) {
+        $("#progress-container").fadeOut(2000);
+    }
 }
 
-function onFileDrag(ev: DragEvent) {
+function updateUIInput() {
+    if (conversion_data.s0_source.length > 0) {
+        $("#drop-target-result").removeClass("hidden");
+        $("#drop-target-instructions").addClass("hidden");
+        $("#input_file_size").text("File loaded (" + fileSizeStr(conversion_data.s0_source.length) + ")");
+        $("#convert").removeAttr("disabled");
+    } else {
+        $("#drop-target-result").addClass("hidden");
+        $("#drop-target-instructions").removeClass("hidden");
+        $("#convert").attr("disabled", "disabled");
+    }
+}
+
+function updateUIOutput() {
+    if (conversion_data.s4_exported_custom) {
+        var data = conversion_data.s4_exported_custom.json;
+        var binary = conversion_data.s4_exported_custom.data;
+
+        // Geometry complexity
+        var geometry_complexity: string = "";
+        geometry_complexity += data.chunks.length + " chunks";
+        var tris = 0;
+        var verts = 0;
+        data.chunks.forEach((chunk) => {
+            tris += chunk.triangle_count;
+            verts += chunk.vertex_count;
+        });
+        geometry_complexity += ", " + tris + " triangles, " + verts + " vertices";
+        $("#output-geometry-complexity").text(geometry_complexity);
+
+        // Animation complexity
+        var animation_complexity: string = "";
+        animation_complexity += data.bones.length + " bones";
+        animation_complexity += ", ";
+        animation_complexity += ((data.animations.length > 0) ? data.animations[0].frames : 0) + " keyframes";
+        $("#output-animation-complexity").text(animation_complexity);
+
+        // Geometry size
+        var bbox = data.info.bounding_box;
+        var geometry_size: string = "";
+        if (bbox) {
+            geometry_size += "[" + bbox.min[0].toFixed(2) + "," + bbox.min[1].toFixed(2) + "," + bbox.min[2].toFixed(2) + "]";
+            geometry_size += "  -  ";
+            geometry_size += "[" + bbox.max[0].toFixed(2) + "," + bbox.max[1].toFixed(2) + "," + bbox.max[2].toFixed(2) + "]";
+        }
+        $("#output-geometry-size").text(geometry_size);
+
+        // Rendered chunks
+        for (var i = 0; i < data.chunks.length; ++i) {
+            $("#chunk-" + i).removeClass("hidden");
+            $("#chunk-" + i + " > span").text(data.chunks[i].name || ("" + i));
+        }
+
+        // File sizes
+        $("#output-custom-json .output-size").text(fileSizeStr(JSON.stringify(data).length));
+        $("#output-custom-binary .output-size").text(fileSizeStr(binary.length));
+        $("#output-custom-json button").removeAttr("disabled");
+        $("#output-custom-binary button").removeAttr("disabled");
+    } else {
+        $("#output-geometry-complexity").text("");
+        $("#output-animation-complexity").text("");
+        $("#output-geometry-size").text("");
+        $(".chunk-checkbox-container").addClass("hidden");
+
+        // Output
+        $("#output-custom-json .output-size").text("");
+        $("#output-custom-binary .output-size").text("");
+        $("#output-custom-json button").attr("disabled", "disabled");
+        $("#output-custom-binary button").attr("disabled", "disabled");
+    }
+
+    if (conversion_data.s5_exported_threejs) {
+        var threejs_data = conversion_data.s5_exported_threejs;
+        $("#output-threejs .output-size").text(fileSizeStr(JSON.stringify(threejs_data).length));
+        $("#output-threejs button").removeAttr("disabled");
+    } else {
+        $("#output-threejs .output-size").text("");
+        $("#output-threejs button").attr("disabled", "disabled");
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Drag & Drop
+// ----------------------------------------------------------------------------
+
+function onFileDrag(ev: JQueryEventObject) {
     ev.preventDefault();
 }
 
-function onFileDrop(ev: DragEvent) {
-    clearInput();
+function onFileDrop(ev: JQueryEventObject) {
     writeProgress("Something dropped.");
     ev.preventDefault();
-    var dt = ev.dataTransfer;
+    var dt = (<any>ev.originalEvent).dataTransfer;
+    if (!dt) {
+        writeProgress("Your browser does not support drag&drop for files (?).");
+        return;
+    }
     var files = dt.files;
     if (files.length == 0) {
         writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
@@ -91,106 +330,82 @@ function onFileDrop(ev: DragEvent) {
         writeProgress("You dropped multiple files. Please only drop a single file.");
         return;
     }
-    var file = files[0];
+
+    onFileLoad(files[0]);
+}
+
+
+function onFileLoad(file: File) {
+    // Reset all data
+    reset();
+
+    // File reader
     var reader = new FileReader();
-    reader.onload = onFileLoaded;
-    reader.onerror = onFileError;
+    reader.onload = () => {
+        timeEnd("Reading file");
+        var result: string = reader.result;
+        convertSetup(result);
+    };
+    reader.onerror = () => {
+        writeProgress("Error reading file.");
+    };
     timeStart("Reading file");
+
+    // Read
     reader.readAsText(file);
 }
 
-function onFileError() {
-    writeProgress("Error reading file.");
+// ----------------------------------------------------------------------------
+// Conversion
+// ----------------------------------------------------------------------------
+
+function convertSetup(src: string) {
+    // Set the source data
+    conversion_data.s0_source = src;
+    conversion_data.stage = 1;
+    updateUIInput();
 }
 
-function onFileLoaded(ev: Event) {
-    timeEnd("Reading file");
-    var data = this.result;
-    input_data = data;
-    elements.input.textContent = "COLLADA loaded (" + (data.length/1024).toFixed(1) + " kB)";
+function convertTick() {
+    // Synchronously perform one step of the conversion
+    try {
+        switch (conversion_data.stage) {
+            case 1: convertParse(); break;
+            case 2: convertLoad(); break;
+            case 3: convertConvert(); break;
+            case 4: convertExportCustom(); break;
+            case 5: convertExportThreejs(); updateUIOutput(); break;
+            case 6: convertRenderPreview(); break;
+            case 7: break;
+            default: throw new Error("Unknown stage");
+        }
+    } catch (e) {
+        conversion_data.exception = true;
+    }
+
+    // Update the progress bar
+    updateUIProgress();
 }
 
-function convertAsync() {
-
-    var url = window.location.href.replace("convert.html", "");
-    var script_urls = ["convert-task.js", "../js/xmlsax.js", "../js/xmlw3cdom.js", "../lib/collada.js", "../js/gl-matrix.js"].map((value) => ("'" + url + value + "'"));
-    var worker_script = new Blob(["importScripts(" + script_urls.join(",") + ");"]);
-    var worker_script_url = URL.createObjectURL(worker_script);
-    var worker = new Worker(worker_script_url);
-    URL.revokeObjectURL(worker_script_url);
-
-    worker.onmessage = function (event) {
-        var message: any = event.data;
-        if (message.progress_start) {
-            timeStart(message.progress_start);
-        }
-        if (message.progress_end) {
-            timeEnd(message.progress_end);
-        }
-        if (message.log_name) {
-            writeLog(message.log_name, message.log_message, message.log_level);
-        }
-        if (message.result_json) {
-            var json = message.result_json;
-            var data = message.result_data;
-
-            // Download links
-            elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
-            elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
-            elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(data.buffer);
-            elements.download_data.textContent = "Download (" + (data.length / 1024).toFixed(1) + " kB)";
-
-            // Output
-            elements.output.textContent = JSON.stringify(json, null, 2);
-            resetCheckboxes(json.chunks);
-
-            // Start rendering
-            timeStart("WebGL loading");
-            if (use_threejs) {
-                fillBuffersThreejs(json, data.buffer);
-            } else {
-                fillBuffers(json, data.buffer);
-                setupCamera(json);
-            }
-            timeEnd("WebGL loading");
-
-            timeStart("WebGL rendering");
-            if (use_threejs) {
-                tickThreejs(null);
-            } else {
-                tick(null);
-            }
-            timeEnd("WebGL rendering");
-        }
-    };
-
-    // Worker data
-    var worker_data: any = {};
-    worker_data.input_data = input_data;
-    
-    // Start the worker
-    var options: any = {};
-    options.fps = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
-    options.animations = (<HTMLInputElement>document.getElementById("option-animations")).checked;
-    options.worldTransform = (<HTMLInputElement>document.getElementById("option-worldtransform")).checked;
-    options.worldTransformScale = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
-    options.sortBones = (<HTMLInputElement>document.getElementById("option-sortbones")).checked;
-    options.applyBindShape = (<HTMLInputElement>document.getElementById("option-bindshape")).checked;
-    options.singleBufferPerGeometry = (<HTMLInputElement>document.getElementById("option-singlebuffer")).checked;
-    worker_data.options = options;
-
-    worker.postMessage(worker_data);
+function convertNextStage() {
+    conversion_data.stage++;
+    setTimeout(convertTick, 10);
 }
 
-function convertSync() {
+function convertParse() {
     // Parser
     var parser = new DOMParser();
 
     // Parse
     timeStart("XML parsing");
-    var xmlDoc = parser.parseFromString(input_data, "text/xml");
+    conversion_data.s1_xml = parser.parseFromString(conversion_data.s0_source, "text/xml");
     timeEnd("XML parsing");
 
+    // Next stage
+    convertNextStage();
+}
+
+function convertLoad() {
     // Loader
     var loader = new COLLADA.Loader.ColladaLoader();
     var loaderlog = new COLLADA.LogCallback;
@@ -199,28 +414,30 @@ function convertSync() {
 
     // Load
     timeStart("COLLADA parsing");
-    var load_data = loader.loadFromXML("id", xmlDoc);
+    conversion_data.s2_loaded = loader.loadFromXML("id", conversion_data.s1_xml);
     timeEnd("COLLADA parsing");
 
+    // Next stage
+    convertNextStage();
+}
+
+function convertConvert() {
     // Converter
     var converter = new COLLADA.Converter.ColladaConverter();
     var converterlog = converter.log = new COLLADA.LogCallback;
     converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
+    converter.options = options;
 
     // Convert
-    converter.options.animationFps.value = parseFloat((<HTMLInputElement>document.getElementById("option-fps")).value);
-    converter.options.enableAnimations.value = (<HTMLInputElement>document.getElementById("option-animations")).checked;
-    converter.options.worldTransform.value = (<HTMLInputElement>document.getElementById("option-worldtransform")).checked;
-    converter.options.worldTransformScale.value = parseFloat((<HTMLInputElement>document.getElementById("option-scale")).value);
-    converter.options.worldTransformRotationAxis.value = (<HTMLInputElement>document.getElementById("option-axis")).value;
-    converter.options.worldTransformRotationAngle.value = parseFloat((<HTMLInputElement>document.getElementById("option-angle")).value);
-    converter.options.sortBones.value = (<HTMLInputElement>document.getElementById("option-sortbones")).checked;
-    converter.options.applyBindShape.value = (<HTMLInputElement>document.getElementById("option-bindshape")).checked;
-    converter.options.singleBufferPerGeometry.value = (<HTMLInputElement>document.getElementById("option-singlebuffer")).checked;
     timeStart("COLLADA conversion");
-    var convertData = converter.convert(load_data);
+    conversion_data.s3_converted = converter.convert(conversion_data.s2_loaded);
     timeEnd("COLLADA conversion");
 
+    // Next stage
+    convertNextStage();
+}
+
+function convertExportCustom() {
     // Exporter
     var exporter = new COLLADA.Exporter.ColladaExporter();
     var exporterlog = exporter.log = new COLLADA.LogCallback;
@@ -228,117 +445,90 @@ function convertSync() {
 
     // Export
     timeStart("COLLADA export");
-    var exportData = exporter.export(convertData);
+    conversion_data.s4_exported_custom = exporter.export(conversion_data.s3_converted);
     timeEnd("COLLADA export");
 
-    var json = exportData.json;
-    var data = exportData.data;
+    // Next stage
+    convertNextStage();
+}
 
-    // Download links
-    elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
-    elements.download_json.textContent = "Download (" + (JSON.stringify(json).length / 1024).toFixed(1) + " kB)";
-    elements.download_data.href = COLLADA.Exporter.Utils.bufferToBlobURI(data);
-    elements.download_data.textContent = "Download (" + (data.length / 1024).toFixed(1) + " kB)";
-
-    // Output
-    elements.output.textContent = JSON.stringify(json, null, 2);
-    resetCheckboxes(json.chunks);
-
+function convertExportThreejs() {
     // Exporter2
-    var exporter2 = new COLLADA.Threejs.ThreejsExporter();
-    var exporter2log = exporter2.log = new COLLADA.LogCallback;
-    exporter2log.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
+    var exporter = new COLLADA.Threejs.ThreejsExporter();
+    var exporterlog = exporter.log = new COLLADA.LogCallback;
+    exporterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("threejs", message, level); }
 
     // Export2
     timeStart("Threejs export");
-    var threejsData = exporter2.export(convertData);
+    conversion_data.s5_exported_threejs = exporter.export(conversion_data.s3_converted);
     timeEnd("Threejs export");
 
-    elements.download_threejs.href = COLLADA.Exporter.Utils.jsonToBlobURI(threejsData);
-    elements.download_threejs.textContent = "Download (" + (JSON.stringify(threejsData).length / 1024).toFixed(1) + " kB)";
+    // Next stage
+    convertNextStage();
+}
 
-    // Start rendering
+function convertRenderPreview() {
     timeStart("WebGL loading");
-    if (use_threejs) {
-        fillBuffersThreejs(json, data.buffer);
-    } else {
-        fillBuffers(json, data.buffer);
-        setupCamera(json);
-    }
+    renderSetModel(conversion_data.s4_exported_custom.json, conversion_data.s4_exported_custom.data);
     timeEnd("WebGL loading");
 
     timeStart("WebGL rendering");
-    if (use_threejs) {
-        tickThreejs(null);
-    } else {
-        tick(null);
-    }
+    renderStartRendering();
     timeEnd("WebGL rendering");
+
+    // Next stage
+    convertNextStage();
 }
 
 function onConvertClick() {
-    clearOutput();
+    // Delete any previously converted data
+    resetOutput();
 
-    if (true) {
-        convertSync();
-    } else {
-        convertAsync();
-    }
+    // Start the conversion
+    conversion_data.stage = 1;
+    setTimeout(convertTick, 10);
 }
 
-function onColladaProgress(id: string, loaded: number, total: number) {
-    writeProgress("Collada loading progress");
-}
+// ----------------------------------------------------------------------------
+// Initialization
+// ----------------------------------------------------------------------------
 
 function init() {
-    // Find elements
-    elements.input = <HTMLInputElement> document.getElementById("input");
-    elements.log_progress = <HTMLTextAreaElement> document.getElementById("log_progress");
-    elements.log_loader = <HTMLTextAreaElement> document.getElementById("log_loader");
-    elements.log_converter = <HTMLTextAreaElement> document.getElementById("log_converter");
-    elements.log_exporter = <HTMLTextAreaElement> document.getElementById("log_exporter");
-    elements.output = <HTMLTextAreaElement> document.getElementById("output");
-    elements.convert = <HTMLButtonElement> document.getElementById("convert");
-    elements.canvas = <HTMLCanvasElement> document.getElementById("canvas");
-    elements.download_json = <HTMLAnchorElement> document.getElementById("download_json");
-    elements.download_data = <HTMLAnchorElement> document.getElementById("download_data");
-    elements.download_threejs = <HTMLAnchorElement> document.getElementById("download_threejs");
-    elements.mesh_parts_checkboxes = [];
-    elements.mesh_parts_labels = [];
-    for (var i: number = 0; i < 18; ++i) {
-        var id: string = "part_" + ("0" + (i+1)).slice(-2);
-        elements.mesh_parts_checkboxes[i] = <HTMLInputElement> document.getElementById(id);
-        elements.mesh_parts_labels[i] = <HTMLLabelElement> document.getElementById(id + "_label");
+    // Initialize WebGL
+    var canvas: HTMLCanvasElement = <HTMLCanvasElement>$("#canvas")[0];
+    if (use_threejs) {
+        initThreejs(canvas);
+    } else {
+        initGL(canvas);
     }
 
-    // Initialize WebGL
-    if (use_threejs) {
-        initThreejs();
-    } else {
-        initGL();
-    }
+    // Create option elements
+    var optionsForm = $("#form-options");
+    optionElements.push(new ColladaConverterOption(options.enableAnimations, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.animationFps, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransform, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransformScale, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransformRotationAxis, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.worldTransformRotationAngle, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.sortBones, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.applyBindShape, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.singleBufferPerGeometry, optionsForm));
 
     // Register events
-    elements.input.ondragover = onFileDrag;
-    elements.input.ondrop = onFileDrop;
-    elements.convert.onclick = onConvertClick;
+    $("#drop-target").on("dragover", onFileDrag);
+    $("#drop-target").on("drop", onFileDrop);
+    $("#drop-target").on("drop", onFileDrop);
+    $("#convert").click(onConvertClick);
 
-    //
-    clearOutput();
-}
+    $("#output-custom-json .output-download").click(() =>
+        downloadJSON(conversion_data.s4_exported_custom.json, "model.json"));
+    $("#output-custom-binary .output-download").click(() =>
+        downloadJSON(conversion_data.s4_exported_custom.data, "model.bin"));
+    $("#output-threejs .output-download").click(() =>
+        downloadJSON(conversion_data.s5_exported_threejs, "model-threejs.json"));
 
-function resetCheckboxes(chunks: COLLADA.Exporter.GeometryJSON[]) {
-    for (var i: number = 0; i < elements.mesh_parts_checkboxes.length; ++i) {
-        var checkbox: HTMLInputElement = elements.mesh_parts_checkboxes[i];
-        var label: HTMLLabelElement = elements.mesh_parts_labels[i];
-        checkbox.checked = true;
-        if (chunks.length <= i) {
-            checkbox.style.setProperty("display", "none");
-            label.style.setProperty("display", "none");
-        } else {
-            checkbox.style.removeProperty("display");
-            label.style.removeProperty("display");
-            label.textContent = chunks[i].name;
-        }
-    }
+    // Update all UI elements
+    reset();
+
+    writeProgress("Converter initialized");
 }

@@ -26,7 +26,7 @@ module COLLADA.Exporter {
             return btoa(ascii);
         }
 
-        static bufferToDataURI(buf: Uint8Array, mime: string): string {
+        static bufferToDataURI(buf: Uint8Array, mime?: string): string {
             var base64: string = COLLADA.Exporter.Utils.bufferToString(buf);
 
             if (!mime) {
@@ -36,17 +36,15 @@ module COLLADA.Exporter {
             return "data:" + mime + ";base64," + base64;
         }
 
-        static bufferToBlobURI(buf: Uint8Array): string {
-            var blob: Blob = new Blob([buf], { type: "application/octet-stream" });
+        static bufferToBlobURI(buf: Uint8Array, mime?: string): string {
+            if (!mime) {
+                mime = "application/octet-stream";
+            }
+            var blob: Blob = new Blob([buf], { type: mime });
             return URL.createObjectURL(blob);
         }
 
-        static jsonToBlobURI(json: any): string {
-            var blob: Blob = new Blob([JSON.stringify(json)], { type: "application/json" });
-            return URL.createObjectURL(blob);
-        }
-
-        static jsonToDataURI(json: any, mime: string): string {
+        static jsonToDataURI(json: any, mime?: string): string {
             var json_str = JSON.stringify(json);
 
             if (!mime) {
@@ -54,6 +52,14 @@ module COLLADA.Exporter {
             }
 
             return "data:" + mime + "," + json_str;
+        }
+
+        static jsonToBlobURI(json: any, mime?: string): string {
+            if (!mime) {
+                mime = "application/json";
+            }
+            var blob: Blob = new Blob([JSON.stringify(json)], { type: mime });
+            return URL.createObjectURL(blob);
         }
     }
 }
