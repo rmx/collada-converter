@@ -176,6 +176,50 @@ function updateUIInput() {
 }
 
 function updateUIOutput() {
+    if (conversion_data.s4_exported_custom) {
+        var data = conversion_data.s4_exported_custom.json;
+
+        // Geometry complexity
+        var geometry_complexity: string = "";
+        geometry_complexity += data.chunks.length + " chunks";
+        var tris = 0;
+        var verts = 0;
+        data.chunks.forEach((chunk) => {
+            tris += chunk.triangle_count;
+            verts += chunk.vertex_count;
+        });
+        geometry_complexity += ", " + tris + " triangles, " + verts + " vertices";
+        $("#output-geometry-complexity").text(geometry_complexity);
+
+        // Animation complexity
+        var animation_complexity: string = "";
+        animation_complexity += data.bones.length + " bones";
+        animation_complexity += ", ";
+        animation_complexity += ((data.animations.length > 0) ? data.animations[0].frames : 0) + " keyframes";
+        $("#output-animation-complexity").text(animation_complexity);
+
+        // Geometry size
+        var bbox = data.info.bounding_box;
+        var geometry_size: string = "";
+        if (bbox) {
+            geometry_size += "[" + bbox.min[0].toFixed(2) + "," + bbox.min[1].toFixed(2) + "," + bbox.min[2].toFixed(2) + "]";
+            geometry_size += "  -  ";
+            geometry_size += "[" + bbox.max[0].toFixed(2) + "," + bbox.max[1].toFixed(2) + "," + bbox.max[2].toFixed(2) + "]";
+        }
+        $("#output-geometry-size").text(geometry_size);
+
+        // Rendered chunks
+        for (var i = 0; i < data.chunks.length; ++i) {
+            $("#chunk-" + i).removeClass("hidden");
+            $("#chunk-" + i + " > span").text(data.chunks[i].name || ("" + i));
+        }
+    } else {
+        $("#output-geometry-complexity").text("");
+        $("#output-animation-complexity").text("");
+        $("#output-geometry-size").text("");
+        $(".chunk-checkbox-container").addClass("hidden");
+    }
+
     /*
     // Download links
     elements.download_json.href = COLLADA.Exporter.Utils.jsonToDataURI(json, null);
