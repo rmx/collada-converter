@@ -524,7 +524,7 @@ function init() {
         downloadJSON(conversion_data.s4_exported_custom.json, "model.json"));
     $("#output-custom-binary .output-download").click(() =>
         downloadJSON(conversion_data.s4_exported_custom.data, "model.bin"));
-    $("#output-custom-json .output-download").click(() =>
+    $("#output-threejs .output-download").click(() =>
         downloadJSON(conversion_data.s5_exported_threejs, "model-threejs.json"));
 
     // Update all UI elements
