@@ -125,22 +125,14 @@ function timeEnd(name: string) {
 
 function reset() {
 
-    conversion_data = {
-        stage: -1,
-        exception: null,
-        s0_source: "",
-        s1_xml: null,
-        s2_loaded: null,
-        s3_converted: null,
-        s4_exported_custom: null,
-        s5_exported_threejs: null
-    }
+    resetInput();
+    resetOutput();
+}
 
-    clearLog();
+function resetInput() {
+    conversion_data.s0_source = ""
+
     updateUIInput();
-    updateUIOutput();
-    updateUIRenderer();
-    updateUIProgress();
 }
 
 function resetOutput() {
@@ -153,11 +145,39 @@ function resetOutput() {
     conversion_data.s4_exported_custom = null;
     conversion_data.s5_exported_threejs = null;
 
+    renderSetModel(null, null);
     clearLog();
-    updateUIInput();
     updateUIOutput();
-    updateUIRenderer();
     updateUIProgress();
+}
+
+// ----------------------------------------------------------------------------
+// Renderer
+// ----------------------------------------------------------------------------
+
+function renderSetModel(json: any, data: Uint8Array) {
+    if (!json) {
+        if (use_threejs) {
+            clearBuffersThreejs();
+        } else {
+            clearBuffers();
+        }
+    } else {
+        if (use_threejs) {
+            fillBuffersThreejs(json, data.buffer);
+        } else {
+            fillBuffers(json, data.buffer);
+            setupCamera(json);
+        }
+    }
+}
+
+function renderStartRendering() {
+    if (use_threejs) {
+        tickThreejs(null);
+    } else {
+        tick(null);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -285,37 +305,6 @@ function updateUIOutput() {
     }
 }
 
-function updateUIRenderer() {
-
-    /*
-    if (use_threejs) {
-        clearBuffersThreejs();
-    } else {
-        clearBuffers();
-    }
-    */
-
-    /*
-    // Start rendering
-    timeStart("WebGL loading");
-    if (use_threejs) {
-        fillBuffersThreejs(json, data.buffer);
-    } else {
-        fillBuffers(json, data.buffer);
-        setupCamera(json);
-    }
-    timeEnd("WebGL loading");
-
-    timeStart("WebGL rendering");
-    if (use_threejs) {
-        tickThreejs(null);
-    } else {
-        tick(null);
-    }
-    timeEnd("WebGL rendering");
-    */
-}
-
 // ----------------------------------------------------------------------------
 // Drag & Drop
 // ----------------------------------------------------------------------------
@@ -385,8 +374,9 @@ function convertTick() {
             case 2: convertLoad(); break;
             case 3: convertConvert(); break;
             case 4: convertExportCustom(); break;
-            case 5: convertExportThreejs(); break;
-            case 6: updateUIOutput(); updateUIRenderer(); break;
+            case 5: convertExportThreejs(); updateUIOutput(); break;
+            case 6: convertRenderPreview(); break;
+            case 7: break;
             default: throw new Error("Unknown stage");
         }
     } catch (e) {
@@ -472,6 +462,19 @@ function convertExportThreejs() {
     timeStart("Threejs export");
     conversion_data.s5_exported_threejs = exporter.export(conversion_data.s3_converted);
     timeEnd("Threejs export");
+
+    // Next stage
+    convertNextStage();
+}
+
+function convertRenderPreview() {
+    timeStart("WebGL loading");
+    renderSetModel(conversion_data.s4_exported_custom.json, conversion_data.s4_exported_custom.data);
+    timeEnd("WebGL loading");
+
+    timeStart("WebGL rendering");
+    renderStartRendering();
+    timeEnd("WebGL rendering");
 
     // Next stage
     convertNextStage();
