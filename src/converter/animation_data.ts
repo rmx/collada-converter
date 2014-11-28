@@ -43,6 +43,7 @@ module COLLADA.Converter {
         duration: number;
         keyframes: number;
         fps: number;
+        original_fps: number;
         tracks: COLLADA.Converter.AnimationDataTrack[];
 
         constructor() {
@@ -86,6 +87,7 @@ module COLLADA.Converter {
             result.fps = fps;
             result.keyframes = keyframes;
             result.duration = duration;
+            result.original_fps = stat.avgFps();
 
             if (!(fps > 0)) {
                 context.log.write("Invalid FPS: " + fps + ", skipping animation", LogLevel.Warning);

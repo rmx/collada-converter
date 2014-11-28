@@ -22,7 +22,7 @@ module COLLADA.Threejs {
                 return null;
             }
 
-            var original_fps: number = 30;
+            var original_fps: number = Math.floor(animation.original_fps + 0.5);
             var time_scale: number = original_fps / animation.fps;
 
             return {
