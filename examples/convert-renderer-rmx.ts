@@ -86,6 +86,59 @@ function quat_stream_slerp(
     out[out_offset + 3] = scale0 * aw + scale1 * bw;
 }
 
+function mat_stream_compose(
+    out: Float32Array,
+    out_offset: number,
+    pos: Float32Array,
+    pos_offset: number,
+    rot: Float32Array,
+    rot_offset: number,
+    scl: Float32Array,
+    scl_offset: number
+    ) {
+    // Quaternion math
+    var x = rot[rot_offset + 0],
+        y = rot[rot_offset + 1],
+        z = rot[rot_offset + 2],
+        w = rot[rot_offset + 3],
+        x2 = x + x,
+        y2 = y + y,
+        z2 = z + z,
+
+        xx = x * x2,
+        xy = x * y2,
+        xz = x * z2,
+        yy = y * y2,
+        yz = y * z2,
+        zz = z * z2,
+        wx = w * x2,
+        wy = w * y2,
+        wz = w * z2,
+
+        sx = scl[scl_offset + 0],
+        sy = scl[scl_offset + 1],
+        sz = scl[scl_offset + 2];
+
+    out[out_offset +  0] = sx * (1 - (yy + zz));
+    out[out_offset +  1] = sy * (xy + wz);
+    out[out_offset +  2] = sz * (xz - wy);
+    out[out_offset +  3] = 0;
+    out[out_offset +  4] = sx * (xy - wz);
+    out[out_offset +  5] = sy * (1 - (xx + zz));
+    out[out_offset +  6] = sz * (yz + wx);
+    out[out_offset +  7] = 0;
+    out[out_offset +  8] = sx * (xz + wy);
+    out[out_offset +  9] = sy * (yz - wx);
+    out[out_offset + 10] = sz * (1 - (xx + yy));
+    out[out_offset + 11] = 0;
+    out[out_offset + 12] = pos[pos_offset + 0];
+    out[out_offset + 13] = pos[pos_offset + 1];
+    out[out_offset + 14] = pos[pos_offset + 2];
+    out[out_offset + 15] = 1;
+
+    return out;
+};
+
 class RMXModelLoader {
 
     constructor() {
@@ -436,12 +489,7 @@ class RMXSkeletalAnimation {
             var scl = pose.scl;
 
             // Local matrix
-            // TODO: optimize this
-            vec3.set(vec1, pos[b * 3 + 0], pos[b * 3 + 1], pos[b * 3 + 2]);
-            quat.set(quat1, rot[b * 4 + 0], rot[b * 4 + 1], rot[b * 4 + 2], rot[b * 4 + 3]);
-            mat4.fromRotationTranslation(mat1, quat1, vec1);
-            vec3.set(vec1, scl[b * 3 + 0], scl[b * 3 + 1], scl[b * 3 + 2]);
-            mat4.scale(mat1, mat1, vec1);
+            mat_stream_compose(<Float32Array>mat1, 0, pos, b * 3, rot, b * 4, scl, b * 3);
 
             // World matrix
             if (bone.parent >= 0) {
