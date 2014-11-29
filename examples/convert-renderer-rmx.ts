@@ -1,5 +1,91 @@
 /// <reference path="../src/external/gl-matrix.i.ts" />
 
+function vec3_stream_copy(
+    out: Float32Array,
+    out_offset: number,
+    a: Float32Array,
+    a_offset: number
+    ): void {
+    out[out_offset + 0] = a[a_offset + 0];
+    out[out_offset + 1] = a[a_offset + 1];
+    out[out_offset + 2] = a[a_offset + 2];
+}
+
+function quat_stream_copy(
+    out: Float32Array,
+    out_offset: number,
+    a: Float32Array,
+    a_offset: number
+    ): void {
+    out[out_offset + 0] = a[a_offset + 0];
+    out[out_offset + 1] = a[a_offset + 1];
+    out[out_offset + 2] = a[a_offset + 2];
+    out[out_offset + 3] = a[a_offset + 3];
+}
+
+function vec3_stream_lerp(
+    out: Float32Array,
+    out_offset: number,
+    a: Float32Array,
+    a_offset: number,
+    b: Float32Array,
+    b_offset: number,
+    t: number
+    ): void {
+    var ta: number = 1 - t;
+    out[out_offset + 0] = ta * a[a_offset + 0] + t * a[b_offset + 0];
+    out[out_offset + 1] = ta * a[a_offset + 1] + t * a[b_offset + 1];
+    out[out_offset + 2] = ta * a[a_offset + 2] + t * a[b_offset + 2];
+}
+
+function quat_stream_slerp(
+    out: Float32Array,
+    out_offset: number,
+    a: Float32Array,
+    a_offset: number,
+    b: Float32Array,
+    b_offset: number,
+    t: number
+    ): void {
+
+    var ax = a[a_offset + 0], ay = a[a_offset + 1], az = a[a_offset + 2], aw = a[a_offset + 3],
+        bx = b[b_offset + 0], by = b[b_offset + 1], bz = b[b_offset + 2], bw = b[b_offset + 3];
+
+    var omega: number, cosom: number, sinom: number, scale0: number, scale1: number;
+
+    // calc cosine
+    cosom = ax * bx + ay * by + az * bz + aw * bw;
+
+    // adjust signs (if necessary)
+    if (cosom < 0.0) {
+        cosom = -cosom;
+        bx = - bx;
+        by = - by;
+        bz = - bz;
+        bw = - bw;
+    }
+
+    // calculate coefficients
+    if ((1.0 - cosom) > 0.000001) {
+        // standard case (slerp)
+        omega = Math.acos(cosom);
+        sinom = Math.sin(omega);
+        scale0 = Math.sin((1.0 - t) * omega) / sinom;
+        scale1 = Math.sin(t * omega) / sinom;
+    } else {
+        // "from" and "to" quaternions are very close 
+        //  ... so we can do a linear interpolation
+        scale0 = 1.0 - t;
+        scale1 = t;
+    }
+
+    // calculate final values
+    out[out_offset + 0] = scale0 * ax + scale1 * bx;
+    out[out_offset + 1] = scale0 * ay + scale1 * by;
+    out[out_offset + 2] = scale0 * az + scale1 * bz;
+    out[out_offset + 3] = scale0 * aw + scale1 * bw;
+}
+
 class RMXModelLoader {
 
     constructor() {
@@ -395,30 +481,46 @@ class RMXSkeletalAnimation {
             var bone_rot = bone.rot;
             var bone_scl = bone.scl;
 
-            dest_pos[b3 + 0] = bone_pos[0];
-            dest_pos[b3 + 1] = bone_pos[1];
-            dest_pos[b3 + 2] = bone_pos[2];
-
-            dest_rot[b4 + 0] = bone_rot[0];
-            dest_rot[b4 + 1] = bone_rot[1];
-            dest_rot[b4 + 2] = bone_rot[2];
-            dest_rot[b4 + 3] = bone_rot[3];
-
-            dest_scl[b3 + 0] = bone_scl[0];
-            dest_scl[b3 + 1] = bone_scl[1];
-            dest_scl[b3 + 2] = bone_scl[2];
+            vec3_stream_copy(dest_pos, b3, <Float32Array>bone_pos, 0);
+            quat_stream_copy(dest_rot, b4, <Float32Array>bone_rot, 0);
+            vec3_stream_copy(dest_scl, b3, <Float32Array>bone_scl, 0);
         }
+    }
+
+    /** 
+    * Computes an interpolation of the two poses pose_a and pose_b
+    * At t==0, full weight is given to pose_a, at t==1, full weight is given to pose_b
+    */
+    static blendPose(pose_a: RMXPose, pose_b: RMXPose, t: number, result: RMXPose) {
+        var a_pos: Float32Array = pose_a.pos;
+        var a_rot: Float32Array = pose_a.rot;
+        var a_scl: Float32Array = pose_a.scl;
+
+        var b_pos: Float32Array = pose_b.pos;
+        var b_rot: Float32Array = pose_b.rot;
+        var b_scl: Float32Array = pose_b.scl;
+
+        var r_pos: Float32Array = result.pos;
+        var r_rot: Float32Array = result.rot;
+        var r_scl: Float32Array = result.scl;
+
+        // Loop over all bones
+        var bone_length: number = a_pos.length / 3;
+        for (var b = 0; b < bone_length; ++b) {
+            var b3: number = b * 3;
+            var b4: number = b * 4;
+
+            vec3_stream_lerp(r_pos, b3, a_pos, b3, b_pos, b3, t);
+            quat_stream_slerp(r_rot, b4, a_rot, b4, b_rot, b4, t);
+            vec3_stream_lerp(r_scl, b3, a_scl, b3, b_scl, b3, t);
+        }
+
     }
 
     /** 
     * Sample the animation, store the result in pose
     */
     static sampleAnimation(animation: RMXAnimation, skeleton: RMXSkeleton, pose: RMXPose, frame: number) {
-
-        var mat1 = RMXSkeletalAnimation.mat1;
-        var vec1 = RMXSkeletalAnimation.vec1;
-        var quat1 = RMXSkeletalAnimation.quat1;
-        var quat2 = RMXSkeletalAnimation.quat2;
 
         var looped = true;
         if (looped) {
@@ -437,8 +539,7 @@ class RMXSkeletalAnimation {
         var f23: number = f2 * 3;
         var f24: number = f2 * 4;
 
-        var s2: number = frame - Math.floor(frame);
-        var s1: number = 1 - s2;
+        var s: number = frame - Math.floor(frame);
 
         var bones = skeleton.bones;
         var tracks = animation.tracks;
@@ -447,9 +548,7 @@ class RMXSkeletalAnimation {
         var dest_rot: Float32Array = pose.rot;
         var dest_scl: Float32Array = pose.scl;
 
-        var quat_slerp = quat.slerp;
-
-        // Loop overa all bones
+        // Loop over all bones
         var bone_length: number = bones.length;
         for (var b = 0; b < bone_length; ++b) {
             var b3: number = b * 3;
@@ -469,49 +568,23 @@ class RMXSkeletalAnimation {
 
             // Position (linear interpolation)
             if (track_pos) {
-                dest_pos[b3 + 0] = s1 * track_pos[f13 + 0] + s2 * track_pos[f23 + 0];
-                dest_pos[b3 + 1] = s1 * track_pos[f13 + 1] + s2 * track_pos[f23 + 1];
-                dest_pos[b3 + 2] = s1 * track_pos[f13 + 2] + s2 * track_pos[f23 + 2];
+                vec3_stream_lerp(dest_pos, b3, track_pos, f13, track_pos, f23, s);
             } else {
-                dest_pos[b3 + 0] = bone_pos[0];
-                dest_pos[b3 + 1] = bone_pos[1];
-                dest_pos[b3 + 2] = bone_pos[2];
+                vec3_stream_copy(dest_pos, b3, <Float32Array>bone_pos, 0);
             }
 
             // Rotation (quaternion spherical interpolation)
             if (track_rot) {
-                quat1[0] = track_rot[f14 + 0];
-                quat1[1] = track_rot[f14 + 1];
-                quat1[2] = track_rot[f14 + 2];
-                quat1[3] = track_rot[f14 + 3];
-
-                quat2[0] = track_rot[f24 + 0];
-                quat2[1] = track_rot[f24 + 1];
-                quat2[2] = track_rot[f24 + 2];
-                quat2[3] = track_rot[f24 + 3];
-
-                quat_slerp(quat1, quat1, quat2, s2);
-
-                dest_rot[b4 + 0] = quat1[0];
-                dest_rot[b4 + 1] = quat1[1];
-                dest_rot[b4 + 2] = quat1[2];
-                dest_rot[b4 + 3] = quat1[3];
+                quat_stream_slerp(dest_rot, b4, track_rot, f14, track_rot, f24, s);
             } else {
-                dest_rot[b4 + 0] = bone_rot[0];
-                dest_rot[b4 + 1] = bone_rot[1];
-                dest_rot[b4 + 2] = bone_rot[2];
-                dest_rot[b4 + 3] = bone_rot[3];
+                quat_stream_copy(dest_rot, b4, <Float32Array>bone_rot, 0);
             }
 
             // Scale (linear interpolation)
             if (track_scl) {
-                dest_scl[b3 + 0] = s1 * track_scl[f13 + 0] + s2 * track_scl[f23 + 0];
-                dest_scl[b3 + 1] = s1 * track_scl[f13 + 1] + s2 * track_scl[f23 + 1];
-                dest_scl[b3 + 2] = s1 * track_scl[f13 + 2] + s2 * track_scl[f23 + 2];
+                vec3_stream_lerp(dest_scl, b3, track_scl, f13, track_scl, f23, s);
             } else {
-                dest_scl[b3 + 0] = bone_scl[0];
-                dest_scl[b3 + 1] = bone_scl[1];
-                dest_scl[b3 + 2] = bone_scl[2];
+                vec3_stream_copy(dest_scl, b3, <Float32Array>bone_scl, 0);
             }
         }
     }
