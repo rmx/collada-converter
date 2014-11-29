@@ -413,11 +413,8 @@ class RMXAnimation {
 
 class RMXSkeletalAnimation {
     static mat1: Mat4;
-    static mat2: Mat4;
     static vec1: Vec3;
-    static vec2: Vec3;
     static quat1: Quat;
-    static quat2: Quat;
 
     /** 
     * Exports all bone matrices (world matrix * inverse bind matrix) of a pose to a flat number array
@@ -591,11 +588,8 @@ class RMXSkeletalAnimation {
 
     static init() {
         RMXSkeletalAnimation.vec1 = vec3.create();
-        RMXSkeletalAnimation.vec2 = vec3.create();
         RMXSkeletalAnimation.quat1 = quat.create();
-        RMXSkeletalAnimation.quat2 = quat.create();
         RMXSkeletalAnimation.mat1 = mat4.create();
-        RMXSkeletalAnimation.mat2 = mat4.create();
     }
 }
 RMXSkeletalAnimation.init();
