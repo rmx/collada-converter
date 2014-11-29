@@ -5,21 +5,23 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Collada Animation Loader/Converter</title>
+    <!-- Library: Bootstrap -->
+    <link type="text/css" href="external/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="external/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet" />
+    <!-- Project: Converter example -->
+    <link type="text/css" href="convert.css" rel="stylesheet" />
     <!-- Library: three.js -->
     <script type="text/javascript"     src="external/threejs/three.js" charset="utf-8"></script>
     <!-- Library: jQuery -->
     <script type="text/javascript"     src="external/jquery/jquery.min.js" charset="utf-8"></script>
     <!-- Library: Bootstrap -->
     <script type="text/javascript"     src="external/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
-    <link   type="text/css"            href="external/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
-    <link   type="text/css"            href="external/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet" />
     <!-- Library: gl-matrix -->
     <script type="text/javascript"     src="../js/gl-matrix.js" charset="utf-8"></script>
     <!-- Project: Collada converter -->
     <script type="text/javascript"     src="../lib/collada.js" charset="utf-8"></script>
     <!-- Project: Converter example -->
     <script type="text/javascript"     src="convert.js" charset="utf-8"></script>
-    <link   type="text/css"            href="convert.css" rel="stylesheet" />
     <!-- Project: Custom renderer shaders -->
     <script type="x-shader/x-fragment" src="renderer/shader-fs.glsl" charset="utf-8" id="shader-fs"></script>
     <script type="x-shader/x-vertex"   src="renderer/shader-vs.glsl" charset="utf-8" id="shader-vs"></script>
@@ -55,7 +57,7 @@
                     </div>
                     <div class="form-group">
                         <div class="col-sm-4">
-                            <button type="button" class="btn btn-primary btn-block" id="convert">Convert</button>
+                            <button type="button" class="btn btn-primary btn-block" id="convert" disabled>Convert</button>
                         </div>
                         <div class="col-sm-8">
                             <div class="progress hidden" id="progress-container">
@@ -143,10 +145,10 @@
                     <div class="form-group output-group" id="output-custom-json">
                         <label class="col-sm-4 control-label">Custom (JSON)</label>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
+                            <button type="button" class="btn btn-primary btn-block output-download" disabled>Download</button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-info btn-block output-view">View</button>
+                            <button type="button" class="btn btn-info btn-block output-view" disabled>View</button>
                         </div>
                         <div class="col-sm-2">
                             <p class="form-control-static output-size"></p>
@@ -155,10 +157,10 @@
                     <div class="form-group output-group" id="output-custom-binary">
                         <label class="col-sm-4 control-label">Custom (binary)</label>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
+                            <button type="button" class="btn btn-primary btn-block output-download" disabled>Download</button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-info btn-block output-view">View</button>
+                            <button type="button" class="btn btn-info btn-block output-view" disabled>View</button>
                         </div>
                         <div class="col-sm-2">
                             <p class="form-control-static output-size"></p>
@@ -167,10 +169,10 @@
                     <div class="form-group output-group" id="output-threejs">
                         <label class="col-sm-4 control-label">Three.js (JSON)</label>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-primary btn-block output-download">Download</button>
+                            <button type="button" class="btn btn-primary btn-block output-download" disabled>Download</button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-info btn-block output-view">View</button>
+                            <button type="button" class="btn btn-info btn-block output-view" disabled>View</button>
                         </div>
                         <div class="col-sm-2">
                             <p class="form-control-static output-size"></p>
