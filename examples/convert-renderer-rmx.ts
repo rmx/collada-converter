@@ -333,6 +333,9 @@ class RMXSkeletalAnimation {
     static quat1: Quat;
     static quat2: Quat;
 
+    /** 
+    * Exports all bone matrices (world matrix * inverse bind matrix) of a pose to a flat number array
+    */
     static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: Float32Array) {
         var world_matrices = pose.world_matrices;
         var mat1 = RMXSkeletalAnimation.mat1;
@@ -372,6 +375,9 @@ class RMXSkeletalAnimation {
         }
     }
 
+    /** 
+    * Reset the pose to the bind pose of the skeleton
+    */
     static resetPose(skeleton: RMXSkeleton, pose: RMXPose) {
         var dest_pos: Float32Array = pose.pos;
         var dest_rot: Float32Array = pose.rot;
