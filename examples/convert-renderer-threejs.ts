@@ -274,10 +274,15 @@ function tickThreejs(timestamp: number) {
         requestAnimationFrame(tickThreejs);
     }
 
-    threejs_objects.stats.begin();
-    animateThreejs(delta_time);
-    drawSceneThreejs();
-    threejs_objects.stats.end();
+    // Increase loops to 100 to measure performance
+    // FPS is otherwise bounded by the vertical sync
+    var loops = 1;
+    for (var i = 0; i < loops; ++i) {
+        threejs_objects.stats.begin();
+        animateThreejs(delta_time / loops);
+        drawSceneThreejs();
+        threejs_objects.stats.end();
+    }
 }
 
 function drawSceneThreejs() {
