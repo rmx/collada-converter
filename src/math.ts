@@ -76,6 +76,7 @@ module COLLADA {
 
             // Remove the scaling from the remaining transformation matrix
             // This will greatly improve the precision of the matrix -> quaternion conversion
+            // FIXME: for non-uniform scale, this might not be the correct order of scale and rotation
             vec3.set(tempVec3, 1 / scl[0], 1 / scl[1], 1 / scl[2]);
             mat4.scale(tempMat4, mat, tempVec3);
 
@@ -98,8 +99,8 @@ module COLLADA {
 
         static compose(pos: Vec3, rot: Quat, scl: Vec3, mat: Mat4): void {
             mat4.identity(mat);
-            mat4.fromRotationTranslation(mat, rot, pos);
             mat4.scale(mat, mat, scl);
+            mat4.fromRotationTranslation(mat, rot, pos);
         }
 
         static bakeTransform(mat: Mat4, scale: Vec3, rotation: Mat4, transform: Mat4) {
