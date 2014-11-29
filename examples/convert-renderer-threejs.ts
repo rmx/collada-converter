@@ -1,5 +1,6 @@
 /// <reference path="convert-renderer-rmx.ts" />
 /// <reference path="external/threejs/three.d.ts" />
+/// <reference path="external/stats/stats.d.ts" />
 
 class ThreejsModelLoader {
 
@@ -225,8 +226,11 @@ function initThreejs(canvas: HTMLCanvasElement) {
     threejs_objects.renderer.gammaInput = true;
     threejs_objects.renderer.gammaOutput = true;
 
-    // elements.canvas.appendChild(threejs_objects.renderer.domElement);
+    // Stats block
+    threejs_objects.stats = new Stats();
+    canvas.parentNode.insertBefore(threejs_objects.stats.domElement, canvas.parentNode.firstChild);
 
+    // Events
     window.addEventListener('resize', onWindowResize, false);
 
     drawSceneThreejs();
@@ -266,9 +270,14 @@ function tickThreejs(timestamp: number) {
         last_timestamp = timestamp;
     }
 
-    requestAnimationFrame(tickThreejs);
-    drawSceneThreejs();
+    if (threejs_objects.mesh) {
+        requestAnimationFrame(tickThreejs);
+    }
+
+    threejs_objects.stats.begin();
     animateThreejs(delta_time);
+    drawSceneThreejs();
+    threejs_objects.stats.end();
 }
 
 function drawSceneThreejs() {
