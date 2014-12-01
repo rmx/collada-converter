@@ -466,8 +466,6 @@ class RMXAnimation {
 
 class RMXSkeletalAnimation {
     static mat1: Mat4;
-    static vec1: Vec3;
-    static quat1: Quat;
 
     /** 
     * Exports all bone matrices (world matrix * inverse bind matrix) of a pose to a flat number array
@@ -475,8 +473,6 @@ class RMXSkeletalAnimation {
     static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: Float32Array) {
         var world_matrices = pose.world_matrices;
         var mat1 = RMXSkeletalAnimation.mat1;
-        var vec1 = RMXSkeletalAnimation.vec1;
-        var quat1 = RMXSkeletalAnimation.quat1;
 
         // Loop over all bones
         var bone_length: number = skeleton.bones.length;
@@ -635,8 +631,6 @@ class RMXSkeletalAnimation {
     }
 
     static init() {
-        RMXSkeletalAnimation.vec1 = vec3.create();
-        RMXSkeletalAnimation.quat1 = quat.create();
         RMXSkeletalAnimation.mat1 = mat4.create();
     }
 }
