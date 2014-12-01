@@ -95,7 +95,7 @@ function mat_stream_compose(
     rot_offset: number,
     scl: Float32Array,
     scl_offset: number
-    ) {
+    ): void {
     // Quaternion math
     var x = rot[rot_offset + 0],
         y = rot[rot_offset + 1],
@@ -135,8 +135,45 @@ function mat_stream_compose(
     out[out_offset + 13] = pos[pos_offset + 1];
     out[out_offset + 14] = pos[pos_offset + 2];
     out[out_offset + 15] = 1;
+};
 
-    return out;
+function mat4_stream_multiply(
+    out: Float32Array,
+    out_offset: number,
+    a: Float32Array,
+    a_offset: number,
+    b: Float32Array,
+    b_offset: number
+    ): void {
+    var a00 = a[a_offset + 0], a01 = a[a_offset + 1], a02 = a[a_offset + 2], a03 = a[a_offset + 3],
+        a10 = a[a_offset + 4], a11 = a[a_offset + 5], a12 = a[a_offset + 6], a13 = a[a_offset + 7],
+        a20 = a[a_offset + 8], a21 = a[a_offset + 9], a22 = a[a_offset + 10], a23 = a[a_offset + 11],
+        a30 = a[a_offset + 12], a31 = a[a_offset + 13], a32 = a[a_offset + 14], a33 = a[a_offset + 15];
+
+    // Cache only the current line of the second matrix
+    var b0 = b[b_offset + 0], b1 = b[b_offset + 1], b2 = b[b_offset + 2], b3 = b[b_offset + 3];
+    out[out_offset + 0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[out_offset + 1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[out_offset + 2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[out_offset + 3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
+    b0 = b[b_offset + 4]; b1 = b[b_offset + 5]; b2 = b[b_offset + 6]; b3 = b[b_offset + 7];
+    out[out_offset + 4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[out_offset + 5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[out_offset + 6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[out_offset + 7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
+    b0 = b[b_offset + 8]; b1 = b[b_offset + 9]; b2 = b[b_offset + 10]; b3 = b[b_offset + 11];
+    out[out_offset + 8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[out_offset + 9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[out_offset + 10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[out_offset + 11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
+    b0 = b[b_offset + 12]; b1 = b[b_offset + 13]; b2 = b[b_offset + 14]; b3 = b[b_offset + 15];
+    out[out_offset + 12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[out_offset + 13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[out_offset + 14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[out_offset + 15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
 };
 
 class RMXModelLoader {
@@ -465,40 +502,33 @@ class RMXAnimation {
 
 
 class RMXSkeletalAnimation {
-    static mat1: Mat4;
 
     /** 
     * Exports all bone matrices (world matrix * inverse bind matrix) of a pose to a flat number array
     */
     static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: Float32Array) {
         var world_matrices = pose.world_matrices;
-        var mat1 = RMXSkeletalAnimation.mat1;
 
         // Loop over all bones
         var bone_length: number = skeleton.bones.length;
         for (var b = 0; b < bone_length; ++b) {
             var bone = skeleton.bones[b];
-            var world_matrix = world_matrices[b];
+            var world_matrix = <Float32Array>world_matrices[b];
 
             var pos = pose.pos;
             var rot = pose.rot;
             var scl = pose.scl;
 
             // Local matrix
-            mat_stream_compose(<Float32Array>mat1, 0, pos, b * 3, rot, b * 4, scl, b * 3);
+            mat_stream_compose(world_matrix, 0, pos, b * 3, rot, b * 4, scl, b * 3);
 
             // World matrix
             if (bone.parent >= 0) {
-                mat4.multiply(world_matrix, world_matrices[bone.parent], mat1);
-            } else {
-                mat4.copy(world_matrix, mat1);
+                mat4.multiply(world_matrix, world_matrices[bone.parent], world_matrix);
             }
 
             // Bone matrices raw data
-            mat4.multiply(mat1, world_matrix, bone.inv_bind_mat);
-            for (var i = 0; i < 16; ++i) {
-                dest[b * 16 + i] = mat1[i];
-            }
+            mat4_stream_multiply(dest, b * 16, world_matrix, 0, <Float32Array>bone.inv_bind_mat, 0);
         }
     }
 
@@ -629,9 +659,4 @@ class RMXSkeletalAnimation {
             }
         }
     }
-
-    static init() {
-        RMXSkeletalAnimation.mat1 = mat4.create();
-    }
 }
-RMXSkeletalAnimation.init();
