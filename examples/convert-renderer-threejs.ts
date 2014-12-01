@@ -6,7 +6,9 @@
 // Evil global data
 // ----------------------------------------------------------------------------
 
-var threejs_objects: any = {};
+var threejs_objects: any = {
+    render_loops: 1
+};
 
 // ----------------------------------------------------------------------------
 // Model loading
@@ -291,9 +293,10 @@ function tickThreejs(timestamp: number) {
         requestAnimationFrame(tickThreejs);
     }
 
-    // Increase loops to 100 to measure performance
+    // Increase the number of loops to measure performance
+    // (type 'threejs_objects.render_loops=100' in the development console)
     // FPS is otherwise bounded by the vertical sync
-    var loops = 1;
+    var loops = threejs_objects.render_loops;
     for (var i = 0; i < loops; ++i) {
         threejs_objects.stats.begin();
         animateThreejs(delta_time / loops);
