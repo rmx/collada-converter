@@ -2,6 +2,16 @@
 /// <reference path="external/threejs/three.d.ts" />
 /// <reference path="external/stats/stats.d.ts" />
 
+// ----------------------------------------------------------------------------
+// Evil global data
+// ----------------------------------------------------------------------------
+
+var threejs_objects: any = {};
+
+// ----------------------------------------------------------------------------
+// Model loading
+// ----------------------------------------------------------------------------
+
 class ThreejsModelLoader {
 
     materialCache: { [hash: string]: THREE.Material };
@@ -57,10 +67,11 @@ class ThreejsModelLoader {
         } else {
             var result = new THREE.MeshPhongMaterial();
             result.skinning = true;
-            result.color = new THREE.Color(1, 1, 1);
-            result.map = this.createTexture(material.diffuse);
-            result.specularMap = this.createTexture(material.specular);
-            result.normalMap = this.createTexture(material.normal);
+            result.color = new THREE.Color(0.8, 0.8, 0.8);
+            // Disable textures. They won't work due to CORS anyway.
+            result.map = null; //this.createTexture(material.diffuse);
+            result.specularMap = null; // this.createTexture(material.specular);
+            result.normalMap = null; // this.createTexture(material.normal);
 
             this.materialCache[hash] = result;
             return result;
@@ -90,17 +101,11 @@ class ThreejsModelLoader {
     }
 }
 
-class ThreejsModelChunk {
-    geometry: THREE.BufferGeometry;
-    material: THREE.Material;
+// ----------------------------------------------------------------------------
+// Hacking the custom animation code into three.js
+// ----------------------------------------------------------------------------
 
-    constructor() {
-        this.geometry = null;
-        this.material = null;
-    }
-}
-
-class ThreejsSkeletonAdapter {
+class ThreejsSkeleton {
     useVertexTexture: boolean;
     boneTextureWidth: number;
     boneTextureHeight: number;
@@ -110,25 +115,41 @@ class ThreejsSkeletonAdapter {
     pose: RMXPose;
 
     constructor(skeleton: RMXSkeleton) {
+        // The skeleton stores information about the hiearchy of the bones
         this.skeleton = skeleton;
+
+        // The pose stores information about the current bone transformations
         this.pose = new RMXPose(skeleton.bones.length);
         RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
 
+        // Trick three.js into thinking this is a THREE.Skeleton object
         this.useVertexTexture = true;
         this.boneTextureWidth = RMXBoneMatrixTexture.optimalSize(skeleton.bones.length);
         this.boneTextureHeight = this.boneTextureWidth;
         this.boneMatrices = new Float32Array(this.boneTextureWidth * this.boneTextureWidth * 4);
-
         this.boneTexture = new THREE.DataTexture(<any>this.boneMatrices, this.boneTextureWidth, this.boneTextureHeight,
             THREE.RGBAFormat, THREE.FloatType, new THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,
             THREE.NearestFilter, THREE.NearestFilter);
         this.boneTexture.generateMipmaps = false;
         this.boneTexture.flipY = false;
+
+        this.boneTexture.update();
     }
 
     update() {
         RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.boneMatrices);
         this.boneTexture.needsUpdate = true;
+    }
+}
+
+
+class ThreejsModelChunk {
+    geometry: THREE.BufferGeometry;
+    material: THREE.Material;
+
+    constructor() {
+        this.geometry = null;
+        this.material = null;
     }
 }
 
@@ -144,18 +165,22 @@ class ThreejsModel {
     }
 
     instanciate(): THREE.Object3D {
+        // Create one container object.
         var result = new THREE.Object3D;
 
-        var skeletonAdapter: ThreejsSkeletonAdapter = null;
+        // Create one custom skeleton object.
+        var skeletonAdapter: ThreejsSkeleton = null;
         if (this.skeleton) {
-            skeletonAdapter = new ThreejsSkeletonAdapter(this.skeleton);
+            skeletonAdapter = new ThreejsSkeleton(this.skeleton);
         }
 
+        // Create all THREE.Mesh instances. They will share the skeleton.
         for (var i = 0; i < this.chunks.length; ++i) {
             var chunk = this.chunks[i];
             var mesh = new THREE.Mesh(chunk.geometry, chunk.material);
 
-            // Trick three.js into thinking this is a skinned mesh
+            // Trick three.js into thinking this is a skinned mesh.
+            // This is an ugly hack that might break at any time.
             if (this.skeleton) {
                 var anymesh = <any>mesh;
                 anymesh.skeleton = skeletonAdapter;
@@ -165,9 +190,11 @@ class ThreejsModel {
                 anymesh.bindMatrix.identity();
             }
 
+            // Add the mesh to the container object.
             result.add(mesh);
         }
 
+        // Store the custom skeleton in the container object.
         (<any>result).skeleton = skeletonAdapter;
         result.userData = this;
 
@@ -175,7 +202,9 @@ class ThreejsModel {
     }
 }
 
-var threejs_objects: any = {};
+// ----------------------------------------------------------------------------
+// Rendering
+// ----------------------------------------------------------------------------
 
 function zoomThreejsCamera(scale: number) {
     threejs_objects.camera.position.set(1 * scale, 0.3 * scale, 0.5 * scale);
@@ -244,18 +273,6 @@ function onWindowResize() {
     threejs_objects.renderer.setSize(threejs_objects.canvas.width, threejs_objects.canvas.height);
 }
 
-function fillBuffersThreejs(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
-    var loader = new RMXModelLoader;
-    var model: RMXModel = loader.loadModel(json, data);
-
-    var loader2 = new ThreejsModelLoader;
-    var model2: ThreejsModel = loader2.createModel(model);
-
-    threejs_objects.mesh = model2.instanciate();
-    threejs_objects.scene.add(threejs_objects.mesh);
-}
-
-
 function tickThreejs(timestamp: number) {
     var delta_time: number = 0;
 
@@ -299,6 +316,16 @@ function animateThreejs(delta_time: number) {
     }
 }
 
+function fillBuffersThreejs(json: COLLADA.Exporter.DocumentJSON, data: ArrayBuffer) {
+    var loader = new RMXModelLoader;
+    var model: RMXModel = loader.loadModel(json, data);
+
+    var loader2 = new ThreejsModelLoader;
+    var model2: ThreejsModel = loader2.createModel(model);
+
+    threejs_objects.mesh = model2.instanciate();
+    threejs_objects.scene.add(threejs_objects.mesh);
+}
 
 function clearBuffersThreejs() {
     if (threejs_objects.mesh) {
