@@ -459,16 +459,13 @@ class RMXPose {
     pos: Float32Array;
     rot: Float32Array;
     scl: Float32Array;
-    world_matrices: Mat4[];
+    world_matrices: Float32Array;
 
     constructor(bones: number) {
         this.pos = new Float32Array(bones * 3);
         this.rot = new Float32Array(bones * 4);
         this.scl = new Float32Array(bones * 3);
-        this.world_matrices = [];
-        for (var i = 0; i < bones; ++i) {
-            this.world_matrices.push(mat4.create());
-        }
+        this.world_matrices = new Float32Array(bones * 16);
     }
 }
 
@@ -513,22 +510,22 @@ class RMXSkeletalAnimation {
         var bone_length: number = skeleton.bones.length;
         for (var b = 0; b < bone_length; ++b) {
             var bone = skeleton.bones[b];
-            var world_matrix = <Float32Array>world_matrices[b];
+            var inv_bind_mat = <Float32Array>bone.inv_bind_mat;
 
             var pos = pose.pos;
             var rot = pose.rot;
             var scl = pose.scl;
 
             // Local matrix
-            mat_stream_compose(world_matrix, 0, pos, b * 3, rot, b * 4, scl, b * 3);
+            mat_stream_compose(world_matrices, b * 16, pos, b * 3, rot, b * 4, scl, b * 3);
 
             // World matrix
             if (bone.parent >= 0) {
-                mat4.multiply(world_matrix, world_matrices[bone.parent], world_matrix);
+                mat4_stream_multiply(world_matrices, b * 16, world_matrices, bone.parent * 16, world_matrices, b * 16);
             }
 
             // Bone matrices raw data
-            mat4_stream_multiply(dest, b * 16, world_matrix, 0, <Float32Array>bone.inv_bind_mat, 0);
+            mat4_stream_multiply(dest, b * 16, world_matrices, b * 16, inv_bind_mat, 0);
         }
     }
 
