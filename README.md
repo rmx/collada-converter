@@ -10,7 +10,7 @@ The converter comes with a simple user interface in the form of an local web pag
 You don't need any web server to use this page - simply download and build the project,
 then open `examples/convert.html` from the project folder.
 If you do not want to build the project yourself,
-there is a live preview [here](http://rmx.github.io/collada-converter/examples/convert.html).
+there is a live preview [here](http://rmx.github.io/collada-converter/preview/examples/convert.html).
 
 Building
 ========
