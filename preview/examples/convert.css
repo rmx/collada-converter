@@ -1,0 +1,47 @@
+.canvas-container {
+    padding: 4px;
+    width: 490px;
+    height: 330px;
+}
+
+.drop-target {
+    padding: 30px;
+    text-align: center;
+    height: 150px;
+    margin-bottom: 10px;
+}
+
+.drop-target-icon {
+    font-size: xx-large;
+}
+
+.drop-target-title {
+    font-size: large;
+}
+
+.form-group {
+    margin-bottom: 4px;
+}
+
+.form-control-static {
+    padding-bottom: 0px;
+}
+
+.popover {
+    width: 300px;
+}
+
+.progress  {
+    height: 34px;
+    margin: 0;
+}
+
+.form-horizontal {
+    border: 1px dashed gray;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+#stats {
+    position: absolute;
+}
