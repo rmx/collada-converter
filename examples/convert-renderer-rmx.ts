@@ -450,7 +450,9 @@ class RMXBoneMatrixTexture {
         }
 
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.size, this.size, gl.RGBA, gl.FLOAT, this.data);
+        // Apparently texImage can be faster than texSubImage (?!?)
+        // gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.size, this.size, gl.RGBA, gl.FLOAT, this.data);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.size, this.size, 0, gl.RGBA, gl.FLOAT, this.data);
     }
 }
 
@@ -508,23 +510,19 @@ class RMXSkeletalAnimation {
 
         // Loop over all bones
         var bone_length: number = skeleton.bones.length;
-        for (var b = 0; b < bone_length; ++b) {
+        for (var b: number = 0; b < bone_length; ++b) {
             var bone = skeleton.bones[b];
             var inv_bind_mat = <Float32Array>bone.inv_bind_mat;
 
-            var pos = pose.pos;
-            var rot = pose.rot;
-            var scl = pose.scl;
-
-            // Local matrix
-            mat_stream_compose(world_matrices, b * 16, pos, b * 3, rot, b * 4, scl, b * 3);
+            // Local matrix - local translation/rotation/scale composed into a matrix
+            mat_stream_compose(world_matrices, b * 16, pose.pos, b * 3, pose.rot, b * 4, pose.scl, b * 3);
 
             // World matrix
             if (bone.parent >= 0) {
                 mat4_stream_multiply(world_matrices, b * 16, world_matrices, bone.parent * 16, world_matrices, b * 16);
             }
 
-            // Bone matrices raw data
+            // Bone matrix
             mat4_stream_multiply(dest, b * 16, world_matrices, b * 16, inv_bind_mat, 0);
         }
     }

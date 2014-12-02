@@ -111,8 +111,7 @@ class ThreejsSkeleton {
     useVertexTexture: boolean;
     boneTextureWidth: number;
     boneTextureHeight: number;
-    boneTexture: THREE.DataTexture;
-    boneMatrices: Float32Array;
+    boneTexture: RMXBoneMatrixTexture;
     skeleton: RMXSkeleton;
     pose: RMXPose;
 
@@ -126,21 +125,21 @@ class ThreejsSkeleton {
 
         // Trick three.js into thinking this is a THREE.Skeleton object
         this.useVertexTexture = true;
-        this.boneTextureWidth = RMXBoneMatrixTexture.optimalSize(skeleton.bones.length);
-        this.boneTextureHeight = this.boneTextureWidth;
-        this.boneMatrices = new Float32Array(this.boneTextureWidth * this.boneTextureWidth * 4);
-        this.boneTexture = new THREE.DataTexture(<any>this.boneMatrices, this.boneTextureWidth, this.boneTextureHeight,
-            THREE.RGBAFormat, THREE.FloatType, new THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,
-            THREE.NearestFilter, THREE.NearestFilter);
-        this.boneTexture.generateMipmaps = false;
-        this.boneTexture.flipY = false;
+        this.boneTexture = new RMXBoneMatrixTexture(skeleton.bones.length);
+        this.boneTextureWidth = this.boneTexture.size;
+        this.boneTextureHeight = this.boneTexture.size;
 
-        this.boneTexture.update();
+        Object.defineProperty(this.boneTexture, "__webglTexture", { get: function () { return this.texture; } });
+        Object.defineProperty(this.boneTexture, "needsUpdate", { get: function () { return false; } });
+        Object.defineProperty(this.boneTexture, "width", { get: function () { return this.size; } });
+        Object.defineProperty(this.boneTexture, "height", { get: function () { return this.size; } });
     }
 
     update() {
-        RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.boneMatrices);
-        this.boneTexture.needsUpdate = true;
+        RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.boneTexture.data);
+
+        var _gl: WebGLRenderingContext = threejs_objects.renderer.context;
+        this.boneTexture.update(_gl);
     }
 }
 
