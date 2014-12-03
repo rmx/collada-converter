@@ -1,6 +1,6 @@
 /// <reference path="../lib/collada.d.ts" />
 /// <reference path="external/jquery/jquery.d.ts" />
-/// <reference path="convert-renderer.ts" />
+/// <reference path="threejs-renderer.ts" />
 /// <reference path="convert-options.ts" />
 
 var use_threejs: boolean = true;
@@ -157,27 +157,14 @@ function resetOutput() {
 
 function renderSetModel(json: any, data: Uint8Array) {
     if (!json) {
-        if (use_threejs) {
-            clearBuffersThreejs();
-        } else {
-            clearBuffers();
-        }
+        clearBuffersThreejs();
     } else {
-        if (use_threejs) {
-            fillBuffersThreejs(json, data.buffer);
-        } else {
-            fillBuffers(json, data.buffer);
-            setupCamera(json);
-        }
+        fillBuffersThreejs(json, data.buffer);
     }
 }
 
 function renderStartRendering() {
-    if (use_threejs) {
-        tickThreejs(null);
-    } else {
-        tick(null);
-    }
+    tickThreejs(null);
 }
 
 // ----------------------------------------------------------------------------
@@ -496,11 +483,7 @@ function onConvertClick() {
 function init() {
     // Initialize WebGL
     var canvas: HTMLCanvasElement = <HTMLCanvasElement>$("#canvas")[0];
-    if (use_threejs) {
-        initThreejs(canvas);
-    } else {
-        initGL(canvas);
-    }
+    initThreejs(canvas);
 
     // Create option elements
     var optionsForm = $("#form-options");
