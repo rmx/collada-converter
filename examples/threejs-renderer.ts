@@ -83,8 +83,11 @@ function onWindowResize() {
 }
 
 function tickThreejs(timestamp: number) {
-    var delta_time: number = 0;
+    if (!threejs_objects.mesh) {
+        return;
+    }
 
+    var delta_time: number = 0;
     if (threejs_objects.timestamp === null) {
         threejs_objects.last_timestamp = null
         threejs_objects.time = 0;
@@ -96,9 +99,7 @@ function tickThreejs(timestamp: number) {
         threejs_objects.last_timestamp = timestamp;
     }
 
-    if (threejs_objects.mesh) {
-        requestAnimationFrame(tickThreejs);
-    }
+    requestAnimationFrame(tickThreejs);
 
     // Increase the number of loops to measure performance
     // (type 'threejs_objects.render_loops=100' in the development console)
@@ -119,10 +120,15 @@ function drawSceneThreejs() {
 function animateThreejs(delta_time: number) {
     threejs_objects.time += delta_time / (1000);
 
-    if (threejs_objects.mesh && threejs_objects.mesh.skeleton) {
-        RMXSkeletalAnimation.sampleAnimation(threejs_objects.mesh.userData.animations[0], threejs_objects.mesh.skeleton.skeleton,
-            threejs_objects.mesh.skeleton.pose, threejs_objects.time * 25);
-        threejs_objects.mesh.skeleton.update(threejs_objects.renderer.context);
+    var mesh: THREE.Object3D = threejs_objects.mesh;
+    var data: ThreejsModelInstance = mesh.userData;
+
+    if (data.skeleton) {
+        RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton,
+            data.skeleton.pose, threejs_objects.time * 25);
+
+        var gl: WebGLRenderingContext = threejs_objects.renderer.context;
+        data.skeleton.update(gl);
     }
 }
 

@@ -97,9 +97,6 @@ class ThreejsModelLoader {
 * A custom class that replaces THREE.Skeleton
 */
 class ThreejsSkeleton {
-    useVertexTexture: boolean;
-    boneTextureWidth: number;
-    boneTextureHeight: number;
     boneTexture: RMXBoneMatrixTexture;
     skeleton: RMXSkeleton;
     pose: RMXPose;
@@ -149,6 +146,16 @@ class ThreejsModelChunk {
     }
 }
 
+class ThreejsModelInstance {
+    model: ThreejsModel;
+    skeleton: ThreejsSkeleton;
+
+    constructor(model: ThreejsModel, skeleton: ThreejsSkeleton) {
+        this.model = model;
+        this.skeleton = skeleton;
+    }
+}
+
 /**
 * A factory for producing objects that behave like THREE.SkinnedMesh
 */
@@ -156,6 +163,7 @@ class ThreejsModel {
     chunks: ThreejsModelChunk[];
     skeleton: RMXSkeleton;
     animations: RMXAnimation[];
+    static identityMatrix: THREE.Matrix4;
 
     constructor() {
         this.chunks = [];
@@ -168,9 +176,9 @@ class ThreejsModel {
         var result = new THREE.Object3D;
 
         // Create one custom skeleton object.
-        var skeletonAdapter: ThreejsSkeleton = null;
+        var threejsSkeleton: ThreejsSkeleton = null;
         if (this.skeleton) {
-            skeletonAdapter = new ThreejsSkeleton(this.skeleton);
+            threejsSkeleton = new ThreejsSkeleton(this.skeleton);
         }
 
         // Create all THREE.Mesh instances. They will share the skeleton.
@@ -178,15 +186,12 @@ class ThreejsModel {
             var chunk = this.chunks[i];
             var mesh = new THREE.Mesh(chunk.geometry, chunk.material);
 
-            // Trick three.js into thinking this is a skinned mesh.
-            // This is an ugly hack that might break at any time.
+            // Trick three.js into thinking this is a THREE.SkinnedMesh.
             if (this.skeleton) {
-                var skinnedmesh = <any>mesh;
-                skinnedmesh.skeleton = skeletonAdapter;
-                skinnedmesh.bindMatrixInverse = new THREE.Matrix4();
-                skinnedmesh.bindMatrixInverse.identity();
-                skinnedmesh.bindMatrix = new THREE.Matrix4();
-                skinnedmesh.bindMatrix.identity();
+                mesh.userData = threejsSkeleton;
+                Object.defineProperty(mesh, "skeleton", { get: function () { return this.userData; } });
+                Object.defineProperty(mesh, "bindMatrix", { get: function () { return ThreejsModel.identityMatrix; } });
+                Object.defineProperty(mesh, "bindMatrixInverse", { get: function () { return ThreejsModel.identityMatrix; } });
             }
 
             // Add the mesh to the container object.
@@ -194,9 +199,10 @@ class ThreejsModel {
         }
 
         // Store the custom skeleton in the container object.
-        (<any>result).skeleton = skeletonAdapter;
-        result.userData = this;
+        result.userData = new ThreejsModelInstance(this, threejsSkeleton);
 
         return result;
     }
 }
+ThreejsModel.identityMatrix = new THREE.Matrix4();
+ThreejsModel.identityMatrix.identity();
