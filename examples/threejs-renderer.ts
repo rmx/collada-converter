@@ -1,5 +1,5 @@
-/// <reference path="rmx/skinned-mesh.ts" />
-/// <reference path="rmx/threejs-loader.ts" />
+/// <reference path="rmx/model.ts" />
+/// <reference path="rmx/model-loader.ts" />
 /// <reference path="../external/threejs/three.d.ts" />
 /// <reference path="../external/stats/stats.d.ts" />
 

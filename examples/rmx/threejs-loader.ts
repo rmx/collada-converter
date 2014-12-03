@@ -1,17 +1,20 @@
-/// <reference path="skinned-mesh.ts" />
+/// <reference path="model.ts" />
 /// <reference path="../../external/threejs/three.d.ts" />
 
+/**
+* Converts a RMXModel into corresponding three.js objects
+*/
 class ThreejsModelLoader {
 
-    materialCache: { [hash: string]: THREE.Material };
-    imageLoader: THREE.ImageLoader;
+    private materialCache: { [hash: string]: THREE.Material };
+    private imageLoader: THREE.ImageLoader;
 
     constructor() {
         this.materialCache = {};
         this.imageLoader = new THREE.ImageLoader();
     }
 
-    createGeometry(chunk: RMXModelChunk): THREE.BufferGeometry {
+    private createGeometry(chunk: RMXModelChunk): THREE.BufferGeometry {
         var result = new THREE.BufferGeometry;
 
         if (chunk.data_position) {
@@ -36,7 +39,7 @@ class ThreejsModelLoader {
         return result;
     }
 
-    createTexture(url: string): THREE.Texture {
+    private createTexture(url: string): THREE.Texture {
         if (url == null || url == "") {
             return null;
         }
@@ -47,7 +50,7 @@ class ThreejsModelLoader {
         return result;
     }
 
-    createMaterial(material: RMXMaterial): THREE.Material {
+    private createMaterial(material: RMXMaterial): THREE.Material {
         var hash = material.hash();
         var cached_material = this.materialCache[hash];
 
@@ -57,7 +60,7 @@ class ThreejsModelLoader {
             var result = new THREE.MeshPhongMaterial();
             result.skinning = true;
             result.color = new THREE.Color(0.8, 0.8, 0.8);
-            // Disable textures. They won't work due to CORS anyway.
+            // Disable textures. They won't work due to CORS for local files anyway.
             result.map = null; //this.createTexture(material.diffuse);
             result.specularMap = null; // this.createTexture(material.specular);
             result.normalMap = null; // this.createTexture(material.normal);
@@ -90,10 +93,9 @@ class ThreejsModelLoader {
     }
 }
 
-// ----------------------------------------------------------------------------
-// Hacking the custom animation code into three.js
-// ----------------------------------------------------------------------------
-
+/**
+* A custom class that replaces THREE.Skeleton
+*/
 class ThreejsSkeleton {
     useVertexTexture: boolean;
     boneTextureWidth: number;
@@ -110,12 +112,15 @@ class ThreejsSkeleton {
         this.pose = new RMXPose(skeleton.bones.length);
         RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
 
-        // Trick three.js into thinking this is a THREE.Skeleton object
-        this.useVertexTexture = true;
+        // The bone texture stores the bone matrices for the use on the GPU
         this.boneTexture = new RMXBoneMatrixTexture(skeleton.bones.length);
-        this.boneTextureWidth = this.boneTexture.size;
-        this.boneTextureHeight = this.boneTexture.size;
 
+        // Trick three.js into thinking this is a THREE.Skeleton object
+        Object.defineProperty(this, "useVertexTexture", { get: function () { return true; } });
+        Object.defineProperty(this, "boneTextureWidth", { get: function () { return this.boneTexture.size; } });
+        Object.defineProperty(this, "boneTextureHeight", { get: function () { return this.boneTexture.size; } });
+
+        // Trick three.js into thinking our bone texture is a THREE.DataTexture
         Object.defineProperty(this.boneTexture, "__webglTexture", { get: function () { return this.texture; } });
         Object.defineProperty(this.boneTexture, "needsUpdate", { get: function () { return false; } });
         Object.defineProperty(this.boneTexture, "width", { get: function () { return this.size; } });
@@ -123,7 +128,10 @@ class ThreejsSkeleton {
     }
 
     update(gl: WebGLRenderingContext) {
+        // Compute the bone matrices
         RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.boneTexture.data);
+
+        // Upload the bone matrices to the bone texture
         this.boneTexture.update(gl);
     }
 }
@@ -139,6 +147,9 @@ class ThreejsModelChunk {
     }
 }
 
+/**
+* A custom class that replaces THREE.SkinnedMesh
+*/
 class ThreejsModel {
     chunks: ThreejsModelChunk[];
     skeleton: RMXSkeleton;
