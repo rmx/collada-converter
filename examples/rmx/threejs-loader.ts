@@ -136,7 +136,9 @@ class ThreejsSkeleton {
     }
 }
 
-
+/**
+* Stores information about a piece of geometry
+*/
 class ThreejsModelChunk {
     geometry: THREE.BufferGeometry;
     material: THREE.Material;
@@ -148,7 +150,7 @@ class ThreejsModelChunk {
 }
 
 /**
-* A custom class that replaces THREE.SkinnedMesh
+* A factory for producing objects that behave like THREE.SkinnedMesh
 */
 class ThreejsModel {
     chunks: ThreejsModelChunk[];
@@ -179,12 +181,12 @@ class ThreejsModel {
             // Trick three.js into thinking this is a skinned mesh.
             // This is an ugly hack that might break at any time.
             if (this.skeleton) {
-                var anymesh = <any>mesh;
-                anymesh.skeleton = skeletonAdapter;
-                anymesh.bindMatrixInverse = new THREE.Matrix4();
-                anymesh.bindMatrixInverse.identity();
-                anymesh.bindMatrix = new THREE.Matrix4();
-                anymesh.bindMatrix.identity();
+                var skinnedmesh = <any>mesh;
+                skinnedmesh.skeleton = skeletonAdapter;
+                skinnedmesh.bindMatrixInverse = new THREE.Matrix4();
+                skinnedmesh.bindMatrixInverse.identity();
+                skinnedmesh.bindMatrix = new THREE.Matrix4();
+                skinnedmesh.bindMatrix.identity();
             }
 
             // Add the mesh to the container object.
