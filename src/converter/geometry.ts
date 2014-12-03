@@ -4,7 +4,6 @@
 /// <reference path="bone.ts" />
 /// <reference path="geometry_chunk.ts" />
 /// <reference path="bounding_box.ts" />
-/// <reference path="../external/gl-matrix.i.ts" />
 /// <reference path="../math.ts" />
 
 module COLLADA.Converter {

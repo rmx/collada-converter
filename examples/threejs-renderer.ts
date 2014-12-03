@@ -1,7 +1,7 @@
 /// <reference path="rmx/skinned-mesh.ts" />
 /// <reference path="rmx/threejs-loader.ts" />
-/// <reference path="external/threejs/three.d.ts" />
-/// <reference path="external/stats/stats.d.ts" />
+/// <reference path="../external/threejs/three.d.ts" />
+/// <reference path="../external/stats/stats.d.ts" />
 
 // ----------------------------------------------------------------------------
 // Evil global data

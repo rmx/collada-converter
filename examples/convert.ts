@@ -1,5 +1,5 @@
 /// <reference path="../lib/collada.d.ts" />
-/// <reference path="external/jquery/jquery.d.ts" />
+/// <reference path="../external/jquery/jquery.d.ts" />
 /// <reference path="threejs-renderer.ts" />
 /// <reference path="convert-options.ts" />
 
