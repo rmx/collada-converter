@@ -1,5 +1,5 @@
-/// <reference path="rmx-skinned-mesh.ts" />
-/// <reference path="external/threejs/three.d.ts" />
+/// <reference path="skinned-mesh.ts" />
+/// <reference path="../external/threejs/three.d.ts" />
 
 class ThreejsModelLoader {
 

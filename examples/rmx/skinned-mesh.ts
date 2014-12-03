@@ -1,5 +1,4 @@
-/// <reference path="../src/external/gl-matrix.i.ts" />
-/// <reference path="../lib/collada.d.ts" />
+/// <reference path="../../lib/collada.d.ts" />
 
 class RMXModelLoader {
 

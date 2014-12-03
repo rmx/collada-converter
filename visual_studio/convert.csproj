@@ -22,16 +22,15 @@
       <Link>convert.ts</Link>
     </TypeScriptCompile>
 	<TypeScriptCompile Include="..\examples\convert-options.ts">
-      <Link>convert-renderer.ts</Link>
+      <Link>convert-options.ts</Link>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="..\examples\convert-renderer.ts">
-      <Link>convert-renderer.ts</Link>
+    <TypeScriptCompile Include="..\examples\threejs-renderer.ts">
+      <Link>threejs-renderer.ts</Link>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="..\examples\convert-renderer-rmx.ts">
-      <Link>convert-renderer-rmx.ts</Link>
-    </TypeScriptCompile>
-    <TypeScriptCompile Include="..\examples\convert-renderer-threejs.ts">
-      <Link>convert-renderer-threejs.ts</Link>
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="..\examples\rmx\**\*.ts">
+      <Link>rmx\%(RecursiveDir)%(FileName)</Link>
     </TypeScriptCompile>
   </ItemGroup>
   <ItemGroup>
