@@ -1,3 +1,4 @@
+/// <reference path="stream-math.ts" />
 /// <reference path="../../lib/collada.d.ts" />
 
 class RMXModelLoader {

@@ -7,9 +7,7 @@
 // Evil global data
 // ----------------------------------------------------------------------------
 
-var threejs_objects: any = {
-    render_loops: 1
-};
+var threejs_objects: any = {};
 
 // ----------------------------------------------------------------------------
 // Rendering
@@ -85,15 +83,15 @@ function onWindowResize() {
 function tickThreejs(timestamp: number) {
     var delta_time: number = 0;
 
-    if (timestamp === null) {
-        last_timestamp = null
+    if (threejs_objects.timestamp === null) {
+        threejs_objects.last_timestamp = null
         threejs_objects.time = 0;
-    } else if (last_timestamp === null) {
-        last_timestamp = timestamp;
+    } else if (threejs_objects.last_timestamp === null) {
+        threejs_objects.last_timestamp = timestamp;
         threejs_objects.time = 0;
     } else {
-        delta_time = timestamp - last_timestamp;
-        last_timestamp = timestamp;
+        delta_time = timestamp - threejs_objects.last_timestamp;
+        threejs_objects.last_timestamp = timestamp;
     }
 
     if (threejs_objects.mesh) {
@@ -103,7 +101,7 @@ function tickThreejs(timestamp: number) {
     // Increase the number of loops to measure performance
     // (type 'threejs_objects.render_loops=100' in the development console)
     // FPS is otherwise bounded by the vertical sync
-    var loops = threejs_objects.render_loops;
+    var loops = threejs_objects.render_loops || 1;
     for (var i = 0; i < loops; ++i) {
         threejs_objects.stats.begin();
         animateThreejs(delta_time / loops);
