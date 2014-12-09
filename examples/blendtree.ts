@@ -4,6 +4,7 @@
 /// <reference path="./convert-options.ts" />
 
 var renderer: ThreejsRenderer;
+var speedSlider: any;
 
 function addAnimationGroup(name: string, f0: number, f1: number, t: number, parent: JQuery) {
     var label = $("<label>").addClass("col-sm-3").addClass("control-label").text(name);
@@ -29,6 +30,11 @@ function addAnimationGroup(name: string, f0: number, f1: number, t: number, pare
     parent.append(group);
 }
 
+function updateSpeed() {
+    var speed = speedSlider.slider('getValue');
+    $("#speed-number").text(speed.toFixed(1));
+}
+
 function init() {
     // Animation labels
     var options = $("#form-options");
@@ -37,13 +43,20 @@ function init() {
     addAnimationGroup("walk-back", 21, 30, 1, options);
     addAnimationGroup("run", 31, 40, 1, options);
     addAnimationGroup("sprint", 41, 50, 1, options);
-    addAnimationGroup("attack", 51, 60, 1, options);
+    addAnimationGroup("action-a", 51, 60, 1, options);
+    addAnimationGroup("action-b", 61, 70, 1, options);
+    addAnimationGroup("action-c", 71, 80, 1, options);
 
     // Slider
-    var speed: any = $("#speed");
-    speed.slider();
-    speed.on("slide", function (slideEvt) {
-        $("#speed-number").text(slideEvt.value.toFixed(1));
+    speedSlider = (<any>$("#speed")).slider();
+    speedSlider.on("slide", updateSpeed);
+    updateSpeed();
+
+    // Events
+    $(".btn-speed").click(function (event) {
+        var value = parseInt(this.getAttribute("data-speed"), 10);
+        speedSlider.slider('setValue', value);
+        updateSpeed();
     });
 
     // Initialize WebGL

@@ -36,3 +36,7 @@
 #stats {
     position: absolute;
 }
+
+.slider.slider-horizontal {
+    width: 100%;
+}
