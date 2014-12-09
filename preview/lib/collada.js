@@ -3092,7 +3092,7 @@ var COLLADA;
     })(Converter = COLLADA.Converter || (COLLADA.Converter = {}));
 })(COLLADA || (COLLADA = {}));
 /// <reference path="gl-matrix.d.ts" />
-/// <reference path="external/gl-matrix.i.ts" />
+/// <reference path="../external/glmatrix/gl-matrix.i.ts" />
 var COLLADA;
 (function (COLLADA) {
     var MathUtils = (function () {
@@ -3755,7 +3755,6 @@ var COLLADA;
 /// <reference path="material.ts" />
 /// <reference path="bone.ts" />
 /// <reference path="bounding_box.ts" />
-/// <reference path="../external/gl-matrix.i.ts" />
 /// <reference path="../math.ts" />
 var COLLADA;
 (function (COLLADA) {
@@ -4083,7 +4082,6 @@ var COLLADA;
 /// <reference path="bone.ts" />
 /// <reference path="geometry_chunk.ts" />
 /// <reference path="bounding_box.ts" />
-/// <reference path="../external/gl-matrix.i.ts" />
 /// <reference path="../math.ts" />
 var COLLADA;
 (function (COLLADA) {
@@ -5065,7 +5063,6 @@ var COLLADA;
         Converter.TransformScale = TransformScale;
     })(Converter = COLLADA.Converter || (COLLADA.Converter = {}));
 })(COLLADA || (COLLADA = {}));
-/// <reference path="../external/gl-matrix.i.ts" />
 /// <reference path="../math.ts" />
 /// <reference path="context.ts" />
 /// <reference path="geometry.ts" />

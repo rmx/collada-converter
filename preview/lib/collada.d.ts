@@ -1,4 +1,4 @@
-/// <reference path="../src/external/gl-matrix.d.ts" />
+/// <reference path="../external/glmatrix/gl-matrix.d.ts" />
 declare module COLLADA {
     class Context {
         log: Log;
