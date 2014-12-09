@@ -271,7 +271,13 @@ module COLLADA.Converter {
                         context.log.write("Geometry '" + geometry.name + "' is not skinned, but attached to an animated node. " +
                             "This animation will be lost because the geometry is being detached from the node.", LogLevel.Warning);
                     }
-                    COLLADA.Converter.Geometry.transformGeometry(geometry, node.getWorldMatrix(context), context);
+                    var world_matrix = node.getWorldMatrix(context);
+                    if (context.options.worldTransformUnitScale) {
+                        var mat: Mat4 = mat4.create();
+                        mat4.invert(mat, node.transformation_post);
+                        mat4.multiply(world_matrix, world_matrix, mat);
+                    }
+                    COLLADA.Converter.Geometry.transformGeometry(geometry, world_matrix, context);
                 }
             }
 
