@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Collada Animation Blend Tree</title>
+    <!-- Library: Bootstrap -->
+    <link type="text/css" href="../external/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="../external/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet" />
+    <link type="text/css" href="../external/bootstrap-slider/css/bootstrap-slider.min.css" rel="stylesheet" />
+    <!-- Project: Converter example -->
+    <link type="text/css" href="blendtree.css" rel="stylesheet" />
+    <!-- Library: three.js -->
+    <script type="text/javascript" src="../external/threejs/three.js" charset="utf-8"></script>
+    <!-- Library: jQuery -->
+    <script type="text/javascript" src="../external/jquery/jquery.min.js" charset="utf-8"></script>
+    <!-- Library: Bootstrap -->
+    <script type="text/javascript" src="../external/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+    <!-- Library: Bootstrap slider -->
+    <script type="text/javascript" src="../external/bootstrap-slider/js/bootstrap-slider.min.js" charset="utf-8"></script>
+    <!-- Library: gl-matrix -->
+    <script type="text/javascript" src="../external/glmatrix/gl-matrix.js" charset="utf-8"></script>
+    <!-- Library: Stats -->
+    <script type="text/javascript" src="../external/stats/stats.js" charset="utf-8"></script>
+    <!-- Project: Collada converter -->
+    <script type="text/javascript" src="../lib/collada.js" charset="utf-8"></script>
+    <!-- Project: Converter example -->
+    <script type="text/javascript" src="blendtree.js" charset="utf-8"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Input</h3>
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <div class="form-control drop-target" id="drop-target">
+                                <div id="drop-target-instructions">
+                                    <div class="drop-target-icon">
+                                        <span class="glyphicon glyphicon-inbox"></span>
+                                    </div>
+                                    <p class="drop-target-title">
+                                        Drop your COLLADA (.dae) file here!
+                                    </p>
+                                </div>
+                                <div id="drop-target-result" class="hidden">
+                                    <div class="drop-target-icon">
+                                        <span class="glyphicon glyphicon-file"></span>
+                                    </div>
+                                    <p class="drop-target-title" id="input_file_size">
+                                        File loaded (0 kB).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <h3>Animations</h3>
+                <form class="form-horizontal" role="form" id="form-options">
+                    <div class="form-group">
+                        <label class="col-sm-3">Name</label>
+                        <label class="col-sm-3">Begin frame</label>
+                        <label class="col-sm-3">End frame</label>
+                        <label class="col-sm-3">Duration</label>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h3>Preview</h3>
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <div class="form-control canvas-container center-block">
+                                <canvas class="canvas" id="canvas" width="480" height="320"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">Speed</label>
+                        <div class="col-md-6">
+                            <input id="speed" type="text" data-slider-min="-1" data-slider-max="2" data-slider-step="0.1" data-slider-value="0" />
+                        </div>
+                        <div class="col-sm-2">
+                            <p class="form-control-static output-size" id="speed-number"></p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        window.onload = function () { init(); }
+    </script>
+</body>
+</html>

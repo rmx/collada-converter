@@ -13,3 +13,7 @@
 
 /examples/convert-task.js
 /examples/convert-task.js.map
+
+/examples/*.map
+
+/examples/blendtree.js
