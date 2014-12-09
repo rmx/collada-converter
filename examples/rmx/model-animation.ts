@@ -1,4 +1,4 @@
-/// <reference path="stream-math.ts" />
+/// <reference path="./stream-math.ts" />
 
 /**
 * Stores the transformation of all skeleton bones.
