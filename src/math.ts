@@ -1,4 +1,4 @@
-/// <reference path="external/gl-matrix.i.ts" />
+/// <reference path="../external/glmatrix/gl-matrix.i.ts" />
 
 module COLLADA {
 

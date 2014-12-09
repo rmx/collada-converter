@@ -1,32 +1,16 @@
 /// <reference path="../lib/collada.d.ts" />
-/// <reference path="external/jquery/jquery.d.ts" />
-/// <reference path="convert-renderer.ts" />
+/// <reference path="../external/jquery/jquery.d.ts" />
+/// <reference path="threejs-renderer.ts" />
 /// <reference path="convert-options.ts" />
-
-var use_threejs: boolean = true;
-
 
 // ----------------------------------------------------------------------------
 // Evil global data
 // ----------------------------------------------------------------------------
-interface i_elements {
-    input?: HTMLInputElement;
-    log_progress?: HTMLTextAreaElement;
-    log_loader?: HTMLTextAreaElement;
-    log_converter?: HTMLTextAreaElement;
-    log_exporter?: HTMLTextAreaElement;
-    output?: HTMLTextAreaElement;
-    download_json?: HTMLAnchorElement;
-    download_data?: HTMLAnchorElement;
-    download_threejs?: HTMLAnchorElement;
-    mesh_parts_checkboxes?: HTMLInputElement[];
-    mesh_parts_labels?: HTMLLabelElement[];
-};
-var elements: i_elements = {};
 
 var timestamps: {[name: string]:number} = {};
 var options: COLLADA.Converter.Options = new COLLADA.Converter.Options();
 var optionElements: ColladaConverterOption[] = [];
+var renderer: ThreejsRenderer;
 
 interface i_conversion_data {
     stage: number;
@@ -156,27 +140,16 @@ function resetOutput() {
 // ----------------------------------------------------------------------------
 
 function renderSetModel(json: any, data: Uint8Array) {
-    if (!json) {
-        if (use_threejs) {
-            clearBuffersThreejs();
-        } else {
-            clearBuffers();
-        }
-    } else {
-        if (use_threejs) {
-            fillBuffersThreejs(json, data.buffer);
-        } else {
-            fillBuffers(json, data.buffer);
-            setupCamera(json);
-        }
-    }
+    renderer.setMesh(json, data);
 }
 
 function renderStartRendering() {
-    if (use_threejs) {
-        tickThreejs(null);
-    } else {
-        tick(null);
+    renderTick(null);
+}
+
+function renderTick(timestamp: number) {
+    if (renderer.tick(timestamp)) {
+        requestAnimationFrame(renderTick);
     }
 }
 
@@ -496,11 +469,8 @@ function onConvertClick() {
 function init() {
     // Initialize WebGL
     var canvas: HTMLCanvasElement = <HTMLCanvasElement>$("#canvas")[0];
-    if (use_threejs) {
-        initThreejs(canvas);
-    } else {
-        initGL(canvas);
-    }
+    renderer = new ThreejsRenderer();
+    renderer.init(canvas);
 
     // Create option elements
     var optionsForm = $("#form-options");

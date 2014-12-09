@@ -1,4 +1,3 @@
-/// <reference path="../external/gl-matrix.i.ts" />
 /// <reference path="../math.ts" />
 /// <reference path="context.ts" />
 /// <reference path="geometry.ts" />
