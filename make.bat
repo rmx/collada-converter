@@ -10,4 +10,8 @@
 @ECHO building convert.js
 @CALL node node_modules/typescript/bin/tsc examples/convert.ts -t ES5 -sourcemap --out examples/convert.js
 
+@REM Build example
+@ECHO building blendtree.js
+@CALL node node_modules/typescript/bin/tsc examples/blendtree.ts -t ES5 -sourcemap --out examples/blendtree.js
+
 @PAUSE
