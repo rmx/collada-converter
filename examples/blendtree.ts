@@ -3,8 +3,18 @@
 /// <reference path="./threejs-renderer.ts" />
 /// <reference path="./convert-options.ts" />
 
+// ----------------------------------------------------------------------------
+// Evil global data
+// ----------------------------------------------------------------------------
+
 var renderer: ThreejsRenderer;
 var speedSlider: any;
+var inputJson: any;
+var inputBinary: ArrayBuffer;
+
+// ----------------------------------------------------------------------------
+// User interface
+// ----------------------------------------------------------------------------
 
 function addAnimationGroup(name: string, f0: number, f1: number, t: number, parent: JQuery) {
     var label = $("<label>").addClass("col-sm-3").addClass("control-label").text(name);
@@ -35,6 +45,97 @@ function updateSpeed() {
     $("#speed-number").text(speed.toFixed(1));
 }
 
+// ----------------------------------------------------------------------------
+// Drag & Drop
+// ----------------------------------------------------------------------------
+
+function onFileDrag(ev: JQueryEventObject) {
+    ev.preventDefault();
+}
+
+function onFileDrop(ev: JQueryEventObject) {
+    resetInput();
+    ev.preventDefault();
+    var dt = (<any>ev.originalEvent).dataTransfer;
+    if (!dt) {
+        alert("Your browser does not support drag&drop for files (?).");
+        return;
+    }
+    var files = dt.files;
+    if (files.length != 2) {
+        alert("You did not drop two files.");
+        return;
+    }
+    if (files[0].size > files[1].size) {
+        loadJson(files[1]);
+        loadBinary(files[0]);
+    } else {
+        loadJson(files[0]);
+        loadBinary(files[1]);
+    }
+}
+
+function loadJson(file: File) {
+    var reader = new FileReader();
+    reader.onload = () => {
+        var result: string = reader.result;
+        inputJson = JSON.parse(result);
+        checkInput();
+    };
+    reader.onerror = () => {
+        alert("Error reading JSON file.");
+    };
+    reader.readAsText(file);
+}
+
+function loadBinary(file: File) {
+    var reader = new FileReader();
+    reader.onload = () => {
+        var result: ArrayBuffer = reader.result;
+        inputBinary = result;
+        checkInput();
+    };
+    reader.onerror = () => {
+        alert("Error reading binary file.");
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function resetInput() {
+    inputBinary = null;
+    inputJson = null;
+    renderer.resetMesh();
+}
+
+function checkInput() {
+    if (inputBinary && inputJson) {
+        renderer.setMesh(inputJson, new Uint8Array(inputBinary));
+        renderStartRendering();
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Renderer
+// ----------------------------------------------------------------------------
+
+function renderSetModel(json: any, data: Uint8Array) {
+    renderer.setMesh(json, data);
+}
+
+function renderStartRendering() {
+    renderTick(null);
+}
+
+function renderTick(timestamp: number) {
+    if (renderer.tick(timestamp)) {
+        requestAnimationFrame(renderTick);
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Initialization
+// ----------------------------------------------------------------------------
+
 function init() {
     // Animation labels
     var options = $("#form-options");
@@ -58,6 +159,8 @@ function init() {
         speedSlider.slider('setValue', value);
         updateSpeed();
     });
+    $("#drop-target").on("dragover", onFileDrag);
+    $("#drop-target").on("drop", onFileDrop);
 
     // Initialize WebGL
     var canvas: HTMLCanvasElement = <HTMLCanvasElement>$("#canvas")[0];
