@@ -107,11 +107,11 @@ class ThreejsSkeleton {
         this.skeleton = skeleton;
 
         // The pose stores information about the current bone transformations
-        this.pose = new RMXPose(skeleton.bones.length);
+        this.pose = new RMXPose(this.skeleton);
         RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
 
         // The bone texture stores the bone matrices for the use on the GPU
-        this.boneTexture = new RMXBoneMatrixTexture(skeleton);
+        this.boneTexture = new RMXBoneMatrixTexture(this.skeleton);
         this.matrices = new RMXSkeletonMatrices(this.boneTexture);
 
         // Trick three.js into thinking this is a THREE.Skeleton object

@@ -1,4 +1,5 @@
 /// <reference path="./stream-math.ts" />
+/// <reference path="./model.ts" />
 
 /**
 * Stores the transformation of all skeleton bones (in decomposed pos/rot/scl form).
@@ -8,10 +9,10 @@ class RMXPose {
     rot: Float32Array;
     scl: Float32Array;
 
-    constructor(bones: number) {
-        this.pos = new Float32Array(bones * 3);
-        this.rot = new Float32Array(bones * 4);
-        this.scl = new Float32Array(bones * 3);
+    constructor(skeleton: RMXSkeleton) {
+        this.pos = new Float32Array(skeleton.bones.length * 3);
+        this.rot = new Float32Array(skeleton.bones.length * 4);
+        this.scl = new Float32Array(skeleton.bones.length * 3);
     }
 }
 
