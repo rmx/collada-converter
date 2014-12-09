@@ -493,7 +493,7 @@ function init() {
     $("#output-custom-json .output-download").click(() =>
         downloadJSON(conversion_data.s4_exported_custom.json, "model.json"));
     $("#output-custom-binary .output-download").click(() =>
-        downloadJSON(conversion_data.s4_exported_custom.data, "model.bin"));
+        downloadBinary(conversion_data.s4_exported_custom.data, "model.bin"));
     $("#output-threejs .output-download").click(() =>
         downloadJSON(conversion_data.s5_exported_threejs, "model-threejs.json"));
 
