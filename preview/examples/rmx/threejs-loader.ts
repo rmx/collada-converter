@@ -1,4 +1,4 @@
-/// <reference path="model.ts" />
+/// <reference path="./model.ts" />
 /// <reference path="../../external/threejs/three.d.ts" />
 
 /**
