@@ -319,7 +319,7 @@ function mat4_stream_multiply(out, out_offset, a, a_offset, b, b_offset) {
     out[out_offset + 15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
 }
 ;
-/// <reference path="stream-math.ts" />
+/// <reference path="./stream-math.ts" />
 /**
 * Stores the transformation of all skeleton bones.
 */
@@ -561,15 +561,16 @@ var ThreejsModelLoader = (function () {
         var result = new THREE.Texture(image);
         return result;
     };
-    ThreejsModelLoader.prototype.createMaterial = function (material) {
-        var hash = material.hash();
+    ThreejsModelLoader.prototype.createMaterial = function (material, skinned) {
+        var prefix = skinned ? "skinned-" : "static-";
+        var hash = prefix + material.hash();
         var cached_material = this.materialCache[hash];
         if (cached_material) {
             return cached_material;
         }
         else {
             var result = new THREE.MeshPhongMaterial();
-            result.skinning = true;
+            result.skinning = skinned;
             result.color = new THREE.Color(0.8, 0.8, 0.8);
             // Disable textures. They won't work due to CORS for local files anyway.
             result.map = null; //this.createTexture(material.diffuse);
@@ -581,11 +582,12 @@ var ThreejsModelLoader = (function () {
     };
     ThreejsModelLoader.prototype.createModel = function (model) {
         var result = new ThreejsModel;
+        var skinned = model.skeleton != null;
         for (var i = 0; i < model.chunks.length; ++i) {
             var rmx_chunk = model.chunks[i];
             var threejs_chunk = new ThreejsModelChunk;
             threejs_chunk.geometry = this.createGeometry(rmx_chunk);
-            threejs_chunk.material = this.createMaterial(model.materials[rmx_chunk.material_index]);
+            threejs_chunk.material = this.createMaterial(model.materials[rmx_chunk.material_index], skinned);
             result.chunks.push(threejs_chunk);
         }
         // Skeleton - use custom object
@@ -854,7 +856,12 @@ var ThreejsRenderer = (function () {
         var mesh = this.mesh;
         var data = mesh.userData;
         if (data.skeleton) {
-            RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton, data.skeleton.pose, this.time * 25);
+            if (data.model.animations.length > 0) {
+                RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton, data.skeleton.pose, this.time * 25);
+            }
+            else {
+                RMXSkeletalAnimation.resetPose(data.model.skeleton, data.skeleton.pose);
+            }
             var gl = this.renderer.context;
             data.skeleton.update(gl);
         }

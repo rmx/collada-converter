@@ -54,8 +54,12 @@ module COLLADA.Converter {
                 return COLLADA.Converter.Material.createDefaultMaterial(context);
             }
 
-            if (technique.diffuse.color !== null || technique.specular.color !== null) {
-                context.log.write("Material " + material.id + " contains constant colors, colors ignored", LogLevel.Warning);
+            if (technique.diffuse !== null && technique.diffuse.color !== null) {
+                context.log.write("Material " + material.id + " contains constant diffuse colors, colors ignored", LogLevel.Warning);
+            }
+
+            if (technique.specular !== null && technique.specular.color !== null) {
+                context.log.write("Material " + material.id + " contains constant specular colors, colors ignored", LogLevel.Warning);
             }
 
             var result: COLLADA.Converter.Material = context.materials.findConverter(material);

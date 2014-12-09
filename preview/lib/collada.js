@@ -3054,8 +3054,11 @@ var COLLADA;
                     context.log.write("Material effect not found, using default material", 3 /* Warning */);
                     return COLLADA.Converter.Material.createDefaultMaterial(context);
                 }
-                if (technique.diffuse.color !== null || technique.specular.color !== null) {
-                    context.log.write("Material " + material.id + " contains constant colors, colors ignored", 3 /* Warning */);
+                if (technique.diffuse !== null && technique.diffuse.color !== null) {
+                    context.log.write("Material " + material.id + " contains constant diffuse colors, colors ignored", 3 /* Warning */);
+                }
+                if (technique.specular !== null && technique.specular.color !== null) {
+                    context.log.write("Material " + material.id + " contains constant specular colors, colors ignored", 3 /* Warning */);
                 }
                 var result = context.materials.findConverter(material);
                 if (result)
@@ -5283,7 +5286,13 @@ var COLLADA;
                         if (is_animated) {
                             context.log.write("Geometry '" + geometry.name + "' is not skinned, but attached to an animated node. " + "This animation will be lost because the geometry is being detached from the node.", 3 /* Warning */);
                         }
-                        COLLADA.Converter.Geometry.transformGeometry(geometry, node.getWorldMatrix(context), context);
+                        var world_matrix = node.getWorldMatrix(context);
+                        if (context.options.worldTransformUnitScale) {
+                            var mat = mat4.create();
+                            mat4.invert(mat, node.transformation_post);
+                            mat4.multiply(world_matrix, world_matrix, mat);
+                        }
+                        COLLADA.Converter.Geometry.transformGeometry(geometry, world_matrix, context);
                     }
                 }
                 // Merge all geometries

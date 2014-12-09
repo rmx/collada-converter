@@ -183,8 +183,12 @@ class ThreejsRenderer {
         var data: ThreejsModelInstance = mesh.userData;
 
         if (data.skeleton) {
-            RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton,
-                data.skeleton.pose, this.time * 25);
+            if (data.model.animations.length > 0) {
+                RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton,
+                    data.skeleton.pose, this.time * 25);
+            } else {
+                RMXSkeletalAnimation.resetPose(data.model.skeleton, data.skeleton.pose);
+            }
 
             var gl: WebGLRenderingContext = this.renderer.context;
             data.skeleton.update(gl);

@@ -50,16 +50,18 @@ class ThreejsModelLoader {
         return result;
     }
 
-    private createMaterial(material: RMXMaterial): THREE.Material {
-        var hash = material.hash();
+    private createMaterial(material: RMXMaterial, skinned: boolean): THREE.Material {
+        var prefix = skinned ? "skinned-" : "static-";
+        var hash = prefix + material.hash();
         var cached_material = this.materialCache[hash];
 
         if (cached_material) {
             return cached_material;
         } else {
             var result = new THREE.MeshPhongMaterial();
-            result.skinning = true;
+            result.skinning = skinned;
             result.color = new THREE.Color(0.8, 0.8, 0.8);
+
             // Disable textures. They won't work due to CORS for local files anyway.
             result.map = null; //this.createTexture(material.diffuse);
             result.specularMap = null; // this.createTexture(material.specular);
@@ -72,6 +74,7 @@ class ThreejsModelLoader {
 
     createModel(model: RMXModel): ThreejsModel {
         var result = new ThreejsModel;
+        var skinned = model.skeleton != null;
 
         // Geometry - create THREE objects
         for (var i = 0; i < model.chunks.length; ++i) {
@@ -79,7 +82,7 @@ class ThreejsModelLoader {
 
             var threejs_chunk = new ThreejsModelChunk;
             threejs_chunk.geometry = this.createGeometry(rmx_chunk);
-            threejs_chunk.material = this.createMaterial(model.materials[rmx_chunk.material_index]);
+            threejs_chunk.material = this.createMaterial(model.materials[rmx_chunk.material_index], skinned);
             result.chunks.push(threejs_chunk);
         }
 
