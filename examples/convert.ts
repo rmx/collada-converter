@@ -148,7 +148,7 @@ function renderStartRendering() {
 }
 
 function renderTick(timestamp: number) {
-    if (renderer.tick(timestamp)) {
+    if (renderer.tick(timestamp, 1.0)) {
         requestAnimationFrame(renderTick);
     }
 }

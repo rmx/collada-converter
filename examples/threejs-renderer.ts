@@ -138,7 +138,7 @@ class ThreejsRenderer {
     }
 
     /** Main render loop */
-    tick(timestamp: number): boolean {
+    tick(timestamp: number, timescale: number): boolean {
         // Abort if there is nothing to render
         if (!this.mesh) {
             return false;
@@ -153,7 +153,7 @@ class ThreejsRenderer {
             this.last_timestamp = timestamp;
             this.time = 0;
         } else {
-            delta_time = timestamp - this.last_timestamp;
+            delta_time = (timestamp - this.last_timestamp) / 1000;
             this.last_timestamp = timestamp;
         }
 
@@ -162,7 +162,7 @@ class ThreejsRenderer {
         var loops: number = this.render_loops || 1;
         for (var i = 0; i < loops; ++i) {
             this.stats.begin();
-            this.updateAnimation(delta_time / loops);
+            this.updateAnimation(timescale * delta_time / loops);
             this.drawScene();
             this.stats.end();
         }
@@ -177,7 +177,7 @@ class ThreejsRenderer {
 
     /** Updates skeletal animation data */
     updateAnimation(delta_time: number) {
-        this.time += delta_time / (1000);
+        this.time += delta_time;
 
         var mesh: THREE.Object3D = this.mesh;
         var data: ThreejsModelInstance = mesh.userData;

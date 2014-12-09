@@ -9,6 +9,8 @@
 
 var renderer: ThreejsRenderer;
 var speedSlider: any;
+var timescaleSlider: any;
+var timescale: number;
 var inputJson: any;
 var inputBinary: ArrayBuffer;
 
@@ -43,6 +45,12 @@ function addAnimationGroup(name: string, f0: number, f1: number, t: number, pare
 function updateSpeed() {
     var speed = speedSlider.slider('getValue');
     $("#speed-number").text(speed.toFixed(1));
+}
+
+function updateTimescale() {
+    timescale = timescaleSlider.slider('getValue');
+    timescale = Math.pow(1.2, timescale);
+    $("#timescale-number").text((100*timescale).toFixed(2) + "%");
 }
 
 // ----------------------------------------------------------------------------
@@ -127,7 +135,7 @@ function renderStartRendering() {
 }
 
 function renderTick(timestamp: number) {
-    if (renderer.tick(timestamp)) {
+    if (renderer.tick(timestamp, timescale)) {
         requestAnimationFrame(renderTick);
     }
 }
@@ -152,6 +160,10 @@ function init() {
     speedSlider = (<any>$("#speed")).slider();
     speedSlider.on("slide", updateSpeed);
     updateSpeed();
+
+    timescaleSlider = (<any>$("#timescale")).slider();
+    timescaleSlider.on("slide", updateTimescale);
+    updateTimescale();
 
     // Events
     $(".btn-speed").click(function (event) {
