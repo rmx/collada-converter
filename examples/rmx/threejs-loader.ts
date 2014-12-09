@@ -98,6 +98,7 @@ class ThreejsModelLoader {
 */
 class ThreejsSkeleton {
     boneTexture: RMXBoneMatrixTexture;
+    matrices: RMXSkeletonMatrices;
     skeleton: RMXSkeleton;
     pose: RMXPose;
 
@@ -110,7 +111,8 @@ class ThreejsSkeleton {
         RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
 
         // The bone texture stores the bone matrices for the use on the GPU
-        this.boneTexture = new RMXBoneMatrixTexture(skeleton.bones.length);
+        this.boneTexture = new RMXBoneMatrixTexture(skeleton);
+        this.matrices = new RMXSkeletonMatrices(this.boneTexture);
 
         // Trick three.js into thinking this is a THREE.Skeleton object
         Object.defineProperty(this, "useVertexTexture", { get: function () { return true; } });
@@ -126,10 +128,10 @@ class ThreejsSkeleton {
 
     update(gl: WebGLRenderingContext) {
         // Compute the bone matrices
-        RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.boneTexture.data);
+        RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.matrices);
 
         // Upload the bone matrices to the bone texture
-        this.boneTexture.update(gl);
+        this.boneTexture.update(this.matrices, gl);
     }
 }
 

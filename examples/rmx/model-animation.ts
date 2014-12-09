@@ -1,19 +1,30 @@
 /// <reference path="./stream-math.ts" />
 
 /**
-* Stores the transformation of all skeleton bones.
+* Stores the transformation of all skeleton bones (in decomposed pos/rot/scl form).
 */
 class RMXPose {
     pos: Float32Array;
     rot: Float32Array;
     scl: Float32Array;
-    world_matrices: Float32Array;
 
     constructor(bones: number) {
         this.pos = new Float32Array(bones * 3);
         this.rot = new Float32Array(bones * 4);
         this.scl = new Float32Array(bones * 3);
-        this.world_matrices = new Float32Array(bones * 16);
+    }
+}
+
+/**
+* Stores the transformation of all skeleton bones (in composed matrix form)
+*/
+class RMXSkeletonMatrices {
+    world_matrices: Float32Array;
+    skin_matrices: Float32Array;
+
+    constructor(texture: RMXBoneMatrixTexture) {
+        this.world_matrices = new Float32Array(texture.capacity() * 16);
+        this.skin_matrices = new Float32Array(texture.capacity() * 16);
     }
 }
 
@@ -23,7 +34,6 @@ class RMXPose {
 class RMXBoneMatrixTexture {
     size: number;
     texture: WebGLTexture;
-    data: Float32Array;
 
     /**
     * Number of bones a texture of the given width can store.
@@ -32,6 +42,13 @@ class RMXBoneMatrixTexture {
         var texels = size * size;
         var texels_per_matrix = 4;
         return texels / texels_per_matrix;
+    }
+
+    /**
+    * Number of bones this texture can store.
+    */
+    capacity(): number {
+        return RMXBoneMatrixTexture.capacity(this.size);
     }
 
     /**
@@ -50,9 +67,8 @@ class RMXBoneMatrixTexture {
         return result;
     }
 
-    constructor(bones: number) {
-        this.size = RMXBoneMatrixTexture.optimalSize(bones);
-        this.data = new Float32Array(4 * this.size * this.size);
+    constructor(skeleton: RMXSkeleton) {
+        this.size = RMXBoneMatrixTexture.optimalSize(skeleton.bones.length);
         this.texture = null;
     }
 
@@ -69,15 +85,15 @@ class RMXBoneMatrixTexture {
         gl.bindTexture(gl.TEXTURE_2D, null);
     }
 
-    update(gl: WebGLRenderingContext) {
+    update(data:RMXSkeletonMatrices, gl: WebGLRenderingContext) {
         if (this.texture == null) {
             this.init(gl);
         }
 
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         // Apparently texImage can be faster than texSubImage (?!?)
-        // gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.size, this.size, gl.RGBA, gl.FLOAT, this.data);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.size, this.size, 0, gl.RGBA, gl.FLOAT, this.data);
+        // gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.size, this.size, gl.RGBA, gl.FLOAT, data.skin_matrices);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.size, this.size, 0, gl.RGBA, gl.FLOAT, data.skin_matrices);
     }
 }
 
@@ -89,8 +105,9 @@ class RMXSkeletalAnimation {
     /** 
     * Exports all bone matrices (world matrix * inverse bind matrix) of a pose to a flat number array
     */
-    static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: Float32Array) {
-        var world_matrices = pose.world_matrices;
+    static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: RMXSkeletonMatrices) {
+        var world_matrices = dest.world_matrices;
+        var skin_matrices = dest.skin_matrices;
 
         // Loop over all bones
         var bone_length: number = skeleton.bones.length;
@@ -107,7 +124,7 @@ class RMXSkeletalAnimation {
             }
 
             // Bone matrix
-            mat4_stream_multiply(dest, b * 16, world_matrices, b * 16, inv_bind_mat, 0);
+            mat4_stream_multiply(skin_matrices, b * 16, world_matrices, b * 16, inv_bind_mat, 0);
         }
     }
 
