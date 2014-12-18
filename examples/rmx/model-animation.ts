@@ -114,7 +114,7 @@ class RMXSkeletalAnimation {
         var bone_length: number = skeleton.bones.length;
         for (var b: number = 0; b < bone_length; ++b) {
             var bone = skeleton.bones[b];
-            var inv_bind_mat = <Float32Array>bone.inv_bind_mat;
+            var inv_bind_mat = bone.inv_bind_mat;
 
             // Local matrix - local translation/rotation/scale composed into a matrix
             mat_stream_compose(world_matrices, b * 16, pose.pos, b * 3, pose.rot, b * 4, pose.scl, b * 3);
