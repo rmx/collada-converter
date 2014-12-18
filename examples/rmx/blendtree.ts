@@ -151,8 +151,6 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
             }
         }
 
-        
-
         this.children.forEach((child) => { child.updateParams(params) });
     }
 
