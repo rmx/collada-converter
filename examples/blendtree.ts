@@ -117,7 +117,7 @@ function resetInput() {
 
 function checkInput() {
     if (inputBinary && inputJson) {
-        renderer.setMesh(inputJson, new Uint8Array(inputBinary));
+        renderSetModel(inputJson, new Uint8Array(inputBinary));
         renderStartRendering();
     }
 }
@@ -128,6 +128,13 @@ function checkInput() {
 
 function renderSetModel(json: any, data: Uint8Array) {
     renderer.setMesh(json, data);
+
+    var model = renderer.getMeshModel();
+    var skeleton: RMXSkeleton = model.model.skeleton;
+    var animation: RMXAnimation = model.model.animations[0];
+
+    model.blendtree = new RMXBlendTree;
+    model.blendtree.root = new RMXBlendTreeNodeTrack(skeleton, animation, 0, animation.frames - 1, true);
 }
 
 function renderStartRendering() {
@@ -148,10 +155,10 @@ function init() {
     // Animation labels
     var options = $("#form-options");
     addAnimationGroup("idle", 0, 10, 1, options);
-    addAnimationGroup("walk", 11, 20, 1, options);
-    addAnimationGroup("walk-back", 21, 30, 1, options);
-    addAnimationGroup("run", 31, 40, 1, options);
-    addAnimationGroup("sprint", 41, 50, 1, options);
+    addAnimationGroup("move-1", 11, 20, 1, options);
+    addAnimationGroup("move--1", 21, 30, 1, options);
+    addAnimationGroup("move-2", 31, 40, 1, options);
+    addAnimationGroup("move-3", 41, 50, 1, options);
     addAnimationGroup("action-a", 51, 60, 1, options);
     addAnimationGroup("action-b", 61, 70, 1, options);
     addAnimationGroup("action-c", 71, 80, 1, options);

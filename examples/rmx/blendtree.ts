@@ -56,6 +56,25 @@ interface RMXBlendTreeNode extends RMXAnimationTime {
     loop: boolean;
 }
 
+class RMXBlendTree {
+    root: RMXBlendTreeNode;
+    params: RMXBlendTreeParameters;
+
+    constructor() {
+        this.root = null;
+        this.params = new RMXBlendTreeParameters();
+    }
+
+    eval(skeleton: RMXSkeleton, target: RMXPose): void {
+        this.root.eval(skeleton, target);
+    }
+
+    animate(delta_time: number) {
+        this.root.updateParams(this.params);
+        this.root.time += delta_time;
+    }
+}
+
 /**
 * Plays back an animation track
 */

@@ -1,4 +1,5 @@
 /// <reference path="./model.ts" />
+/// <reference path="./blendtree.ts" />
 /// <reference path="../../external/threejs/three.d.ts" />
 
 /**
@@ -154,10 +155,12 @@ class ThreejsModelChunk {
 class ThreejsModelInstance {
     model: ThreejsModel;
     skeleton: ThreejsSkeleton;
+    blendtree: RMXBlendTree;
 
     constructor(model: ThreejsModel, skeleton: ThreejsSkeleton) {
         this.model = model;
         this.skeleton = skeleton;
+        this.blendtree = null;
     }
 }
 

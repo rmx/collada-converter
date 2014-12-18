@@ -180,10 +180,13 @@ class ThreejsRenderer {
         this.time += delta_time;
 
         var mesh: THREE.Object3D = this.mesh;
-        var data: ThreejsModelInstance = mesh.userData;
+        var data: ThreejsModelInstance = <ThreejsModelInstance> mesh.userData;
 
         if (data.skeleton) {
-            if (data.model.animations.length > 0) {
+            if (data.blendtree) {
+                data.blendtree.animate(delta_time);
+                data.blendtree.eval(data.model.skeleton, data.skeleton.pose);
+            } else if (data.model.animations.length > 0) {
                 RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton,
                     data.skeleton.pose, this.time * 25);
             } else {
@@ -210,6 +213,14 @@ class ThreejsRenderer {
         this.mesh = model2.instanciate();
         this.scene.add(this.mesh);
         this.zoomToObject(5);
+    }
+
+    getMeshModel(): ThreejsModelInstance {
+        if (this.mesh) {
+            return <ThreejsModelInstance> this.mesh.userData;
+        } else {
+            return null;
+        }
     }
 
     resetMesh() {

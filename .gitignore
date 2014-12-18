@@ -18,3 +18,5 @@
 
 /examples/blendtree.js
 examples/rmx/blendtree.js
+examples/rmx/threejs-loader.js
+examples/threejs-renderer.js
