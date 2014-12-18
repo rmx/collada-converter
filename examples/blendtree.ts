@@ -158,10 +158,10 @@ function renderSetModel(json: any, data: Uint8Array) {
 
     model.blendtree = new RMXBlendTree;
     
-    var back = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move--1"].begin, tracks["move--1"].end, true);
-    var walk = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+1"].begin, tracks["move-+1"].end, true);
-    var run = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true);
-    var charge = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true);
+    var back = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move--1"].begin, tracks["move--1"].end, true, 0);
+    var walk = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+1"].begin, tracks["move-+1"].end, true, 0);
+    var run = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true, 0);
+    var charge = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true, 0.5);
     var movement = new RMXBlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed");
 
     model.blendtree.params.floats["speed"] = speed;

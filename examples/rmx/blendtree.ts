@@ -68,7 +68,8 @@ class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
         public animation: RMXAnimation,
         public begin: number,
         public end: number,
-        public loop: boolean
+        public loop: boolean,
+        public phase: number
     ) {
         var frames = end - begin;
         this.duration = frames / animation.fps;
@@ -78,7 +79,9 @@ class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
     updateParams(params: RMXBlendTreeParameters): void { }
 
     eval(skeleton: RMXSkeleton, target: RMXPose): void {
-        var frame: number = this.begin + this.progress * (this.end - this.begin);
+        var progress: number = this.progress + this.phase;
+        progress = progress - Math.floor(progress);
+        var frame: number = this.begin + progress * (this.end - this.begin);
 
         RMXSkeletalAnimation.sampleAnimation(this.animation, skeleton, target, frame);
     }
