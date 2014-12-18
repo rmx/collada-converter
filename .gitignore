@@ -17,3 +17,4 @@
 /examples/*.map
 
 /examples/blendtree.js
+examples/rmx/blendtree.js
