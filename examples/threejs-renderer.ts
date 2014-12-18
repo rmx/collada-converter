@@ -187,10 +187,10 @@ class ThreejsRenderer {
                 data.blendtree.animate(delta_time);
                 data.blendtree.eval(data.model.skeleton, data.skeleton.pose);
             } else if (data.model.animations.length > 0) {
-                RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton,
+                rmx.sampleAnimation(data.model.animations[0], data.model.skeleton,
                     data.skeleton.pose, this.time * 25);
             } else {
-                RMXSkeletalAnimation.resetPose(data.model.skeleton, data.skeleton.pose);
+                rmx.resetPose(data.model.skeleton, data.skeleton.pose);
             }
 
             var gl: WebGLRenderingContext = this.renderer.context;
@@ -204,8 +204,8 @@ class ThreejsRenderer {
             return;
         }
 
-        var loader = new RMXModelLoader;
-        var model: RMXModel = loader.loadModel(json, data.buffer);
+        var loader = new rmx.ModelLoader;
+        var model: rmx.Model = loader.loadModel(json, data.buffer);
 
         var loader2 = new ThreejsModelLoader;
         var model2: ThreejsModel = loader2.createModel(model);

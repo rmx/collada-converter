@@ -8,17 +8,6 @@
 
 /lib/*
 
-/examples/convert.js
-/examples/convert.js.map
-
-/examples/convert-task.js
-/examples/convert-task.js.map
-
+/examples/*.js
 /examples/*.map
-
-/examples/blendtree.js
-examples/rmx/blendtree.js
-examples/rmx/threejs-loader.js
-examples/threejs-renderer.js
-examples/rmx/stream-math.js
-examples/rmx/model-animation.js
+/examples/rmx/*.js

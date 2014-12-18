@@ -3,7 +3,7 @@
 /// <reference path="../../external/threejs/three.d.ts" />
 
 /**
-* Converts a RMXModel into corresponding three.js objects
+* Converts a Model into corresponding three.js objects
 */
 class ThreejsModelLoader {
 
@@ -15,7 +15,7 @@ class ThreejsModelLoader {
         this.imageLoader = new THREE.ImageLoader();
     }
 
-    private createGeometry(chunk: RMXModelChunk): THREE.BufferGeometry {
+    private createGeometry(chunk: rmx.ModelChunk): THREE.BufferGeometry {
         var result = new THREE.BufferGeometry;
 
         if (chunk.data_position) {
@@ -51,7 +51,7 @@ class ThreejsModelLoader {
         return result;
     }
 
-    private createMaterial(material: RMXMaterial, skinned: boolean): THREE.Material {
+    private createMaterial(material: rmx.Material, skinned: boolean): THREE.Material {
         var prefix = skinned ? "skinned-" : "static-";
         var hash = prefix + material.hash();
         var cached_material = this.materialCache[hash];
@@ -73,7 +73,7 @@ class ThreejsModelLoader {
         }
     }
 
-    createModel(model: RMXModel): ThreejsModel {
+    createModel(model: rmx.Model): ThreejsModel {
         var result = new ThreejsModel;
         var skinned = model.skeleton != null;
 
@@ -101,22 +101,22 @@ class ThreejsModelLoader {
 * A custom class that replaces THREE.Skeleton
 */
 class ThreejsSkeleton {
-    boneTexture: RMXBoneMatrixTexture;
-    matrices: RMXSkeletonMatrices;
-    skeleton: RMXSkeleton;
-    pose: RMXPose;
+    boneTexture: rmx.BoneMatrixTexture;
+    matrices: rmx.SkeletonMatrices;
+    skeleton: rmx.Skeleton;
+    pose: rmx.Pose;
 
-    constructor(skeleton: RMXSkeleton) {
+    constructor(skeleton: rmx.Skeleton) {
         // The skeleton stores information about the hiearchy of the bones
         this.skeleton = skeleton;
 
         // The pose stores information about the current bone transformations
-        this.pose = new RMXPose(this.skeleton);
-        RMXSkeletalAnimation.resetPose(this.skeleton, this.pose);
+        this.pose = new rmx.Pose(this.skeleton);
+        rmx.resetPose(this.skeleton, this.pose);
 
         // The bone texture stores the bone matrices for the use on the GPU
-        this.boneTexture = new RMXBoneMatrixTexture(this.skeleton);
-        this.matrices = new RMXSkeletonMatrices(this.boneTexture);
+        this.boneTexture = new rmx.BoneMatrixTexture(this.skeleton);
+        this.matrices = new rmx.SkeletonMatrices(this.boneTexture);
 
         // Trick three.js into thinking this is a THREE.Skeleton object
         Object.defineProperty(this, "useVertexTexture", { get: function () { return true; } });
@@ -132,7 +132,7 @@ class ThreejsSkeleton {
 
     update(gl: WebGLRenderingContext) {
         // Compute the bone matrices
-        RMXSkeletalAnimation.exportPose(this.skeleton, this.pose, this.matrices);
+        rmx.exportPose(this.skeleton, this.pose, this.matrices);
 
         // Upload the bone matrices to the bone texture
         this.boneTexture.update(this.matrices, gl);
@@ -155,7 +155,7 @@ class ThreejsModelChunk {
 class ThreejsModelInstance {
     model: ThreejsModel;
     skeleton: ThreejsSkeleton;
-    blendtree: RMXBlendTree;
+    blendtree: rmx.BlendTree;
 
     constructor(model: ThreejsModel, skeleton: ThreejsSkeleton) {
         this.model = model;
@@ -169,8 +169,8 @@ class ThreejsModelInstance {
 */
 class ThreejsModel {
     chunks: ThreejsModelChunk[];
-    skeleton: RMXSkeleton;
-    animations: RMXAnimation[];
+    skeleton: rmx.Skeleton;
+    animations: rmx.Animation[];
     static identityMatrix: THREE.Matrix4;
 
     constructor() {

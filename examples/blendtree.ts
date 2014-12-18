@@ -153,18 +153,18 @@ function renderSetModel(json: any, data: Uint8Array) {
     var tracks = getTracks();
 
     var model = renderer.getMeshModel();
-    var skeleton: RMXSkeleton = model.model.skeleton;
-    var animation: RMXAnimation = model.model.animations[0];
+    var skeleton: rmx.Skeleton = model.model.skeleton;
+    var animation: rmx.Animation = model.model.animations[0];
 
-    model.blendtree = new RMXBlendTree;
+    model.blendtree = new rmx.BlendTree;
     
-    var back = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move--1"].begin, tracks["move--1"].end, true, 0);
-    var walk = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+1"].begin, tracks["move-+1"].end, true, 0);
-    var run = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true, 0);
-    var charge = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true, 0.5);
-    var idle = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["idle"].begin, tracks["idle"].end, true, 0);
-    var movement = new RMXBlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed", 4);
-    var idle_move = new RMXBlendTreeNodeBool(skeleton, idle, movement, "idle", 1);
+    var back = new rmx.BlendTreeNodeTrack(skeleton, animation, tracks["move--1"].begin, tracks["move--1"].end, true, 0);
+    var walk = new rmx.BlendTreeNodeTrack(skeleton, animation, tracks["move-+1"].begin, tracks["move-+1"].end, true, 0);
+    var run = new rmx.BlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true, 0);
+    var charge = new rmx.BlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true, 0.5);
+    var idle = new rmx.BlendTreeNodeTrack(skeleton, animation, tracks["idle"].begin, tracks["idle"].end, true, 0);
+    var movement = new rmx.BlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed", 4);
+    var idle_move = new rmx.BlendTreeNodeBool(skeleton, idle, movement, "idle", 1);
 
     model.blendtree.params.floats["speed"] = speed;
     model.blendtree.params.floats["idle"] = 0;
