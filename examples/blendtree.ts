@@ -163,7 +163,7 @@ function renderSetModel(json: any, data: Uint8Array) {
     var run = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true, 0);
     var charge = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true, 0.5);
     var idle = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["idle"].begin, tracks["idle"].end, true, 0);
-    var movement = new RMXBlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed");
+    var movement = new RMXBlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed", 4);
     var idle_move = new RMXBlendTreeNodeBool(skeleton, idle, movement, "idle", 1);
 
     model.blendtree.params.floats["speed"] = speed;

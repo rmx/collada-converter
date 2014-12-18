@@ -26,7 +26,7 @@ function fixTime(progress: number, loop: boolean): number {
 }
 
 interface RMXBlendTreeNode {
-    updateParams(params: RMXBlendTreeParameters): void;
+    updateParams(delta_time: number, params: RMXBlendTreeParameters): void;
     /** Exports the skeleton pose at the current time */
     eval(skeleton: RMXSkeleton, target: RMXPose): void;
     /** Advances the time by the given value (in seconds)*/
@@ -51,7 +51,7 @@ class RMXBlendTree {
     }
 
     animate(delta_time: number) {
-        this.root.updateParams(this.params);
+        this.root.updateParams(delta_time, this.params);
         this.root.advanceTime(delta_time);
     }
 }
@@ -76,7 +76,7 @@ class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
         this.progress = 0;
     }
 
-    updateParams(params: RMXBlendTreeParameters): void { }
+    updateParams(delta_time: number, params: RMXBlendTreeParameters): void { }
 
     eval(skeleton: RMXSkeleton, target: RMXPose): void {
         var progress: number = this.progress + this.phase;
@@ -117,7 +117,8 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
         skeleton: RMXSkeleton,
         public children: RMXBlendTreeNode[],
         public values: number[],
-        public param: string
+        public param: string,
+        public paramChangeSpeed: number
     ) {
         this.progress = 0;
         this.leftPose = new RMXPose(skeleton);
@@ -131,15 +132,18 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
         this.rightWeight = 0;
     }
 
-    updateParams(params: RMXBlendTreeParameters): void {
+    updateParams(delta_time: number, params: RMXBlendTreeParameters): void {
         var values: number[] = this.values;
+
         var value: number = params.floats[this.param];
-        this.value = value;
+        var maxDelta: number = delta_time * this.paramChangeSpeed;
+        var delta = Math.max(Math.min(value - this.value, maxDelta), -maxDelta);
+        this.value += delta;
 
         for (var i = 0; i < values.length - 1; ++i) {
             var value_left = values[i];
             var value_right = values[i + 1];
-            if ((value_left <= value) && (value <= value_right)) {
+            if ((value_left <= this.value) && (this.value <= value_right)) {
                 this.leftChild = this.children[i + 0];
                 this.rightChild = this.children[i + 1];
                 this.leftValue = value_left;
@@ -151,7 +155,7 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
             }
         }
 
-        this.children.forEach((child) => { child.updateParams(params) });
+        this.children.forEach((child) => { child.updateParams(delta_time, params) });
     }
 
     eval(skeleton: RMXSkeleton, target: RMXPose): void {
@@ -192,7 +196,6 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
 * Plays back one of two nodes, depending on a bool parameter 
 */
 class RMXBlendTreeNodeBool implements RMXBlendTreeNode {
-    value: number;
     weight: number;
     truePose: RMXPose;
     falsePose: RMXPose;
@@ -207,15 +210,24 @@ class RMXBlendTreeNodeBool implements RMXBlendTreeNode {
         this.truePose = new RMXPose(skeleton);
         this.falsePose = new RMXPose(skeleton);
         this.weight = 0;
-        this.value = 0;
     }
 
-    updateParams(params: RMXBlendTreeParameters): void {
+    updateParams(delta_time: number, params: RMXBlendTreeParameters): void {
         var value: number = params.floats[this.param];
-        this.value = value;
+        if (value > 0.5 && this.weight < 1) {
+            this.weight += delta_time / this.transitionTime;
+        } else if (value < 0.5 && this.weight > 0) {
+            this.weight -= delta_time / this.transitionTime;
+        }
 
-        this.childTrue.updateParams(params);
-        this.childFalse.updateParams(params);
+        if (this.weight < 0) {
+            this.weight = 0;
+        } else if (this.weight > 1) {
+            this.weight = 1;
+        }
+
+        this.childTrue.updateParams(delta_time, params);
+        this.childFalse.updateParams(delta_time, params);
     }
 
     static smoothstep(value: number): number {
@@ -237,20 +249,6 @@ class RMXBlendTreeNodeBool implements RMXBlendTreeNode {
 
     /** Advances the time by the given value (in seconds)*/
     advanceTime(delta_time: number): void {
-        // Update weights
-        if (this.value > 0.5 && this.weight < 1) {
-            this.weight += delta_time / this.transitionTime;
-        } else if (this.value < 0.5 && this.weight > 0) {
-            this.weight -= delta_time / this.transitionTime;
-        }
-
-        if (this.weight < 0) {
-            this.weight = 0;
-        } else if (this.weight > 1) {
-            this.weight = 1;
-        }
-
-        // Advance time
         if (this.weight <= 0) {
             this.childTrue.setProgress(0);
             this.childFalse.advanceTime(delta_time);
