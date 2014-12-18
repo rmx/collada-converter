@@ -174,7 +174,7 @@ module COLLADA.Converter {
             return result;
         }
 
-        static spawElements(array: Float32Array, i1: number, i2: number): void {
+        static swapElements(array: Float32Array, i1: number, i2: number): void {
             var temp = array[i1];
             array[i1] = array[i2];
             array[i2] = temp;
@@ -191,8 +191,8 @@ module COLLADA.Converter {
                 // Bubble towards the front
                 for (var i = offsetEnd; i > offsetBegin; --i) {
                     if (weights[i] > weights[i - 1]) {
-                        Utils.spawElements(weights, i, i - 1);
-                        Utils.spawElements(indices, i, i - 1);
+                        Utils.swapElements(weights, i, i - 1);
+                        Utils.swapElements(indices, i, i - 1);
                     }
                 }
             }
