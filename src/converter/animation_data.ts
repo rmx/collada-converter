@@ -79,12 +79,12 @@ module COLLADA.Converter {
             var duration: number = end_time - start_time;
 
             // Keyframes (always include first and last keyframe)
-            var keyframes: number = Math.ceil(fps * duration) + 1;
+            var keyframes: number = Math.max(Math.round(fps * duration) + 1, 2);
             fps = (keyframes - 1) / duration;
             var spf: number = 1 / fps;
 
             // Store fps
-            result.fps = fps;
+            result.fps = +fps.toFixed(3);
             result.keyframes = keyframes;
             result.duration = duration;
             result.original_fps = stat.avgFps();
