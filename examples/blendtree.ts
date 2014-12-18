@@ -65,7 +65,7 @@ function getTracks(): any {
 
 function updateSpeed() {
     speed = speedSlider.slider('getValue');
-    $("#speed-number").text(speed.toFixed(1));
+    $("#speed-number").text(speed.toFixed(2));
 }
 
 function updateTimescale() {
