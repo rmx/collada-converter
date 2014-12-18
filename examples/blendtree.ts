@@ -162,10 +162,14 @@ function renderSetModel(json: any, data: Uint8Array) {
     var walk = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+1"].begin, tracks["move-+1"].end, true, 0);
     var run = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true, 0);
     var charge = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true, 0.5);
+    var idle = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["idle"].begin, tracks["idle"].end, true, 0);
     var movement = new RMXBlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed");
+    var idle_move = new RMXBlendTreeNodeBool(skeleton, idle, movement, "idle", 1);
 
     model.blendtree.params.floats["speed"] = speed;
-    model.blendtree.root = movement;
+    model.blendtree.params.floats["idle"] = 0;
+
+    model.blendtree.root = idle_move;
 }
 
 function renderStartRendering() {
@@ -175,6 +179,7 @@ function renderStartRendering() {
 function renderTick(timestamp: number) {
     var model = renderer.getMeshModel();
     model.blendtree.params.floats["speed"] = speed;
+    model.blendtree.params.floats["idle"] = Math.abs(speed) > 0.05 ? 0 : 1;
 
     if (renderer.tick(timestamp, timescale)) {
         requestAnimationFrame(renderTick);

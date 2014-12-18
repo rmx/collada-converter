@@ -168,7 +168,6 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
         }
     }
 
-
     /** Advances the time by the given value (in seconds)*/
     advanceTime(delta_time: number): void {
         this.progress += delta_time / this.duration;
@@ -186,5 +185,98 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
 
     get duration(): number {
         return this.leftWeight * this.leftChild.duration + this.rightWeight * this.rightChild.duration;
+    }
+}
+
+
+
+/**
+* Plays back one of two nodes, depending on a bool parameter 
+*/
+class RMXBlendTreeNodeBool implements RMXBlendTreeNode {
+    value: number;
+    weight: number;
+    truePose: RMXPose;
+    falsePose: RMXPose;
+
+    constructor(
+        skeleton: RMXSkeleton,
+        public childTrue: RMXBlendTreeNode,
+        public childFalse: RMXBlendTreeNode,
+        public param: string,
+        public transitionTime: number
+    ) {
+        this.truePose = new RMXPose(skeleton);
+        this.falsePose = new RMXPose(skeleton);
+        this.weight = 0;
+        this.value = 0;
+    }
+
+    updateParams(params: RMXBlendTreeParameters): void {
+        var value: number = params.floats[this.param];
+        this.value = value;
+
+        this.childTrue.updateParams(params);
+        this.childFalse.updateParams(params);
+    }
+
+    static smoothstep(value: number): number {
+        return value * value * (3 - 2 * value);
+    }
+
+    eval(skeleton: RMXSkeleton, target: RMXPose): void {
+        if (this.weight >= 1) {
+            this.childTrue.eval(skeleton, target);
+        } else if (this.weight <= 0) {
+            this.childFalse.eval(skeleton, target);
+        } else {
+            this.childTrue.eval(skeleton, this.truePose);
+            this.childFalse.eval(skeleton, this.falsePose);
+            var weight = RMXBlendTreeNodeBool.smoothstep(this.weight);
+            RMXSkeletalAnimation.blendPose(this.falsePose, this.truePose, weight, target);
+        }
+    }
+
+    /** Advances the time by the given value (in seconds)*/
+    advanceTime(delta_time: number): void {
+        // Update weights
+        if (this.value > 0.5 && this.weight < 1) {
+            this.weight += delta_time / this.transitionTime;
+        } else if (this.value < 0.5 && this.weight > 0) {
+            this.weight -= delta_time / this.transitionTime;
+        }
+
+        if (this.weight < 0) {
+            this.weight = 0;
+        } else if (this.weight > 1) {
+            this.weight = 1;
+        }
+
+        // Advance time
+        if (this.weight <= 0) {
+            this.childTrue.setProgress(0);
+            this.childFalse.advanceTime(delta_time);
+        } else if (this.weight >= 1) {
+            this.childTrue.advanceTime(delta_time);
+            this.childFalse.setProgress(0);
+        } else {
+            this.childTrue.advanceTime(delta_time);
+            this.childFalse.advanceTime(delta_time);
+        }
+    }
+
+    /** Sets the progress of the animation (between 0 and 1) */
+    setProgress(value: number): void {
+        // Doesn't really make sense...
+        this.childTrue.setProgress(value);
+        this.childFalse.setProgress(value);
+    }
+
+    get duration(): number {
+        if (this.weight > 0.5) {
+            return this.childTrue.duration;
+        } else {
+            return this.childFalse.duration;
+        }
     }
 }
