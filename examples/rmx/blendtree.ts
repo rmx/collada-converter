@@ -13,47 +13,28 @@ class RMXBlendTreeParameters {
     }
 }
 
-interface RMXAnimationTime {
-    /** Current time, in seconds */
-    time: number;
-    /** Progress: 0.0 is the begin, 1.0 the end of the animation */
-    progress: number;
-    /** Duration, in seconds */
-    duration: number;
-    /** Looping */
-    loop: boolean;
-}
-
-function fixTime(time: number, duration: number, loop: boolean): number {
+function fixTime(progress: number, loop: boolean): number {
     if (loop) {
-        time = time % duration;
-        if (time < 0) {
-            time = duration + time;
-        }
-        return time;
+        return progress - Math.floor(progress);
+    } else if (progress < 0) {
+        return 0;
+    } else if (progress > 1) {
+        return 1;
     } else {
-        if (time < 0) {
-            return 0;
-        } else if (time > duration) {
-            return duration;
-        } else {
-            return time;
-        }
+        return progress;
     }
 }
 
-interface RMXBlendTreeNode extends RMXAnimationTime {
+interface RMXBlendTreeNode {
     updateParams(params: RMXBlendTreeParameters): void;
     /** Exports the skeleton pose at the current time */
     eval(skeleton: RMXSkeleton, target: RMXPose): void;
-    /** Current time, in seconds */
-    time: number;
-    /** Progress: 0.0 is the begin, 1.0 the end of the animation */
-    progress: number;
-    /** Duration, in seconds */
+    /** Advances the time by the given value (in seconds)*/
+    advanceTime(delta_time: number): void;
+    /** Sets the progress of the animation (between 0 and 1) */
+    setProgress(value: number): void;
+    /** Duration of the animation */
     duration: number;
-    /** Looping */
-    loop: boolean;
 }
 
 class RMXBlendTree {
@@ -71,7 +52,7 @@ class RMXBlendTree {
 
     animate(delta_time: number) {
         this.root.updateParams(this.params);
-        this.root.time += delta_time;
+        this.root.advanceTime(delta_time);
     }
 }
 
@@ -79,8 +60,8 @@ class RMXBlendTree {
 * Plays back an animation track
 */
 class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
-    private _time: number;
-    private _duration: number;
+    private progress: number;
+    public duration: number;
 
     constructor(
         skeleton: RMXSkeleton,
@@ -90,34 +71,27 @@ class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
         public loop: boolean
     ) {
         var frames = end - begin;
-        this._duration = frames / animation.fps;
-        this._time = 0;
+        this.duration = frames / animation.fps;
+        this.progress = 0;
     }
 
     updateParams(params: RMXBlendTreeParameters): void { }
 
     eval(skeleton: RMXSkeleton, target: RMXPose): void {
-        var progress: number = this.progress;
-        var frame: number = this.begin + progress * (this.end - this.begin);
+        var frame: number = this.begin + this.progress * (this.end - this.begin);
 
         RMXSkeletalAnimation.sampleAnimation(this.animation, skeleton, target, frame);
     }
 
-    get time(): number { return this._time; }
-    set time(value: number) {
-        this._time = fixTime(value, this._duration, this.loop);
+    /** Advances the time by the given value (in seconds)*/
+    advanceTime(delta_time: number): void {
+        this.progress += delta_time / this.duration;
+        this.progress = fixTime(this.progress, this.loop);
     }
 
-    get progress(): number { return this._time / this._duration; }
-    set progress(value: number) {
-        this._time = value * this._duration;
-        this._time = fixTime(this._time, this._duration, this.loop);
-    }
-
-    get duration(): number { return this._duration; }
-    set duration(value: number) {
-        this._duration = value;
-        this._time = fixTime(value, this._duration, this.loop);
+    /** Sets the progress of the animation (between 0 and 1) */
+    setProgress(value: number): void {
+        this.progress = fixTime(value, this.loop);
     }
 }
 
@@ -125,7 +99,7 @@ class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
 * Interpolates between several nodes according to one float parameter
 */
 class RMXBlendTreeNode1D implements RMXBlendTreeNode {
-    private _progress: number;
+    private progress: number;
     private value: number;
     private leftWeight: number;
     private rightWeight: number;
@@ -142,7 +116,7 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
         public values: number[],
         public param: string
     ) {
-        this._progress = 0;
+        this.progress = 0;
         this.leftPose = new RMXPose(skeleton);
         this.rightPose = new RMXPose(skeleton);
         this.leftChild = null;
@@ -185,26 +159,23 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
         RMXSkeletalAnimation.blendPose(this.leftPose, this.rightPose, this.rightWeight, target);
     }
 
-    get time(): number { return this._progress * this.duration; }
-    set time(value: number) {
-        this._progress = fixTime(value / this.duration, 1, true);
-        this.children.forEach((child) => { child.progress = this._progress; });
+
+    /** Advances the time by the given value (in seconds)*/
+    advanceTime(delta_time: number): void {
+        this.progress += delta_time / this.duration;
+        this.progress = fixTime(this.progress, true);
+
+        this.children.forEach((child) => { child.setProgress(this.progress); });
     }
 
-    get progress(): number { return this._progress; }
-    set progress(value: number) {
-        this._progress = fixTime(value, 1, true);
+    /** Sets the progress of the animation (between 0 and 1) */
+    setProgress(value: number): void {
+        this.progress = fixTime(value, true);
+
+        this.children.forEach((child) => { child.setProgress(this.progress); });
     }
 
     get duration(): number {
         return this.leftWeight * this.leftChild.duration + this.rightWeight * this.rightChild.duration;
-    }
-    set duration(value: number) { 
-        throw new Error("Not supported")
-    }
-
-    get loop(): boolean { return true; }
-    set loop(value: boolean) {
-        throw new Error("Not supported");
     }
 }
