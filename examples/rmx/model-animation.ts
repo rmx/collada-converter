@@ -109,19 +109,24 @@ class RMXSkeletalAnimation {
     static exportPose(skeleton: RMXSkeleton, pose: RMXPose, dest: RMXSkeletonMatrices) {
         var world_matrices = dest.world_matrices;
         var skin_matrices = dest.skin_matrices;
+        var pos: Float32Array = pose.pos;
+        var rot: Float32Array = pose.rot;
+        var scl: Float32Array = pose.scl;
 
         // Loop over all bones
-        var bone_length: number = skeleton.bones.length;
+        var bones: RMXBone[] = skeleton.bones;
+        var bone_length: number = bones.length;
         for (var b: number = 0; b < bone_length; ++b) {
-            var bone = skeleton.bones[b];
-            var inv_bind_mat = bone.inv_bind_mat;
+            var bone: RMXBone = bones[b];
+            var inv_bind_mat: Float32Array = bone.inv_bind_mat;
+            var parent: number = bone.parent;
 
             // Local matrix - local translation/rotation/scale composed into a matrix
-            mat_stream_compose(world_matrices, b * 16, pose.pos, b * 3, pose.rot, b * 4, pose.scl, b * 3);
+            mat_stream_compose(world_matrices, b * 16, pos, b * 3, rot, b * 4, scl, b * 3);
 
             // World matrix
-            if (bone.parent >= 0) {
-                mat4_stream_multiply(world_matrices, b * 16, world_matrices, bone.parent * 16, world_matrices, b * 16);
+            if (parent >= 0) {
+                mat4_stream_multiply(world_matrices, b * 16, world_matrices, parent * 16, world_matrices, b * 16);
             }
 
             // Bone matrix
