@@ -154,9 +154,15 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
     }
 
     eval(skeleton: RMXSkeleton, target: RMXPose): void {
-        this.leftChild.eval(skeleton, this.leftPose);
-        this.rightChild.eval(skeleton, this.rightPose);
-        RMXSkeletalAnimation.blendPose(this.leftPose, this.rightPose, this.rightWeight, target);
+        if (this.rightWeight >= 1) {
+            this.rightChild.eval(skeleton, target);
+        } else if (this.rightWeight <= 0) {
+            this.leftChild.eval(skeleton, target);
+        } else {
+            this.leftChild.eval(skeleton, this.leftPose);
+            this.rightChild.eval(skeleton, this.rightPose);
+            RMXSkeletalAnimation.blendPose(this.leftPose, this.rightPose, this.rightWeight, target);
+        }
     }
 
 
