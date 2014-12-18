@@ -11,3 +11,4 @@
 /examples/*.js
 /examples/*.map
 /examples/rmx/*.js
+/examples/rmx/blendtree/*.js
