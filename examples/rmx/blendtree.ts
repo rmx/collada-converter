@@ -18,7 +18,7 @@ module rmx {
         }
     }
 
-    function fixTime(progress: number, loop: boolean): number {
+    export function fixTime(progress: number, loop: boolean): number {
         if (loop) {
             return progress - Math.floor(progress);
         } else if (progress < 0) {
