@@ -9,8 +9,9 @@
 
 var renderer: ThreejsRenderer;
 var speedSlider: any;
+var speed: number = 0;
 var timescaleSlider: any;
-var timescale: number;
+var timescale: number = 1;
 var inputJson: any;
 var inputBinary: ArrayBuffer;
 
@@ -18,7 +19,7 @@ var inputBinary: ArrayBuffer;
 // User interface
 // ----------------------------------------------------------------------------
 
-function addAnimationGroup(name: string, f0: number, f1: number, t: number, parent: JQuery) {
+function addAnimationGroup(name: string, f0: number, f1: number, fps: number, parent: JQuery) {
     var label = $("<label>").addClass("col-sm-3").addClass("control-label").text(name);
 
     var begin = $("<input>").attr("type", "number").attr("data-name", name).addClass("form-control").addClass("animation-begin").val("" + f0);
@@ -29,7 +30,7 @@ function addAnimationGroup(name: string, f0: number, f1: number, t: number, pare
     var end_group = $("<div>").addClass("col-sm-3");
     end_group.append(end);
 
-    var duration = $("<input>").attr("type", "number").attr("data-name", name).addClass("form-control").addClass("animation-duration").val("" +t);
+    var duration = $("<input>").attr("type", "number").attr("data-name", name).addClass("form-control").addClass("animation-fps").val("" +fps);
     var duration_group = $("<div>").addClass("col-sm-3");
     duration_group.append(duration);
 
@@ -42,8 +43,28 @@ function addAnimationGroup(name: string, f0: number, f1: number, t: number, pare
     parent.append(group);
 }
 
+function getTracks(): any {
+    var result = {};
+    $(".animation-begin").each((index, elem) => {
+        var name = elem.getAttribute("data-name");
+        result[name] = result[name] || {};
+        result[name].begin = parseFloat($(elem).val());
+    });
+    $(".animation-end").each((index, elem) => {
+        var name = elem.getAttribute("data-name");
+        result[name] = result[name] || {};
+        result[name].end = parseFloat($(elem).val());
+    });
+    $(".animation-fps").each((index, elem) => {
+        var name = elem.getAttribute("data-name");
+        result[name] = result[name] || {};
+        result[name].fps = parseFloat($(elem).val());
+    });
+    return result;
+}
+
 function updateSpeed() {
-    var speed = speedSlider.slider('getValue');
+    speed = speedSlider.slider('getValue');
     $("#speed-number").text(speed.toFixed(1));
 }
 
@@ -129,12 +150,22 @@ function checkInput() {
 function renderSetModel(json: any, data: Uint8Array) {
     renderer.setMesh(json, data);
 
+    var tracks = getTracks();
+
     var model = renderer.getMeshModel();
     var skeleton: RMXSkeleton = model.model.skeleton;
     var animation: RMXAnimation = model.model.animations[0];
 
     model.blendtree = new RMXBlendTree;
-    model.blendtree.root = new RMXBlendTreeNodeTrack(skeleton, animation, 0, animation.frames - 1, true);
+    
+    var back = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move--1"].begin, tracks["move--1"].end, true);
+    var walk = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+1"].begin, tracks["move-+1"].end, true);
+    var run = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+2"].begin, tracks["move-+2"].end, true);
+    var charge = new RMXBlendTreeNodeTrack(skeleton, animation, tracks["move-+3"].begin, tracks["move-+3"].end, true);
+    var movement = new RMXBlendTreeNode1D(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed");
+
+    model.blendtree.params.floats["speed"] = speed;
+    model.blendtree.root = movement;
 }
 
 function renderStartRendering() {
@@ -142,6 +173,9 @@ function renderStartRendering() {
 }
 
 function renderTick(timestamp: number) {
+    var model = renderer.getMeshModel();
+    model.blendtree.params.floats["speed"] = speed;
+
     if (renderer.tick(timestamp, timescale)) {
         requestAnimationFrame(renderTick);
     }
@@ -154,14 +188,15 @@ function renderTick(timestamp: number) {
 function init() {
     // Animation labels
     var options = $("#form-options");
-    addAnimationGroup("idle", 0, 10, 1, options);
-    addAnimationGroup("move-1", 11, 20, 1, options);
-    addAnimationGroup("move--1", 21, 30, 1, options);
-    addAnimationGroup("move-2", 31, 40, 1, options);
-    addAnimationGroup("move-3", 41, 50, 1, options);
-    addAnimationGroup("action-a", 51, 60, 1, options);
-    addAnimationGroup("action-b", 61, 70, 1, options);
-    addAnimationGroup("action-c", 71, 80, 1, options);
+    addAnimationGroup("idle",     574,  633, 30, options);
+    addAnimationGroup("move--1",   30,   59, 30, options);
+    addAnimationGroup("move-+1", 1339, 1368, 30, options);
+    addAnimationGroup("move-+2",  813,  836, 30, options);
+    addAnimationGroup("move-+3",  119,  136, 30, options);
+    addAnimationGroup("action-a", 205,  245, 30, options);
+    addAnimationGroup("action-b", 290,  355, 30, options);
+    addAnimationGroup("action-c", 865,  915, 30, options);
+    addAnimationGroup("action-d", 740,  785, 30, options);
 
     // Slider
     speedSlider = (<any>$("#speed")).slider();

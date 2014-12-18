@@ -111,7 +111,7 @@ class RMXBlendTreeNodeTrack implements RMXBlendTreeNode {
     get progress(): number { return this._time / this._duration; }
     set progress(value: number) {
         this._time = value * this._duration;
-        this._time = fixTime(value, this._duration, this.loop);
+        this._time = fixTime(this._time, this._duration, this.loop);
     }
 
     get duration(): number { return this._duration; }
@@ -168,8 +168,8 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
                 this.leftValue = value_left;
                 this.rightValue = value_right;
                 var t = (this.value - value_left) / (value_right - value_left);
-                this.leftWeight = t;
-                this.rightWeight = 1 - t;
+                this.leftWeight = 1 - t;
+                this.rightWeight = t;
                 break;
             }
         }
@@ -182,7 +182,7 @@ class RMXBlendTreeNode1D implements RMXBlendTreeNode {
     eval(skeleton: RMXSkeleton, target: RMXPose): void {
         this.leftChild.eval(skeleton, this.leftPose);
         this.rightChild.eval(skeleton, this.rightPose);
-        RMXSkeletalAnimation.blendPose(this.leftPose, this.leftPose, this.leftWeight, target);
+        RMXSkeletalAnimation.blendPose(this.leftPose, this.rightPose, this.rightWeight, target);
     }
 
     get time(): number { return this._progress * this.duration; }
