@@ -32,9 +32,9 @@ function vec3_stream_lerp(
     t: number
     ): void {
     var ta: number = 1 - t;
-    out[out_offset + 0] = ta * a[a_offset + 0] + t * a[b_offset + 0];
-    out[out_offset + 1] = ta * a[a_offset + 1] + t * a[b_offset + 1];
-    out[out_offset + 2] = ta * a[a_offset + 2] + t * a[b_offset + 2];
+    out[out_offset + 0] = ta * a[a_offset + 0] + t * b[b_offset + 0];
+    out[out_offset + 1] = ta * a[a_offset + 1] + t * b[b_offset + 1];
+    out[out_offset + 2] = ta * a[a_offset + 2] + t * b[b_offset + 2];
 }
 
 function quat_stream_slerp(
