@@ -56,7 +56,7 @@ module rmx {
         }
 
         update(delta_time: number, skeleton: Skeleton, state: BlendTreeState, target: Pose) {
-            TODO 
+            // TODO 
             // rmx.PoseStack
             // all nodes use pose stack and do not create temp poses
             // rmx.BlendTreeNode.init() - reserve variables in state

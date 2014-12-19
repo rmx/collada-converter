@@ -164,7 +164,7 @@ function renderSetModel(json: any, data: Uint8Array) {
     var movement = new rmx.BlendTreeNodeFloat(skeleton, [back, walk, run, charge], [-1, 1, 2, 3], "speed", 4);
     var idle_move = new rmx.BlendTreeNodeBool(skeleton, idle, movement, "idle", 1);
 
-    model.blendtree = new rmx.BlendTree(idle_move, skeleton);
+    model.blendtree = new rmx.BlendTree(idle_move);
     model.blendtreestate = new rmx.BlendTreeState();
     model.blendtreestate.params.floats["speed"] = speed;
     model.blendtreestate.params.floats["idle"] = 0;
