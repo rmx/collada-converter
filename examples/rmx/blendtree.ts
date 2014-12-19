@@ -36,13 +36,13 @@ module rmx {
     export interface BlendTreeNode {
         updateState(delta_time: number, state: BlendTreeState): void;
         /** Exports the skeleton pose at the current time */
-        eval(skeleton: Skeleton, target: Pose): void;
+        eval(skeleton: Skeleton, target: Pose, state: BlendTreeState): void;
         /** Advances the time by the given value (in seconds)*/
-        advanceTime(delta_time: number): void;
+        advanceTime(delta_time: number, state: BlendTreeState): void;
         /** Sets the progress of the animation (between 0 and 1) */
-        setProgress(value: number): void;
+        setProgress(value: number, state: BlendTreeState): void;
         /** Duration of the animation */
-        duration: number;
+        getDuration(state: BlendTreeState): number;
     }
 
     /**
@@ -57,16 +57,16 @@ module rmx {
             this.root = root;
         }
 
-        update(delta_time: number, state: BlendTreeState) {
+        update(delta_time: number, state: BlendTreeState, target: Pose) {
             this.root.updateState(delta_time, state);
-            this.root.advanceTime(delta_time);
-        }
-
-        eval(target: Pose): void {
-            this.root.eval(this.skeleton, target);
+            this.root.advanceTime(delta_time, state);
+            this.root.eval(this.skeleton, target, state);
         }
     }
 
+    /**
+    * All the state of a blend tree instance
+    */
     export class BlendTreeState {
         params: BlendTreeParameters;
         state: Float32Array;

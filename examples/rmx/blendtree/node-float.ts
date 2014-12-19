@@ -62,35 +62,35 @@ module rmx {
             }
         }
 
-        eval(skeleton: Skeleton, target: Pose): void {
+        eval(skeleton: Skeleton, target: Pose, state: BlendTreeState): void {
             if (this.rightWeight >= 1) {
-                this.rightChild.eval(skeleton, target);
+                this.rightChild.eval(skeleton, target, state);
             } else if (this.rightWeight <= 0) {
-                this.leftChild.eval(skeleton, target);
+                this.leftChild.eval(skeleton, target, state);
             } else {
-                this.leftChild.eval(skeleton, this.leftPose);
-                this.rightChild.eval(skeleton, this.rightPose);
+                this.leftChild.eval(skeleton, this.leftPose, state);
+                this.rightChild.eval(skeleton, this.rightPose, state);
                 blendPose(this.leftPose, this.rightPose, this.rightWeight, target);
             }
         }
 
         /** Advances the time by the given value (in seconds)*/
-        advanceTime(delta_time: number): void {
-            this.progress += delta_time / this.duration;
+        advanceTime(delta_time: number, state: BlendTreeState): void {
+            this.progress += delta_time / this.getDuration(state);
             this.progress = fixTime(this.progress, true);
 
-            this.children.forEach((child) => { child.setProgress(this.progress); });
+            this.children.forEach((child) => { child.setProgress(this.progress, state); });
         }
 
         /** Sets the progress of the animation (between 0 and 1) */
-        setProgress(value: number): void {
+        setProgress(value: number, state: BlendTreeState): void {
             this.progress = fixTime(value, true);
 
-            this.children.forEach((child) => { child.setProgress(this.progress); });
+            this.children.forEach((child) => { child.setProgress(this.progress, state); });
         }
 
-        get duration(): number {
-            return this.leftWeight * this.leftChild.duration + this.rightWeight * this.rightChild.duration;
+        getDuration(state: BlendTreeState): number {
+            return this.leftWeight * this.leftChild.getDuration(state) + this.rightWeight * this.rightChild.getDuration(state);
         }
     }
 
