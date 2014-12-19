@@ -50,17 +50,20 @@ module rmx {
     */
     export class BlendTree {
         private root: BlendTreeNode;
-        private skeleton: Skeleton;
 
-        constructor(root: BlendTreeNode, skeleton: Skeleton) {
-            this.skeleton = skeleton;
+        constructor(root: BlendTreeNode) {
             this.root = root;
         }
 
-        update(delta_time: number, state: BlendTreeState, target: Pose) {
+        update(delta_time: number, skeleton: Skeleton, state: BlendTreeState, target: Pose) {
+            TODO 
+            // rmx.PoseStack
+            // all nodes use pose stack and do not create temp poses
+            // rmx.BlendTreeNode.init() - reserve variables in state
+            // all nodes do not use any local state - consider all members read only
             this.root.updateState(delta_time, state);
             this.root.advanceTime(delta_time, state);
-            this.root.eval(this.skeleton, target, state);
+            this.root.eval(skeleton, target, state);
         }
     }
 

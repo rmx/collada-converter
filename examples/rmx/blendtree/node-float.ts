@@ -23,7 +23,7 @@ module rmx {
             public values: number[],
             public param: string,
             public paramChangeSpeed: number
-            ) {
+        ) {
             this.progress = 0;
             this.leftPose = new Pose(skeleton);
             this.rightPose = new Pose(skeleton);
