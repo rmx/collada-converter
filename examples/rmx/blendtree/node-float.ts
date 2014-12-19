@@ -36,10 +36,12 @@ module rmx {
             this.rightWeight = 0;
         }
 
-        updateParams(delta_time: number, params: BlendTreeParameters): void {
+        updateState(delta_time: number, state: BlendTreeState): void {
+            this.children.forEach((child) => { child.updateState(delta_time, state) });
+
             var values: number[] = this.values;
 
-            var value: number = params.floats[this.param];
+            var value: number = state.params.floats[this.param];
             var maxDelta: number = delta_time * this.paramChangeSpeed;
             var delta = Math.max(Math.min(value - this.value, maxDelta), -maxDelta);
             this.value += delta;
@@ -58,8 +60,6 @@ module rmx {
                     break;
                 }
             }
-
-            this.children.forEach((child) => { child.updateParams(delta_time, params) });
         }
 
         eval(skeleton: Skeleton, target: Pose): void {

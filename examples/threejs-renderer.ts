@@ -184,8 +184,8 @@ class ThreejsRenderer {
 
         if (data.skeleton) {
             if (data.blendtree) {
-                data.blendtree.animate(delta_time);
-                data.blendtree.eval(data.model.skeleton, data.skeleton.pose);
+                data.blendtree.update(delta_time, data.blendtreestate);
+                data.blendtree.eval(data.skeleton.pose);
             } else if (data.model.animations.length > 0) {
                 rmx.sampleAnimation(data.model.animations[0], data.model.skeleton,
                     data.skeleton.pose, this.time * 25);

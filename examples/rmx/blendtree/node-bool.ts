@@ -16,14 +16,17 @@ module rmx {
             public childFalse: BlendTreeNode,
             public param: string,
             public transitionTime: number
-            ) {
+        ) {
             this.truePose = new Pose(skeleton);
             this.falsePose = new Pose(skeleton);
             this.weight = 0;
         }
 
-        updateParams(delta_time: number, params: BlendTreeParameters): void {
-            var value: number = params.floats[this.param];
+        updateState(delta_time: number, state: BlendTreeState): void {
+            this.childTrue.updateState(delta_time, state);
+            this.childFalse.updateState(delta_time, state);
+
+            var value: number = state.params.floats[this.param];
             if (value > 0.5 && this.weight < 1) {
                 this.weight += delta_time / this.transitionTime;
             } else if (value < 0.5 && this.weight > 0) {
@@ -36,8 +39,6 @@ module rmx {
                 this.weight = 1;
             }
 
-            this.childTrue.updateParams(delta_time, params);
-            this.childFalse.updateParams(delta_time, params);
         }
 
         static smoothstep(value: number): number {

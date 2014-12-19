@@ -156,11 +156,13 @@ class ThreejsModelInstance {
     model: ThreejsModel;
     skeleton: ThreejsSkeleton;
     blendtree: rmx.BlendTree;
+    blendtreestate: rmx.BlendTreeState;
 
     constructor(model: ThreejsModel, skeleton: ThreejsSkeleton) {
         this.model = model;
         this.skeleton = skeleton;
         this.blendtree = null;
+        this.blendtreestate = null;
     }
 }
 

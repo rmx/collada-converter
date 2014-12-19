@@ -16,13 +16,15 @@ module rmx {
         public end: number,
         public loop: boolean,
         public phase: number
-        ) {
+    ) {
         var frames = end - begin;
         this.duration = frames / animation.fps;
         this.progress = 0;
     }
 
-    updateParams(delta_time: number, params: BlendTreeParameters): void { }
+    updateState(delta_time: number, state: BlendTreeState): void {
+
+    }
 
     eval(skeleton: Skeleton, target: Pose): void {
         var progress: number = this.progress + this.phase;
