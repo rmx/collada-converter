@@ -1,5 +1,5 @@
 /// <reference path="./model.ts" />
-/// <reference path="./blendtree.ts" />
+/// <reference path="./blendtree/blendtree.ts" />
 /// <reference path="../../external/threejs/three.d.ts" />
 
 /**

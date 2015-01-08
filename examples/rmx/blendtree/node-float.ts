@@ -1,4 +1,5 @@
-/// <reference path="../blendtree.ts" />
+/// <reference path="./blendtree.ts" />
+/// <reference path="./time.ts" />
 
 module rmx {
 

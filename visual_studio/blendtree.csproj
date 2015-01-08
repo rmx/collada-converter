@@ -34,7 +34,7 @@
     <Content Include="..\examples\blendtree.html">
       <Link>convert.html</Link>
     </Content>
-	<Content Include="..\examples\blendtree.css">
+    <Content Include="..\examples\blendtree.css">
       <Link>convert.html</Link>
     </Content>
   </ItemGroup>
@@ -71,6 +71,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TypeScriptRemoveComments>true</TypeScriptRemoveComments>
     <TypeScriptSourceMap>false</TypeScriptSourceMap>
+    <TypeScriptCompileOnSaveEnabled>False</TypeScriptCompileOnSaveEnabled>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets')" />
 </Project>
