@@ -176,8 +176,10 @@ function renderStartRendering() {
 
 function renderTick(timestamp: number) {
     var model = renderer.getMeshModel();
-    model.blendtreestate.params.floats["speed"] = speed;
-    model.blendtreestate.params.floats["idle"] = Math.abs(speed) > 0.05 ? 0 : 1;
+    if (model && model.blendtreestate) {
+        model.blendtreestate.params.floats["speed"] = speed;
+        model.blendtreestate.params.floats["idle"] = Math.abs(speed) > 0.05 ? 0 : 1;
+    }
 
     if (renderer.tick(timestamp, timescale)) {
         requestAnimationFrame(renderTick);

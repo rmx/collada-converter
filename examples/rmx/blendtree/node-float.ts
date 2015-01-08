@@ -91,7 +91,9 @@ module rmx {
         }
 
         getDuration(state: BlendTreeState): number {
-            return this.leftWeight * this.leftChild.getDuration(state) + this.rightWeight * this.rightChild.getDuration(state);
+            var leftDuration: number = this.leftChild.getDuration(state);
+            var rightDuration: number = this.rightChild.getDuration(state);
+            return this.leftWeight * leftDuration + this.rightWeight * rightDuration;
         }
     }
 
