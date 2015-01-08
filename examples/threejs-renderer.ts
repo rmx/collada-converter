@@ -1,4 +1,4 @@
-/// <reference path="./rmx/model.ts" />
+/// <reference path="./rmx/model/model.ts" />
 /// <reference path="./rmx/model-loader.ts" />
 /// <reference path="./rmx/animation/animation.ts" />
 /// <reference path="./rmx/blendtree/blendtree.ts" />

@@ -1,4 +1,4 @@
-/// <reference path="../model.ts" />
+/// <reference path="../model/skeleton.ts" />
 /// <reference path="../animation/pose.ts" />
 /// <reference path="./state.ts" />
 

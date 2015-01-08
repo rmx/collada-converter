@@ -1,4 +1,4 @@
-/// <reference path="./model.ts" />
+/// <reference path="./model/model.ts" />
 /// <reference path="../../lib/collada.d.ts" />
 
 module rmx {

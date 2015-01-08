@@ -1,5 +1,5 @@
 /// <reference path="../math/stream-math.ts" />
-/// <reference path="../model.ts" />
+/// <reference path="../model/skeleton.ts" />
 /// <reference path="./pose.ts" />
 /// <reference path="./skeleton-matrices.ts" />
 
