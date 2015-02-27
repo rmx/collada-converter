@@ -5,6 +5,11 @@
 
 module COLLADA.Loader {
 
+    export interface LinkResolveResult {
+        result: COLLADA.Loader.Element;
+        warning: string;
+    }
+
     /**
     * Base class for all links within a collada document
     */
@@ -46,7 +51,7 @@ module COLLADA.Loader {
             return this.url;
         }
 
-        resolve(context: COLLADA.Loader.Context) {
+        resolve(context: COLLADA.Loader.Context): void {
             // IDs are globally unique
             var object: COLLADA.Loader.Element = context.ids[this.url];
             if (object != null) {
@@ -80,7 +85,7 @@ module COLLADA.Loader {
             return this.url;
         }
 
-        resolve(context: COLLADA.Loader.Context) {
+        resolve(context: COLLADA.Loader.Context): void {
             var scope: COLLADA.Loader.Element = this.scope;
             var object: COLLADA.Loader.Element = null;
             // FX targets have a unique SID within a scope
@@ -181,10 +186,12 @@ module COLLADA.Loader {
         *   @param sids SID parts.
         *   @returns The collada element the URL points to, or an error why it wasn't found
         */
-        static findSidTarget(url: string, root: COLLADA.Loader.Element, sids: string[], context: COLLADA.Context): COLLADA.Loader.Element {
+        static findSidTarget(url: string, root: COLLADA.Loader.Element, sids: string[], context: COLLADA.Context): LinkResolveResult {
+            var result: LinkResolveResult = { result: null, warning: null };
             if (root == null) {
-                context.log.write("Could not resolve SID target " + sids.join("/") + ", missing root element", LogLevel.Warning);
-                return null;
+                result.result = null;
+                result.warning = "Could not resolve SID target " + sids.join("/") + ", missing root element";
+                return result;
             }
             var parentObject: COLLADA.Loader.Element = root;
             var childObject: COLLADA.Loader.Element = null;
@@ -213,16 +220,19 @@ module COLLADA.Loader {
                 }
                 // Abort if the current SID part was not found
                 if (childObject == null) {
-                    context.log.write("Could not resolve SID target " + sids.join("/") + ", missing SID part " + sid, LogLevel.Warning);
-                    return null;
+                    result.result = null;
+                    result.warning = "Could not resolve SID target " + sids.join("/") + ", missing SID part " + sid;
+                    return result;
                 }
                 parentObject = childObject;
             }
             // All parts processed, return the final target
-            return childObject;
+            result.result = childObject;
+            result.warning = null;
+            return result;
         }
 
-        resolve(context: COLLADA.Loader.Context) {
+        resolve(context: COLLADA.Loader.Context): void {
             var object: COLLADA.Loader.Element = null;
             if (this.id == null) {
                 context.log.write("Could not resolve SID #" + this.url + ", link has no root ID", LogLevel.Warning);
@@ -233,7 +243,11 @@ module COLLADA.Loader {
                 context.log.write("Could not resolve SID #" + this.url + ", could not find root element " + this.id, LogLevel.Warning);
                 return;
             }
-            this.target = SidLink.findSidTarget(this.url, object, this.sids, context);
+            var result = SidLink.findSidTarget(this.url, object, this.sids, context);
+            if (result.warning) {
+                context.log.write(result.warning, LogLevel.Warning);
+            }
+            this.target = result.result;
         }
     }
 }

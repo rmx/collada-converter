@@ -91,12 +91,15 @@ module COLLADA.Converter {
 
             if (!(fps > 0)) {
                 context.log.write("Invalid FPS: " + fps + ", skipping animation", LogLevel.Warning);
+                return null;
             }
             if (!(duration > 0)) {
                 context.log.write("Invalid duration: " + duration + ", skipping animation", LogLevel.Warning);
+                return null;
             }
             if (!(keyframes > 0)) {
                 context.log.write("Invalid number of keyframes: " + keyframes + ", skipping animation", LogLevel.Warning);
+                return null;
             }
 
             // Init result
@@ -133,7 +136,9 @@ module COLLADA.Converter {
                 // This might be expensive as it resamples the animation
                 for (var c: number = 0; c < src_channels.length; ++c) {
                     var channel: COLLADA.Converter.AnimationChannel = src_channels[c];
-                    channel.target.applyAnimation(channel, time, context);
+                    if (channel) {
+                        channel.target.applyAnimation(channel, time, context);
+                    }
                 }
 
                 // Extract bone poses
