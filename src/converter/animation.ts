@@ -91,11 +91,14 @@ module COLLADA.Converter {
             // Channels
             for (var i: number = 0; i < animation.channels.length; ++i) {
                 var channel: COLLADA.Converter.AnimationChannel = animation.channels[i];
-                var channelMinTime: number = channel.input[(index_begin !== null) ? index_begin : 0];
-                var channelMaxTime: number = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
-                var channelAvgFps: number = channel.input.length / (channelMaxTime - channelMinTime);
 
-                result.addDataPoint(channelMinTime, channelMaxTime, channelAvgFps);
+                if (channel) {
+                    var channelMinTime: number = channel.input[(index_begin !== null) ? index_begin : 0];
+                    var channelMaxTime: number = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
+                    var channelAvgFps: number = channel.input.length / (channelMaxTime - channelMinTime);
+
+                    result.addDataPoint(channelMinTime, channelMaxTime, channelAvgFps);
+                }
             }
         }
     }
