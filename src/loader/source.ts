@@ -129,8 +129,12 @@ module COLLADA.Loader {
                 source.params[name] = type;
             } else if ((semantic != null) && (type != null)) {
                 source.params[semantic] = type;
+            } else if (type != null) {
+                // Both name and semantic are optional
+                source.params["unnamed param #" + Object.keys(source.params).length] = type
             } else {
-                context.log.write("Accessor param for source " + source.id + " ignored due to missing type, name, or semantic", LogLevel.Warning);
+                // Type is required
+                context.log.write("Accessor param for source " + source.id + " ignored due to missing type", LogLevel.Warning);
             }
         }
     }

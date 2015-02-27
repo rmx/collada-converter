@@ -44,15 +44,22 @@ module COLLADA.Converter {
             // The skin element(chapter 5, "skin" element) * implies * that the joint ids are scoped identifiers relative to the skeleton root node,
             // so perform a sid - like breadth - first search.
             var boneNode: COLLADA.Loader.Element = null;
+            var warnings: string[] = [];
             for (var i: number = 0; i < skeletonRootNodes.length; i++) {
                 var skeletonRoot: COLLADA.Loader.VisualSceneNode = skeletonRootNodes[i];
                 var sids: string[] = boneSid.split("/");
-                boneNode = COLLADA.Loader.SidLink.findSidTarget(boneSid, skeletonRoot, sids, context);
-                if (boneNode != null) {
+                var result = COLLADA.Loader.SidLink.findSidTarget(boneSid, skeletonRoot, sids, context);
+                if (result.result != null) {
+                    boneNode = result.result;
                     break;
+                } else {
+                    warnings.push(result.warning);
                 }
             }
-            if (context.isInstanceOf(boneNode, "VisualSceneNode")) {
+            if (boneNode === null) {
+                context.log.write("Joint with SID " + boneSid + " not found, joint ignored. Related warnings:\n" + warnings.join("\n"), LogLevel.Warning);
+                return null;
+            } else if (context.isInstanceOf(boneNode, "VisualSceneNode")) {
                 return <COLLADA.Loader.VisualSceneNode> boneNode;
             } else {
                 context.log.write("Joint " + boneSid + " does not point to a visual scene node, joint ignored", LogLevel.Warning);
