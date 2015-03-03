@@ -17,21 +17,30 @@ module COLLADA.Converter {
         minTime: number;
         /** End of the time line */
         maxTime: number;
+        /** Minimum number of keyframes on a track */
+        minKeyframes: number;
+        /** Maximum number of keyframes on a track */
+        maxKeyframes: number;
         /** Minimum average fps among all animation tracks */
         minAvgFps: number;
         /** Maximum average fps among all animation tracks */
         maxAvgFps: number;
         /** Sum of average fps of all tracks */
         sumAvgFps: number;
+        /** Sum of keyframes */
+        sumKeyframes: number;
         /** Number of data points */
         count: number;
 
         constructor() {
             this.minTime = Infinity;
             this.maxTime = -Infinity;
+            this.minKeyframes = Infinity;
+            this.maxKeyframes = -Infinity;
             this.minAvgFps = Infinity;
             this.maxAvgFps = -Infinity;
             this.sumAvgFps = 0;
+            this.sumKeyframes = 0;
             this.count = 0;
         }
 
@@ -39,10 +48,18 @@ module COLLADA.Converter {
             return (this.count > 0) ? (this.sumAvgFps / this.count) : null;
         }
 
-        addDataPoint(minTime: number, maxTime: number, avgFps: number) {
+        avgKeyframes(): number {
+            return (this.count > 0) ? (this.sumKeyframes / this.count) : null;
+        }
+
+        addDataPoint(minTime: number, maxTime: number, keyframes: number) {
             this.count++;
             this.minTime = Math.min(this.minTime, minTime);
             this.maxTime = Math.max(this.maxTime, maxTime);
+            this.minKeyframes = Math.min(this.minKeyframes, keyframes);
+            this.maxKeyframes = Math.max(this.maxKeyframes, keyframes);
+            this.sumKeyframes += keyframes;
+            var avgFps = (keyframes - 1) / (maxTime - minTime);
             this.minAvgFps = Math.min(this.minAvgFps, avgFps);
             this.maxAvgFps = Math.max(this.maxAvgFps, avgFps);
             this.sumAvgFps += avgFps;
@@ -95,9 +112,9 @@ module COLLADA.Converter {
                 if (channel) {
                     var channelMinTime: number = channel.input[(index_begin !== null) ? index_begin : 0];
                     var channelMaxTime: number = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
-                    var channelAvgFps: number = channel.input.length / (channelMaxTime - channelMinTime);
+                    var channelKeyframes: number = channel.input.length;
 
-                    result.addDataPoint(channelMinTime, channelMaxTime, channelAvgFps);
+                    result.addDataPoint(channelMinTime, channelMaxTime, channelKeyframes);
                 }
             }
         }

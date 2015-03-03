@@ -64,6 +64,10 @@ module COLLADA.Converter {
             var stat: COLLADA.Converter.AnimationTimeStatistics = new COLLADA.Converter.AnimationTimeStatistics();
             COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
 
+            //console.log("Original Time: " + (stat.maxTime - stat.minTime) +  " (" + stat.minTime + " - " + stat.maxTime + ")");
+            //console.log("Original Keyframes: " + stat.avgKeyframes() + " (" + stat.minKeyframes + " - " + stat.maxKeyframes + ")");
+            //console.log("Original FPS: " + stat.avgFps() + " (" + stat.minAvgFps + " - " + stat.maxAvgFps + ")");
+
             // Default fps if none give: average fps of source data
             if (fps === null) {
                 fps = stat.avgFps();
@@ -78,13 +82,23 @@ module COLLADA.Converter {
             var end_time: number = stat.maxTime;
             var duration: number = end_time - start_time;
 
-            // Keyframes (always include first and last keyframe)
-            var keyframes: number = Math.ceil(fps * duration) + 1;
-            fps = (keyframes - 1) / duration;
+            // Keyframes
+            var keyframes: number = Math.max(Math.floor(fps * duration + 1e-4) + 1, 2);
+            if (context.options.truncateResampledAnimations) {
+                // Truncate duration, so that FPS is consistent with "keyframes/duration"
+                duration = (keyframes - 1) / fps;
+            } else {
+                // Stretch FPS, so that FPS is consistent with "keyframes/duration"
+                fps = (keyframes - 1) / duration;
+            }
             var spf: number = 1 / fps;
 
+            //console.log("Duration: " + duration);
+            //console.log("Keyframes: " + keyframes);
+            //console.log("FPS: " + fps);
+
             // Store fps
-            result.fps = fps;
+            result.fps = +fps.toFixed(3);
             result.keyframes = keyframes;
             result.duration = duration;
             result.original_fps = stat.avgFps();

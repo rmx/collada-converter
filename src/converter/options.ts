@@ -83,6 +83,7 @@ module COLLADA.Converter {
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
+        truncateResampledAnimations: OptionBool;
         worldTransform: OptionBool;
         worldTransformBake: OptionBool;
         worldTransformUnitScale: OptionBool;
@@ -129,6 +130,8 @@ module COLLADA.Converter {
                 "Rotation axis. See the 'worldTransform' option.");
             this.worldTransformRotationAngle = new OptionFloat("World transform: rotation angle", 0, 0, 360,
                 "Rotation angle (in degrees). See the 'worldTransform' option.");
+            this.truncateResampledAnimations = new OptionBool("Truncate resampled animations", true,
+                "True: animation durations will be truncated in order to keep the requested FPS. False: requested FPS will be slightly modified to keep the original duration.");
         }
 
     }
