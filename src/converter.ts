@@ -174,7 +174,7 @@ module COLLADA.Converter {
 
             // Process all animations in the document
             var labels: COLLADA.Converter.AnimationLabel[] = context.options.animationLabels.value;
-            var fps: number = context.options.animationFps.value;
+            var fps: number = +context.options.animationFps.value;
             for (var i: number = 0; i < file.animations.length; ++i) {
                 var animation: COLLADA.Converter.Animation = file.animations[i];
 
