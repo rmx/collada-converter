@@ -66,6 +66,11 @@ module COLLADA.Converter {
                 }
             }
 
+            // Original animations curves
+            if (context.options.enableAnimations.value === true) {
+                result.animations = ColladaConverter.createAnimations(doc, context);
+            }
+
             // Extract geometries
             if (context.options.enableExtractGeometry.value === true) {
                 result.geometries = COLLADA.Converter.Node.extractGeometries(result.nodes, context);
@@ -78,22 +83,17 @@ module COLLADA.Converter {
                 });
             }
 
+            // Resampled animations
+            if (context.options.enableResampledAnimations.value === true) {
+                result.resampled_animations = ColladaConverter.createResampledAnimations(doc, result, context);
+            }
+
             // Compute bounding boxes
             COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
                 this.forEachGeometry(result, (geometry) => {
                     COLLADA.Converter.Geometry.computeBoundingBox(geometry, context);
                 });
             });
-
-            // Original animations curves
-            if (context.options.enableAnimations.value === true) {
-                result.animations = ColladaConverter.createAnimations(doc, context);
-            }
-
-            // Resampled animations
-            if (context.options.enableResampledAnimations.value === true) {
-                result.resampled_animations = ColladaConverter.createResampledAnimations(doc, result, context);
-            }
 
             return result;
         }
