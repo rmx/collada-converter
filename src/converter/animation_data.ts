@@ -64,13 +64,15 @@ module COLLADA.Converter {
             var stat: COLLADA.Converter.AnimationTimeStatistics = new COLLADA.Converter.AnimationTimeStatistics();
             COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
 
-            //console.log("Original Time: " + (stat.maxTime - stat.minTime) +  " (" + stat.minTime + " - " + stat.maxTime + ")");
-            //console.log("Original Keyframes: " + stat.avgKeyframes() + " (" + stat.minKeyframes + " - " + stat.maxKeyframes + ")");
-            //console.log("Original FPS: " + stat.avgFps() + " (" + stat.minAvgFps + " - " + stat.maxAvgFps + ")");
+            console.log("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")");
+            console.log("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")");
+            console.log("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")");
+            console.log("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")");
+            console.log("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")");
 
-            // Default fps if none give: average fps of source data
+            // Default fps if none give: median fps of source data
             if (fps === null) {
-                fps = stat.avgFps();
+                fps = stat.fps.median();
             }
             if (fps === null || fps <= 0) {
                 context.log.write("Could not determine FPS for animation, skipping animation", LogLevel.Warning);
@@ -78,8 +80,8 @@ module COLLADA.Converter {
             }
 
             // Duration (in seconds)
-            var start_time: number = stat.minTime;
-            var end_time: number = stat.maxTime;
+            var start_time: number = stat.beginTime.min();
+            var end_time: number = stat.endTime.max();
             var duration: number = end_time - start_time;
 
             // Keyframes
@@ -93,15 +95,15 @@ module COLLADA.Converter {
             }
             var spf: number = 1 / fps;
 
-            //console.log("Duration: " + duration);
-            //console.log("Keyframes: " + keyframes);
-            //console.log("FPS: " + fps);
+            console.log("Duration: " + duration);
+            console.log("Keyframes: " + keyframes);
+            console.log("FPS: " + fps);
 
             // Store fps
             result.fps = +fps.toFixed(3);
             result.keyframes = keyframes;
             result.duration = duration;
-            result.original_fps = stat.avgFps();
+            result.original_fps = stat.fps.median();
 
             if (!(fps > 0)) {
                 context.log.write("Invalid FPS: " + fps + ", skipping animation", LogLevel.Warning);
