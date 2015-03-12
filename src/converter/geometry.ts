@@ -24,20 +24,24 @@ module COLLADA.Converter {
         /**
         * Creates a static (non-animated) geometry
         */
-        static createStatic(instanceGeometry: COLLADA.Loader.InstanceGeometry, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
+        static createStatic(instanceGeometry: COLLADA.Loader.InstanceGeometry, node: COLLADA.Converter.Node, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
             var geometry: COLLADA.Loader.Geometry = COLLADA.Loader.Geometry.fromLink(instanceGeometry.geometry, context);
             if (geometry === null) {
                 context.log.write("Geometry instance has no geometry, mesh ignored", LogLevel.Warning);
                 return null;
             }
 
-            return COLLADA.Converter.Geometry.createGeometry(geometry, instanceGeometry.materials, context);
+            var result = COLLADA.Converter.Geometry.createGeometry(geometry, instanceGeometry.materials, context);
+            if (context.options.createSkeleton.value) {
+                COLLADA.Converter.Geometry.addSkeleton(result, node, context);
+            }
+            return result;
         }
 
         /**
         * Creates an animated (skin or morph) geometry
         */
-        static createAnimated(instanceController: COLLADA.Loader.InstanceController, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
+        static createAnimated(instanceController: COLLADA.Loader.InstanceController, node: COLLADA.Converter.Node, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
             var controller: COLLADA.Loader.Controller = COLLADA.Loader.Controller.fromLink(instanceController.controller, context);
             if (controller === null) {
                 context.log.write("Controller instance has no controller, mesh ignored", LogLevel.Warning);
@@ -81,22 +85,13 @@ module COLLADA.Converter {
             // Create skin geometry
             var geometry: COLLADA.Converter.Geometry = COLLADA.Converter.Geometry.createGeometry(loaderGeometry, instanceController.materials, context);
 
-            // Skeleton root nodes
-            var skeletonLinks: COLLADA.Loader.Link[] = instanceController.skeletons;
-            var skeletonRootNodes: COLLADA.Loader.VisualSceneNode[] = [];
-            for (var i: number = 0; i < skeletonLinks.length; i++) {
-                var skeletonLink: COLLADA.Loader.Link = skeletonLinks[i];
-                var skeletonRootNode: COLLADA.Loader.VisualSceneNode = COLLADA.Loader.VisualSceneNode.fromLink(skeletonLink, context);
-                if (skeletonRootNode === null) {
-                    context.log.write("Skeleton root node " + skeletonLink.getUrl() + " not found, skeleton root ignored", LogLevel.Warning);
-                    continue;
-                }
-                skeletonRootNodes.push(skeletonRootNode);
+            if (!context.options.createSkeleton.value) {
+                context.log.write("Geometry " + geometry.name + " contains skinning data, but the creation of skeletons is disabled in the options. Using static geometry only.", LogLevel.Warning);
+                return geometry;
             }
-            if (skeletonRootNodes.length === 0) {
-                context.log.write("Controller has no skeleton, using the whole scene as the skeleton root", LogLevel.Warning);
-                skeletonRootNodes = context.nodes.collada.filter((node: COLLADA.Loader.VisualSceneNode) => (context.isInstanceOf(node.parent, "VisualScene")));
-            }
+
+            // Find skeleton root nodes
+            var skeletonRootNodes = COLLADA.Converter.Geometry.getSkeletonRootNodes(instanceController.skeletons, context);
             if (skeletonRootNodes.length === 0) {
                 context.log.write("Controller still has no skeleton, using unskinned geometry", LogLevel.Warning);
                 return geometry;
@@ -196,7 +191,45 @@ module COLLADA.Converter {
             }
 
             // Compact skinning data
-            var bonesPerVertex: number = 4;
+            var bonesPerVertex = 4;
+            var skinningData = COLLADA.Converter.Geometry.compactSkinningData(skin, index_map, weightsData, bonesPerVertex, context);
+            var skinIndices = skinningData.indices;
+            var skinWeights = skinningData.weights;
+
+            // Distribute skin data to chunks
+            for (var i = 0; i < geometry.chunks.length; ++i) {
+                var chunk: GeometryChunk = geometry.chunks[i];
+                var chunkData: GeometryData = chunk.data;
+                var chunkSrcIndices: GeometryChunkSourceIndices = chunk._colladaIndices;
+
+                // Distribute indices to chunks
+                chunkData.boneindex = new Uint8Array(chunk.vertexCount * bonesPerVertex);
+                COLLADA.Converter.Utils.reIndex(skinIndices, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset,
+                    bonesPerVertex, chunkData.boneindex, chunkData.indices, 1, 0, bonesPerVertex);
+
+                // Distribute weights to chunks
+                chunkData.boneweight = new Float32Array(chunk.vertexCount * bonesPerVertex);
+                COLLADA.Converter.Utils.reIndex(skinWeights, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset,
+                    bonesPerVertex, chunkData.boneweight, chunkData.indices, 1, 0, bonesPerVertex);
+            }
+
+            // Copy bind shape matrices
+            for (var i = 0; i < geometry.chunks.length; ++i) {
+                var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
+                chunk.bindShapeMatrix = mat4.clone(bindShapeMatrix);
+            }
+
+            // Apply bind shape matrices
+            if (context.options.applyBindShape.value === true) {
+                Geometry.applyBindShapeMatrices(geometry, context);
+            }
+
+            geometry.bones = bones;
+            return geometry;
+        }
+
+        static compactSkinningData(skin: Loader.Skin, index_map: Uint32Array, weightsData: Float32Array, bonesPerVertex: number,
+            context: COLLADA.Converter.Context): { weights: Float32Array; indices:Float32Array} {
             var weightsIndices: Int32Array = skin.vertexWeights.v;
             var weightsCounts: Int32Array = skin.vertexWeights.vcount;
             var skinVertexCount: number = weightsCounts.length;
@@ -214,7 +247,7 @@ module COLLADA.Converter {
                 if (weightCount > bonesPerVertex) {
                     verticesWithTooManyInfluences++;
                 }
-                weightCounts[Math.min(weightCount, weightCounts.length-1)]++;
+                weightCounts[Math.min(weightCount, weightCounts.length - 1)]++;
 
                 // Insert all bone references
                 for (var w: number = 0; w < weightCount; ++w) {
@@ -251,37 +284,25 @@ module COLLADA.Converter {
             if (verticesWithInvalidTotalWeight > 0) {
                 context.log.write("" + verticesWithInvalidTotalWeight + " vertices have zero or infinite total weight, skin will be broken.", LogLevel.Warning);
             }
+            return { weights: skinWeights, indices: skinIndices };
+        }
 
-            // Distribute skin data to chunks
-            for (var i = 0; i < geometry.chunks.length; ++i) {
-                var chunk: GeometryChunk = geometry.chunks[i];
-                var chunkData: GeometryData = chunk.data;
-                var chunkSrcIndices: GeometryChunkSourceIndices = chunk._colladaIndices;
-
-                // Distribute indices to chunks
-                chunkData.boneindex = new Uint8Array(chunk.vertexCount * bonesPerVertex);
-                COLLADA.Converter.Utils.reIndex(skinIndices, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset,
-                    bonesPerVertex, chunkData.boneindex, chunkData.indices, 1, 0, bonesPerVertex);
-
-                // Distribute weights to chunks
-                chunkData.boneweight = new Float32Array(chunk.vertexCount * bonesPerVertex);
-                COLLADA.Converter.Utils.reIndex(skinWeights, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset,
-                    bonesPerVertex, chunkData.boneweight, chunkData.indices, 1, 0, bonesPerVertex);
+        static getSkeletonRootNodes(skeletonLinks: COLLADA.Loader.Link[], context: COLLADA.Converter.Context): COLLADA.Loader.VisualSceneNode[] {
+            var skeletonRootNodes: COLLADA.Loader.VisualSceneNode[] = [];
+            for (var i: number = 0; i < skeletonLinks.length; i++) {
+                var skeletonLink: COLLADA.Loader.Link = skeletonLinks[i];
+                var skeletonRootNode: COLLADA.Loader.VisualSceneNode = COLLADA.Loader.VisualSceneNode.fromLink(skeletonLink, context);
+                if (skeletonRootNode === null) {
+                    context.log.write("Skeleton root node " + skeletonLink.getUrl() + " not found, skeleton root ignored", LogLevel.Warning);
+                    continue;
+                }
+                skeletonRootNodes.push(skeletonRootNode);
             }
-
-            // Copy bind shape matrices
-            for (var i = 0; i < geometry.chunks.length; ++i) {
-                var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
-                chunk.bindShapeMatrix = mat4.clone(bindShapeMatrix);
+            if (skeletonRootNodes.length === 0) {
+                context.log.write("Controller has no skeleton, using the whole scene as the skeleton root", LogLevel.Warning);
+                skeletonRootNodes = context.nodes.collada.filter((node: COLLADA.Loader.VisualSceneNode) => (context.isInstanceOf(node.parent, "VisualScene")));
             }
-
-            // Apply bind shape matrices
-            if (context.options.applyBindShape.value === true) {
-                Geometry.applyBindShapeMatrices(geometry, context);
-            }
-
-            geometry.bones = bones;
-            return geometry;
+            return skeletonRootNodes;
         }
 
         static createMorph(instanceController: COLLADA.Loader.InstanceController, controller: COLLADA.Loader.Controller, context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
@@ -426,12 +447,21 @@ module COLLADA.Converter {
         }
 
         static addSkeleton(geometry: COLLADA.Converter.Geometry, node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
-            // Create a single bone
+            // Create a single bone for the given node
             var colladaNode: COLLADA.Loader.VisualSceneNode = context.nodes.findCollada(node);
             var bone: COLLADA.Converter.Bone = COLLADA.Converter.Bone.create(node);
+            bone.attachedToSkin = true;
             mat4.identity(bone.invBindMatrix);
             geometry.bones.push(bone);
 
+            // Add all parent bones
+            COLLADA.Converter.Bone.findBoneParents(geometry.bones, context);
+            COLLADA.Converter.Bone.updateIndices(geometry.bones);
+
+            // Sort bones
+            if (context.options.sortBones.value) {
+                geometry.bones = COLLADA.Converter.Bone.sortBones(geometry.bones);
+            }
             COLLADA.Converter.Bone.updateIndices(geometry.bones);
 
             // Attach all geometry to the bone
@@ -442,7 +472,7 @@ module COLLADA.Converter {
                 chunkData.boneindex = new Uint8Array(chunk.vertexCount * 4);
                 chunkData.boneweight = new Float32Array(chunk.vertexCount * 4);
                 for (var v = 0; v < chunk.vertexCount; ++v) {
-                    chunkData.boneindex[4 * v + 0] = 0;
+                    chunkData.boneindex[4 * v + 0] = bone.index;
                     chunkData.boneindex[4 * v + 1] = 0;
                     chunkData.boneindex[4 * v + 2] = 0;
                     chunkData.boneindex[4 * v + 3] = 0;

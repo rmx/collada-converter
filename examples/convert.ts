@@ -481,6 +481,7 @@ function init() {
 
     // Create option elements
     var optionsForm = $("#form-options");
+    optionElements.push(new ColladaConverterOption(options.createSkeleton, optionsForm));
     optionElements.push(new ColladaConverterOption(options.enableAnimations, optionsForm));
     optionElements.push(new ColladaConverterOption(options.animationFps, optionsForm));
     optionElements.push(new ColladaConverterOption(options.worldTransform, optionsForm));
