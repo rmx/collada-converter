@@ -36,24 +36,27 @@ module COLLADA.Converter {
         findInputIndices(t: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationChannelIndices {
             var input: Float32Array = this.input;
 
-            // Handle borders
-            if (t < input[0]) {
+            var warnInvalidTime = (str: string) => {
                 var warningCount = context.messageCount["findInputIndices-invalidTime"] || 0;
                 if (warningCount < 10) {
-                    context.log.write("Invalid time for resampling: t=" + t + ", t_begin=" + input[0] + ", using first keyframe", LogLevel.Warning);
+                    context.log.write(str, LogLevel.Warning);
                 } else if (warningCount == 10) {
                     context.log.write("Further warnings about invalid time suppressed.", LogLevel.Warning);
                 }
                 context.messageCount["findInputIndices-invalidTime"] = warningCount + 1;
+            };
+
+            // Handle borders and special cases
+            if (input.length === 1) {
+                if (t !== input[0]) {
+                    warnInvalidTime("Resampling input with only one keyframe: t=" + t + ", t_begin=" + input[0] + ", using first keyframe");
+                }
+                return { i0: 0, i1: 0 };
+            } else if (t < input[0]) {
+                warnInvalidTime("Invalid time for resampling: t=" + t + ", t_begin=" + input[0] + ", using first keyframe");
                 return { i0: 0, i1: 1 };
             } else if (t > input[input.length - 1]) {
-                var warningCount = context.messageCount["findInputIndices-invalidTime"] || 0;
-                if (warningCount < 10) {
-                    context.log.write("Invalid time for resampling: t=" + t + ", t_end=" + input[input.length - 1] + ", using last keyframe", LogLevel.Warning);
-                } else if (warningCount == 10) {
-                    context.log.write("Further warnings about invalid time suppressed.", LogLevel.Warning);
-                }
-                context.messageCount["findInputIndices-invalidTime"] = warningCount + 1;
+                warnInvalidTime("Invalid time for resampling: t=" + t + ", t_end=" + input[input.length - 1] + ", using last keyframe");
                 return { i0: input.length - 2, i1: input.length - 1 };
             }
 
@@ -309,6 +312,7 @@ module COLLADA.Converter {
             var dataOffset: number = channel.dataOffset;
 
             var interpolation = channel.interpolation[indices.i0];
+            if (i0 === i1) interpolation = "STEP";
             switch (interpolation) {
                 case "STEP":
                     for (var i = 0; i < dataCount; ++i) {
