@@ -64,11 +64,11 @@ module COLLADA.Converter {
             var stat: COLLADA.Converter.AnimationTimeStatistics = new COLLADA.Converter.AnimationTimeStatistics();
             COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
 
-            console.log("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")");
-            console.log("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")");
-            console.log("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")");
-            console.log("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")");
-            console.log("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")");
+            context.log.write("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")", LogLevel.Debug);
+            context.log.write("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")", LogLevel.Debug);
+            context.log.write("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")", LogLevel.Debug);
+            context.log.write("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")", LogLevel.Debug);
+            context.log.write("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")", LogLevel.Debug);
 
             // Default fps if none give: median fps of source data
             if (fps === null) {
@@ -95,9 +95,9 @@ module COLLADA.Converter {
             }
             var spf: number = 1 / fps;
 
-            console.log("Duration: " + duration);
-            console.log("Keyframes: " + keyframes);
-            console.log("FPS: " + fps);
+            context.log.write("Resampled duration: " + duration, LogLevel.Debug);
+            context.log.write("Resampled keyframes: " + keyframes, LogLevel.Debug);
+            context.log.write("Resampled FPS: " + fps, LogLevel.Debug);
 
             // Store fps
             result.fps = +fps.toFixed(3);
