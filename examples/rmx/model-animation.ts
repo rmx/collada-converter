@@ -38,7 +38,7 @@ class RMXBoneMatrixTexture {
     * The smallest texture size that can hold the given number of bones.
     */
     static optimalSize(bones: number): number {
-        var result = 2;
+        var result = 4;
         while (RMXBoneMatrixTexture.capacity(result) < bones) {
             result = result * 2;
 
