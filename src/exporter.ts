@@ -3,7 +3,7 @@
 /// <reference path="exporter/context.ts" />
 /// <reference path="exporter/material.ts" />
 /// <reference path="exporter/geometry.ts" />
-/// <reference path="exporter/bone.ts" />
+/// <reference path="exporter/skeleton.ts" />
 /// <reference path="exporter/animation.ts" />
 /// <reference path="exporter/animation_track.ts" />
 
@@ -60,7 +60,7 @@ module COLLADA.Exporter {
             var info: COLLADA.Exporter.InfoJSON = {
                 bounding_box: BoundingBox.toJSON(converter_geometry.boundingBox)
             };
-            var bones: BoneJSON[] = converter_geometry.bones.map((e) => Bone.toJSON(e, context));
+            var bones: BoneJSON[] = Skeleton.toJSON(converter_geometry.getSkeleton(), context);
             var animations: AnimationJSON[] = doc.resampled_animations.map((e) => Animation.toJSON(e, context));
 
             // Assemble result: JSON part

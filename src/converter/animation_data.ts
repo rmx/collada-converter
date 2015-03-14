@@ -2,6 +2,7 @@
 /// <reference path="context.ts" />
 /// <reference path="utils.ts" />
 /// <reference path="bone.ts" />
+/// <reference path="skeleton.ts" />
 /// <reference path="animation.ts" />
 /// <reference path="animation_channel.ts" />
 
@@ -54,7 +55,7 @@ module COLLADA.Converter {
             this.tracks = [];
         }
 
-        static create(bones: COLLADA.Converter.Bone[], animation: COLLADA.Converter.Animation, index_begin: number, index_end: number, fps: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData {
+        static create(skeleton: COLLADA.Converter.Skeleton, animation: COLLADA.Converter.Animation, index_begin: number, index_end: number, fps: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData {
             var result: COLLADA.Converter.AnimationData = new COLLADA.Converter.AnimationData();
             result.name = animation.name;
 
@@ -119,8 +120,8 @@ module COLLADA.Converter {
             }
 
             // Init result
-            for (var i: number = 0; i < bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = bones[i];
+            for (var i: number = 0; i < skeleton.bones.length; ++i) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[i];
                 var track: COLLADA.Converter.AnimationDataTrack = new COLLADA.Converter.AnimationDataTrack();
 
                 track.pos = new Float32Array(keyframes * 3);
@@ -136,8 +137,8 @@ module COLLADA.Converter {
             var result_tracks: COLLADA.Converter.AnimationDataTrack[] = result.tracks;
 
             // Reset the bone poses
-            for (var i: number = 0; i < bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = bones[i];
+            for (var i: number = 0; i < skeleton.bones.length; ++i) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[i];
                 bone.node.resetAnimation();
             }
 
@@ -158,8 +159,8 @@ module COLLADA.Converter {
                 }
 
                 // Extract bone poses
-                for (var b: number = 0; b < bones.length; ++b) {
-                    var bone: COLLADA.Converter.Bone = bones[b];
+                for (var b: number = 0; b < skeleton.bones.length; ++b) {
+                    var bone: COLLADA.Converter.Bone = skeleton.bones[b];
                     var track: COLLADA.Converter.AnimationDataTrack = result_tracks[b];
 
                     var mat: Mat4 = bone.node.getLocalMatrix(context);
@@ -187,8 +188,8 @@ module COLLADA.Converter {
             }
 
             // Reset the bone poses
-            for (var i: number = 0; i < bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = bones[i];
+            for (var i: number = 0; i < skeleton.bones.length; ++i) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[i];
                 bone.node.resetAnimation();
             }
 
@@ -200,8 +201,8 @@ module COLLADA.Converter {
             var inv_rot0: Quat = quat.create();
             var scl0: Vec3 = vec3.create();
             var inv_scl0: Vec3 = vec3.create();
-            for (var b: number = 0; b < bones.length; ++b) {
-                var bone: COLLADA.Converter.Bone = bones[b];
+            for (var b: number = 0; b < skeleton.bones.length; ++b) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[b];
                 var track: COLLADA.Converter.AnimationDataTrack = result_tracks[b];
 
                 // Get rest pose transformation of the current bone
@@ -289,14 +290,19 @@ module COLLADA.Converter {
             return result;
         }
 
-        static createFromLabels(bones: COLLADA.Converter.Bone[], animation: COLLADA.Converter.Animation,
-            labels: COLLADA.Converter.AnimationLabel[], context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[] {
+        static createFromLabels(skeleton: COLLADA.Converter.Skeleton, animation: COLLADA.Converter.Animation,
+            labels: COLLADA.Converter.AnimationLabel[], context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[]{
+
+            if (skeleton === null) {
+                context.log.write("No skeleton present, no animation data generated.", LogLevel.Warning);
+                return [];
+            }
 
             var result: COLLADA.Converter.AnimationData[] = [];
 
             for (var i: number = 0; i < labels.length; ++i) {
                 var label: COLLADA.Converter.AnimationLabel = labels[i];
-                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(bones, animation, label.begin, label.end, label.fps, context);
+                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps, context);
                 if (data !== null) {
                     data.name = label.name;
                     result.push(data);

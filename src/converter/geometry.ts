@@ -11,14 +11,18 @@ module COLLADA.Converter {
     export class Geometry {
         name: string;
         chunks: COLLADA.Converter.GeometryChunk[];
-        bones: COLLADA.Converter.Bone[];
+        private skeleton: COLLADA.Converter.Skeleton;
         boundingBox: BoundingBox;
 
         constructor() {
             this.name = "";
             this.chunks = [];
-            this.bones = [];
+            this.skeleton = null;
             this.boundingBox = new BoundingBox();
+        }
+
+        getSkeleton(): Skeleton {
+            return this.skeleton;
         }
 
         /**
@@ -174,25 +178,16 @@ module COLLADA.Converter {
             }
 
             // Bones
-            var bones: COLLADA.Converter.Bone[] = COLLADA.Converter.Bone.createSkinBones(jointSids, skeletonRootNodes, bindShapeMatrix, invBindMatrices, context);
-            if (bones === null || bones.length === 0) {
+            var skeleton = Skeleton.createFromSkin(jointSids, skeletonRootNodes, bindShapeMatrix, invBindMatrices, context);
+            if (skeleton.bones.length === 0) {
                 context.log.write("Skin contains no bones, using unskinned mesh", LogLevel.Warning);
                 return geometry;
             }
-
-            // Sort bones if necessary
-            var index_map: Uint32Array = null;
-            if (context.options.sortBones.value) {
-                var unsorted_bones = bones;
-                bones = COLLADA.Converter.Bone.sortBones(unsorted_bones);
-                index_map = COLLADA.Converter.Bone.getBoneIndexMap(unsorted_bones, bones);
-            } else {
-                index_map = COLLADA.Converter.Bone.getBoneIndexMap(bones, bones);
-            }
+            Geometry.setSkeleton(geometry, skeleton, context);
 
             // Compact skinning data
             var bonesPerVertex = 4;
-            var skinningData = COLLADA.Converter.Geometry.compactSkinningData(skin, index_map, weightsData, bonesPerVertex, context);
+            var skinningData = COLLADA.Converter.Geometry.compactSkinningData(skin, weightsData, bonesPerVertex, context);
             var skinIndices = skinningData.indices;
             var skinWeights = skinningData.weights;
 
@@ -224,11 +219,15 @@ module COLLADA.Converter {
                 Geometry.applyBindShapeMatrices(geometry, context);
             }
 
-            geometry.bones = bones;
+            // Sort bones if necessary
+            if (context.options.sortBones.value) {
+                skeleton = COLLADA.Converter.Skeleton.sortBones(skeleton, context);
+            }
+            COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
             return geometry;
         }
 
-        static compactSkinningData(skin: Loader.Skin, index_map: Uint32Array, weightsData: Float32Array, bonesPerVertex: number,
+        static compactSkinningData(skin: Loader.Skin, weightsData: Float32Array, bonesPerVertex: number,
             context: COLLADA.Converter.Context): { weights: Float32Array; indices:Float32Array} {
             var weightsIndices: Int32Array = skin.vertexWeights.v;
             var weightsCounts: Int32Array = skin.vertexWeights.vcount;
@@ -252,7 +251,6 @@ module COLLADA.Converter {
                 // Insert all bone references
                 for (var w: number = 0; w < weightCount; ++w) {
                     var boneIndex: number = weightsIndices[vindex];
-                    boneIndex = index_map[boneIndex];
                     var boneWeightIndex: number = weightsIndices[vindex + 1];
                     vindex += 2;
                     var boneWeight: number = weightsData[boneWeightIndex];
@@ -369,12 +367,12 @@ module COLLADA.Converter {
         * Adapts inverse bind matrices to account for any additional transformations due to the world transform
         */
         static setupWorldTransform(geometry: COLLADA.Converter.Geometry, context: COLLADA.Converter.Context) {
-            if (geometry.bones == null) return;
+            if (geometry.skeleton === null) return;
 
             // Skinning equation:                [worldMatrix]     * [invBindMatrix]        * [pos]
             // Same with transformation A added: [worldMatrix]     * [invBindMatrix * A^-1] * [A * pos]
             // Same with transformation B added: [worldMatrix * B] * [B^-1 * invBindMatrix] * [pos]
-            geometry.bones.forEach((bone) => {
+            geometry.skeleton.bones.forEach((bone) => {
                 
                 // Transformation A (the world scale)
                 if (context.options.worldTransformBake) {
@@ -399,8 +397,8 @@ module COLLADA.Converter {
                 GeometryChunk.scaleChunk(chunk, scale, context);
             }
 
-            if (geometry.bones) {
-                geometry.bones.forEach((bone) => {
+            if (geometry.skeleton !== null) {
+                geometry.skeleton.bones.forEach((bone) => {
                     bone.invBindMatrix[12] *= scale;
                     bone.invBindMatrix[13] *= scale;
                     bone.invBindMatrix[14] *= scale;
@@ -447,24 +445,11 @@ module COLLADA.Converter {
         }
 
         static addSkeleton(geometry: COLLADA.Converter.Geometry, node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {
-            // Create a single bone for the given node
-            var colladaNode: COLLADA.Loader.VisualSceneNode = context.nodes.findCollada(node);
-            var bone: COLLADA.Converter.Bone = COLLADA.Converter.Bone.create(node);
-            bone.attachedToSkin = true;
-            mat4.identity(bone.invBindMatrix);
-            geometry.bones.push(bone);
+            // Create a skeleton from a single node
+            var skeleton = COLLADA.Converter.Skeleton.createFromNode(node, context);
+            COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
 
-            // Add all parent bones
-            COLLADA.Converter.Bone.findBoneParents(geometry.bones, context);
-            COLLADA.Converter.Bone.updateIndices(geometry.bones);
-
-            // Sort bones
-            if (context.options.sortBones.value) {
-                geometry.bones = COLLADA.Converter.Bone.sortBones(geometry.bones);
-            }
-            COLLADA.Converter.Bone.updateIndices(geometry.bones);
-
-            // Attach all geometry to the bone
+            // Attach all geometry to the bone representing the given node
             for (var i = 0; i < geometry.chunks.length; ++i) {
                 var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
                 var chunkData: GeometryData = chunk.data;
@@ -472,7 +457,7 @@ module COLLADA.Converter {
                 chunkData.boneindex = new Uint8Array(chunk.vertexCount * 4);
                 chunkData.boneweight = new Float32Array(chunk.vertexCount * 4);
                 for (var v = 0; v < chunk.vertexCount; ++v) {
-                    chunkData.boneindex[4 * v + 0] = bone.index;
+                    chunkData.boneindex[4 * v + 0] = 0;
                     chunkData.boneindex[4 * v + 1] = 0;
                     chunkData.boneindex[4 * v + 2] = 0;
                     chunkData.boneindex[4 * v + 3] = 0;
@@ -483,6 +468,12 @@ module COLLADA.Converter {
                     chunkData.boneweight[4 * v + 3] = 0;
                 }
             }
+
+            // Sort bones if necessary
+            if (context.options.sortBones.value) {
+                skeleton = COLLADA.Converter.Skeleton.sortBones(skeleton, context);
+            }
+            COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
         }
 
         /**
@@ -490,8 +481,10 @@ module COLLADA.Converter {
         * The original geometries will be empty after this operation (lazy design to avoid data duplication).
         */
         static mergeGeometries(geometries: COLLADA.Converter.Geometry[], context: COLLADA.Converter.Context): COLLADA.Converter.Geometry {
-
-            if (geometries.length === 1) {
+            if (geometries.length === 0) {
+                context.log.write("No geometries to merge", LogLevel.Warning);
+                return null;
+            } else if (geometries.length === 1) {
                 return geometries[0];
             }
 
@@ -499,67 +492,62 @@ module COLLADA.Converter {
             result.name = "merged_geometry";
 
             // Merge skeleton bones
-            var merged_bones: COLLADA.Converter.Bone[] = [];
-            for (var i = 0; i < geometries.length; ++i) {
-                COLLADA.Converter.Bone.appendBones(merged_bones, geometries[i].bones);
-            }
-            result.bones = merged_bones;
+            var skeleton = new Skeleton([]);
+            geometries.forEach((g) => {
+                if (g.skeleton !== null) {
+                    skeleton = COLLADA.Converter.Skeleton.mergeSkeletons(skeleton, g.skeleton, context);
+                }
+            });
 
             // Sort bones if necessary
             if (context.options.sortBones.value) {
-                merged_bones = COLLADA.Converter.Bone.sortBones(merged_bones);
+                skeleton = COLLADA.Converter.Skeleton.sortBones(skeleton, context);
             }
+            COLLADA.Converter.Geometry.setSkeleton(result, skeleton, context);
 
             // Recode bone indices
-            for (var i = 0; i < geometries.length; ++i) {
-                COLLADA.Converter.Geometry.adaptBoneIndices(geometries[i], merged_bones, context);
-            }
-
-            // Set bone indices
-            COLLADA.Converter.Bone.updateIndices(merged_bones);
-
-            // Safety check
-            for (var i = 0; i < merged_bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = merged_bones[i];
-                if (bone.parent !== null) {
-                    if (bone.parent != merged_bones[bone.parentIndex()]) throw new Error("Inconsistent bone parent");
-                }
-            }
+            geometries.forEach((geometry) => {
+                COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
+            });
 
             // Merge geometry chunks
-            for (var i = 0; i < geometries.length; ++i) {
-                result.chunks = result.chunks.concat(geometries[i].chunks);
-            }
+            geometries.forEach((geometry) => {
+                result.chunks = result.chunks.concat(geometry.chunks);
+            });
 
             // We modified the original data, unlink it from the original geometries
-            for (var i = 0; i < geometries.length; ++i) {
-                geometries[i].chunks = [];
-                geometries[i].bones = [];
-            }
+            geometries.forEach((geometry) => {
+                geometry.chunks = [];
+            });
 
             return result;
         }
 
         /**
-        * Change all vertex bone indices so that they point to the given new_bones array, instead of the current geometry.bones array
+        * Set the new skeleton for the given geometry.
+        * Changes all vertex bone indices so that they point to the given skeleton bones, instead of the current geometry.skeleton bones
         */
-        static adaptBoneIndices(geometry: COLLADA.Converter.Geometry, new_bones: COLLADA.Converter.Bone[], context: COLLADA.Converter.Context) {
-            if (geometry.bones.length === 0) {
-                return;
-            }
+        static setSkeleton(geometry: COLLADA.Converter.Geometry, skeleton: COLLADA.Converter.Skeleton, context: COLLADA.Converter.Context) {
 
-            // Compute the index map
-            var index_map: Uint32Array = COLLADA.Converter.Bone.getBoneIndexMap(geometry.bones, new_bones);
+            // Adapt bone indices
+            if (geometry.skeleton !== null) {
+                // Compute the index map
+                var index_map: Uint32Array = COLLADA.Converter.Skeleton.getBoneIndexMap(geometry.skeleton, skeleton);
 
-            // Recode indices
-            for (var i = 0; i < geometry.chunks.length; ++i) {
-                var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
-                var boneindex: Uint8Array = chunk.data.boneindex;
+                // Recode indices
+                for (var i = 0; i < geometry.chunks.length; ++i) {
+                    var chunk: COLLADA.Converter.GeometryChunk = geometry.chunks[i];
+                    var boneindex: Uint8Array = chunk.data.boneindex;
 
-                for (var j = 0; j < boneindex.length; ++j) {
-                    boneindex[j] = index_map[boneindex[j]];
+                    if (boneindex !== null) {
+                        for (var j = 0; j < boneindex.length; ++j) {
+                            boneindex[j] = index_map[boneindex[j]];
+                        }
+                    }
                 }
             }
+
+            geometry.skeleton = skeleton;
         }
 
     }

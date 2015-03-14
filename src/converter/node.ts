@@ -261,7 +261,7 @@ module COLLADA.Converter {
             var skinnedGeometries: number = 0;
             var animatedNodeGeometries: number = 0;
             result.forEach((element) => {
-                if (element.geometry.bones.length > 0) skinnedGeometries++; 
+                if (element.geometry.getSkeleton() !== null) skinnedGeometries++; 
                 if (element.node.isAnimated(true)) animatedNodeGeometries++;
             });
 

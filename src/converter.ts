@@ -59,7 +59,7 @@ module COLLADA.Converter {
                 if (context.options.worldTransformBake.value) {
                     var mat: Mat4 = Utils.getWorldTransform(context);
                     this.forEachGeometry(result, (geometry) => {
-                        if (geometry.bones.length > 0) {
+                        if (geometry.getSkeleton() !== null) {
                             COLLADA.Converter.Geometry.transformGeometry(geometry, mat, context);
                         }
                     });
@@ -179,10 +179,10 @@ module COLLADA.Converter {
                 var animation: COLLADA.Converter.Animation = file.animations[i];
 
                 if (context.options.useAnimationLabels.value === true) {
-                    var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.bones, animation, labels, context);
+                    var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, context);
                     result = result.concat(datas);
                 } else {
-                    var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(geometry.bones, animation, null, null, fps, context);
+                    var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(geometry.getSkeleton(), animation, null, null, fps, context);
                     if (data !== null) {
                         result.push(data);
                     }

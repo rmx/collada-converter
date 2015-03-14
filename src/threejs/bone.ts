@@ -6,8 +6,8 @@ module COLLADA.Threejs {
 
     export class Bone {
 
-        static toJSON(bone: COLLADA.Converter.Bone, context: COLLADA.Threejs.Context): any {
-            if (bone === null) {
+        static toJSON(skeleton: COLLADA.Converter.Skeleton, bone: COLLADA.Converter.Bone, context: COLLADA.Threejs.Context): any {
+            if (skeleton === null || bone === null) {
                 return null;
             }
 
@@ -36,7 +36,7 @@ module COLLADA.Threejs {
 
             // Compose
             return {
-                "parent": bone.parentIndex(),
+                "parent": skeleton.bones.indexOf(bone),
                 "name": bone.name,
                 "pos": pos.map((x) => COLLADA.MathUtils.round(x, context.pos_tol)),
                 "rotq": rot.map((x) => COLLADA.MathUtils.round(x, context.rot_tol)),
