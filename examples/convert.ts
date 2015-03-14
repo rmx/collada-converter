@@ -165,7 +165,7 @@ function downloadJSON(data: any, name: string) {
 }
 
 function previewJSON(data: any) {
-    var str = stringify.stringify(data);
+    var str = stringify.stringify(data, {maxLength: 120});
     $("#preview-data").val(str);
     (<any>$("#preview-modal")).modal('show');
 }
