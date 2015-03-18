@@ -59,11 +59,16 @@ module COLLADA.Converter {
                 if (context.options.worldTransformBake.value) {
                     var mat: Mat4 = Utils.getWorldTransform(context);
                     this.forEachGeometry(result, (geometry) => {
-                        if (geometry.bones.length > 0) {
+                        if (geometry.getSkeleton() !== null) {
                             COLLADA.Converter.Geometry.transformGeometry(geometry, mat, context);
                         }
                     });
                 }
+            }
+
+            // Original animations curves
+            if (context.options.enableAnimations.value === true) {
+                result.animations = ColladaConverter.createAnimations(doc, context);
             }
 
             // Extract geometries
@@ -78,22 +83,17 @@ module COLLADA.Converter {
                 });
             }
 
+            // Resampled animations
+            if (context.options.enableResampledAnimations.value === true) {
+                result.resampled_animations = ColladaConverter.createResampledAnimations(doc, result, context);
+            }
+
             // Compute bounding boxes
             COLLADA.Converter.Node.forEachNode(result.nodes, (node: Node) => {
                 this.forEachGeometry(result, (geometry) => {
                     COLLADA.Converter.Geometry.computeBoundingBox(geometry, context);
                 });
             });
-
-            // Original animations curves
-            if (context.options.enableAnimations.value === true) {
-                result.animations = ColladaConverter.createAnimations(doc, context);
-            }
-
-            // Resampled animations
-            if (context.options.enableResampledAnimations.value === true) {
-                result.resampled_animations = ColladaConverter.createResampledAnimations(doc, result, context);
-            }
 
             return result;
         }
@@ -174,15 +174,15 @@ module COLLADA.Converter {
 
             // Process all animations in the document
             var labels: COLLADA.Converter.AnimationLabel[] = context.options.animationLabels.value;
-            var fps: number = context.options.animationFps.value;
+            var fps: number = +context.options.animationFps.value;
             for (var i: number = 0; i < file.animations.length; ++i) {
                 var animation: COLLADA.Converter.Animation = file.animations[i];
 
                 if (context.options.useAnimationLabels.value === true) {
-                    var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.bones, animation, labels, context);
+                    var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, context);
                     result = result.concat(datas);
                 } else {
-                    var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(geometry.bones, animation, null, null, fps, context);
+                    var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(geometry.getSkeleton(), animation, null, null, fps, context);
                     if (data !== null) {
                         result.push(data);
                     }

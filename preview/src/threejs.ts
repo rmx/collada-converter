@@ -127,8 +127,14 @@ module COLLADA.Threejs {
                 baseIndexOffset += chunk.vertexCount;
             }
 
-            var bones: any[] = converter_geometry.bones.map((bone) => { return COLLADA.Threejs.Bone.toJSON(bone, context); });
-            var animations: any[] = doc.resampled_animations.map((e) => { return COLLADA.Threejs.Animation.toJSON(e, converter_geometry.bones, bones, context); });
+            var bones: any[] = [];
+            var animations: any[] = [];
+            var skeleton = converter_geometry.getSkeleton();
+            if (skeleton !== null) {
+                bones = skeleton.bones.map((bone) => { return COLLADA.Threejs.Bone.toJSON(skeleton, bone, context); });
+                animations = doc.resampled_animations.map((e) => { return COLLADA.Threejs.Animation.toJSON(e, skeleton.bones, bones, context); });
+            }
+            
 
             // Assemble result
             return {

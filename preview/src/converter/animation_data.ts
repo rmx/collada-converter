@@ -2,6 +2,7 @@
 /// <reference path="context.ts" />
 /// <reference path="utils.ts" />
 /// <reference path="bone.ts" />
+/// <reference path="skeleton.ts" />
 /// <reference path="animation.ts" />
 /// <reference path="animation_channel.ts" />
 
@@ -54,7 +55,7 @@ module COLLADA.Converter {
             this.tracks = [];
         }
 
-        static create(bones: COLLADA.Converter.Bone[], animation: COLLADA.Converter.Animation, index_begin: number, index_end: number, fps: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData {
+        static create(skeleton: COLLADA.Converter.Skeleton, animation: COLLADA.Converter.Animation, index_begin: number, index_end: number, fps: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData {
             var result: COLLADA.Converter.AnimationData = new COLLADA.Converter.AnimationData();
             result.name = animation.name;
 
@@ -64,9 +65,15 @@ module COLLADA.Converter {
             var stat: COLLADA.Converter.AnimationTimeStatistics = new COLLADA.Converter.AnimationTimeStatistics();
             COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
 
-            // Default fps if none give: average fps of source data
+            context.log.write("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")", LogLevel.Debug);
+            context.log.write("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")", LogLevel.Debug);
+            context.log.write("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")", LogLevel.Debug);
+            context.log.write("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")", LogLevel.Debug);
+            context.log.write("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")", LogLevel.Debug);
+
+            // Default fps if none give: median fps of source data
             if (fps === null) {
-                fps = stat.avgFps();
+                fps = stat.fps.median();
             }
             if (fps === null || fps <= 0) {
                 context.log.write("Could not determine FPS for animation, skipping animation", LogLevel.Warning);
@@ -74,34 +81,47 @@ module COLLADA.Converter {
             }
 
             // Duration (in seconds)
-            var start_time: number = stat.minTime;
-            var end_time: number = stat.maxTime;
+            var start_time: number = stat.beginTime.min();
+            var end_time: number = stat.endTime.max();
             var duration: number = end_time - start_time;
 
-            // Keyframes (always include first and last keyframe)
-            var keyframes: number = Math.ceil(fps * duration) + 1;
-            fps = (keyframes - 1) / duration;
+            // Keyframes
+            var keyframes: number = Math.max(Math.floor(fps * duration + 1e-4) + 1, 2);
+            if (context.options.truncateResampledAnimations) {
+                // Truncate duration, so that FPS is consistent with "keyframes/duration"
+                duration = (keyframes - 1) / fps;
+            } else {
+                // Stretch FPS, so that FPS is consistent with "keyframes/duration"
+                fps = (keyframes - 1) / duration;
+            }
             var spf: number = 1 / fps;
 
+            context.log.write("Resampled duration: " + duration, LogLevel.Debug);
+            context.log.write("Resampled keyframes: " + keyframes, LogLevel.Debug);
+            context.log.write("Resampled FPS: " + fps, LogLevel.Debug);
+
             // Store fps
-            result.fps = fps;
+            result.fps = +fps.toFixed(3);
             result.keyframes = keyframes;
             result.duration = duration;
-            result.original_fps = stat.avgFps();
+            result.original_fps = stat.fps.median();
 
             if (!(fps > 0)) {
                 context.log.write("Invalid FPS: " + fps + ", skipping animation", LogLevel.Warning);
+                return null;
             }
             if (!(duration > 0)) {
                 context.log.write("Invalid duration: " + duration + ", skipping animation", LogLevel.Warning);
+                return null;
             }
             if (!(keyframes > 0)) {
                 context.log.write("Invalid number of keyframes: " + keyframes + ", skipping animation", LogLevel.Warning);
+                return null;
             }
 
             // Init result
-            for (var i: number = 0; i < bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = bones[i];
+            for (var i: number = 0; i < skeleton.bones.length; ++i) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[i];
                 var track: COLLADA.Converter.AnimationDataTrack = new COLLADA.Converter.AnimationDataTrack();
 
                 track.pos = new Float32Array(keyframes * 3);
@@ -117,8 +137,8 @@ module COLLADA.Converter {
             var result_tracks: COLLADA.Converter.AnimationDataTrack[] = result.tracks;
 
             // Reset the bone poses
-            for (var i: number = 0; i < bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = bones[i];
+            for (var i: number = 0; i < skeleton.bones.length; ++i) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[i];
                 bone.node.resetAnimation();
             }
 
@@ -133,12 +153,14 @@ module COLLADA.Converter {
                 // This might be expensive as it resamples the animation
                 for (var c: number = 0; c < src_channels.length; ++c) {
                     var channel: COLLADA.Converter.AnimationChannel = src_channels[c];
-                    channel.target.applyAnimation(channel, time, context);
+                    if (channel) {
+                        channel.target.applyAnimation(channel, time, context);
+                    }
                 }
 
                 // Extract bone poses
-                for (var b: number = 0; b < bones.length; ++b) {
-                    var bone: COLLADA.Converter.Bone = bones[b];
+                for (var b: number = 0; b < skeleton.bones.length; ++b) {
+                    var bone: COLLADA.Converter.Bone = skeleton.bones[b];
                     var track: COLLADA.Converter.AnimationDataTrack = result_tracks[b];
 
                     var mat: Mat4 = bone.node.getLocalMatrix(context);
@@ -166,8 +188,8 @@ module COLLADA.Converter {
             }
 
             // Reset the bone poses
-            for (var i: number = 0; i < bones.length; ++i) {
-                var bone: COLLADA.Converter.Bone = bones[i];
+            for (var i: number = 0; i < skeleton.bones.length; ++i) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[i];
                 bone.node.resetAnimation();
             }
 
@@ -179,8 +201,8 @@ module COLLADA.Converter {
             var inv_rot0: Quat = quat.create();
             var scl0: Vec3 = vec3.create();
             var inv_scl0: Vec3 = vec3.create();
-            for (var b: number = 0; b < bones.length; ++b) {
-                var bone: COLLADA.Converter.Bone = bones[b];
+            for (var b: number = 0; b < skeleton.bones.length; ++b) {
+                var bone: COLLADA.Converter.Bone = skeleton.bones[b];
                 var track: COLLADA.Converter.AnimationDataTrack = result_tracks[b];
 
                 // Get rest pose transformation of the current bone
@@ -268,14 +290,19 @@ module COLLADA.Converter {
             return result;
         }
 
-        static createFromLabels(bones: COLLADA.Converter.Bone[], animation: COLLADA.Converter.Animation,
-            labels: COLLADA.Converter.AnimationLabel[], context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[] {
+        static createFromLabels(skeleton: COLLADA.Converter.Skeleton, animation: COLLADA.Converter.Animation,
+            labels: COLLADA.Converter.AnimationLabel[], context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[]{
+
+            if (skeleton === null) {
+                context.log.write("No skeleton present, no animation data generated.", LogLevel.Warning);
+                return [];
+            }
 
             var result: COLLADA.Converter.AnimationData[] = [];
 
             for (var i: number = 0; i < labels.length; ++i) {
                 var label: COLLADA.Converter.AnimationLabel = labels[i];
-                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(bones, animation, label.begin, label.end, label.fps, context);
+                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps, context);
                 if (data !== null) {
                     data.name = label.name;
                     result.push(data);

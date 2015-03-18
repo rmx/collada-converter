@@ -11,6 +11,10 @@ declare module COLLADA.Loader {
     }
 }
 declare module COLLADA.Loader {
+    interface LinkResolveResult {
+        result: Element;
+        warning: string;
+    }
     /**
     * Base class for all links within a collada document
     */
@@ -79,7 +83,7 @@ declare module COLLADA.Loader {
         *   @param sids SID parts.
         *   @returns The collada element the URL points to, or an error why it wasn't found
         */
-        static findSidTarget(url: string, root: Element, sids: string[], context: COLLADA.Context): Element;
+        static findSidTarget(url: string, root: Element, sids: string[], context: COLLADA.Context): LinkResolveResult;
         resolve(context: Context): void;
     }
 }
@@ -789,11 +793,12 @@ declare module COLLADA.Loader {
 }
 declare module COLLADA {
     enum LogLevel {
-        Trace = 1,
-        Info = 2,
-        Warning = 3,
-        Error = 4,
-        Exception = 5,
+        Debug = 1,
+        Trace = 2,
+        Info = 3,
+        Warning = 4,
+        Error = 5,
+        Exception = 6,
     }
     function LogLevelToString(level: LogLevel): string;
     interface Log {
@@ -937,14 +942,13 @@ declare module COLLADA.Converter {
 }
 declare module COLLADA.Converter {
     class Bone {
-        index: number;
         node: Node;
         name: string;
         parent: Bone;
-        attachedToSkin: boolean;
         invBindMatrix: Mat4;
+        attachedToSkin: boolean;
         constructor(node: Node);
-        parentIndex(): number;
+        clone(): Bone;
         depth(): number;
         static create(node: Node): Bone;
         /**
@@ -952,46 +956,16 @@ declare module COLLADA.Converter {
         * The skin element contains the skeleton root nodes.
         */
         static findBoneNode(boneSid: string, skeletonRootNodes: Loader.VisualSceneNode[], context: Context): Loader.VisualSceneNode;
-        /**
-        * Find the parent for each bone
-        * The skeleton(s) may contain more bones than referenced by the skin
-        * This function also adds all bones that are not referenced but used for the skeleton transformation
-        */
-        static findBoneParents(bones: Bone[], context: Context): void;
-        /**
-        * Create all bones used in the given skin
-        */
-        static createSkinBones(jointSids: string[], skeletonRootNodes: Loader.VisualSceneNode[], bindShapeMatrix: Mat4, invBindMatrices: Float32Array, context: Context): Bone[];
-        /**
-        * Updates the index member for all bones of the given array
-        */
-        static updateIndices(bones: Bone[]): void;
+        static sameInvBindMatrix(a: Bone, b: Bone, tolerance: number): boolean;
         /**
         * Returns true if the two bones can safely be merged, i.e.,
         * they reference the same scene graph node and have the same inverse bind matrix
         */
-        static sameBone(a: Bone, b: Bone): boolean;
+        static safeToMerge(a: Bone, b: Bone): boolean;
         /**
-        * Appends bones from src to dest, so that each bone is unique
+        * Merges the two given bones. Returns null if they cannot be merged.
         */
-        static appendBones(dest: Bone[], src: Bone[]): void;
-        /**
-        * Appends src_bone to dest
-        */
-        static appendBone(dest: Bone[], src_bone: Bone): Bone;
-        /**
-        * Given two arrays a and b, such that each bone from a is contained in b,
-        * compute a map that maps the old index (a) of each bone to the new index (b).
-        */
-        static getBoneIndexMap(a: Bone[], b: Bone[]): Uint32Array;
-        /**
-        * Returns true if the bones are sorted so that child bones appear after their parents in the list.
-        */
-        static bonesSorted(bones: Bone[]): boolean;
-        /**
-        * Sorts bones so that child bones appear after their parents in the list.
-        */
-        static sortBones(bones: Bone[]): Bone[];
+        static mergeBone(a: Bone, b: Bone): Bone;
     }
 }
 declare module COLLADA.Converter {
@@ -1074,21 +1048,27 @@ declare module COLLADA.Converter {
     class Geometry {
         name: string;
         chunks: GeometryChunk[];
-        bones: Bone[];
+        private skeleton;
         boundingBox: BoundingBox;
         constructor();
+        getSkeleton(): Skeleton;
         /**
         * Creates a static (non-animated) geometry
         */
-        static createStatic(instanceGeometry: Loader.InstanceGeometry, context: Context): Geometry;
+        static createStatic(instanceGeometry: Loader.InstanceGeometry, node: Node, context: Context): Geometry;
         /**
         * Creates an animated (skin or morph) geometry
         */
-        static createAnimated(instanceController: Loader.InstanceController, context: Context): Geometry;
+        static createAnimated(instanceController: Loader.InstanceController, node: Node, context: Context): Geometry;
         /**
         * Creates a skin-animated geometry
         */
         static createSkin(instanceController: Loader.InstanceController, controller: Loader.Controller, context: Context): Geometry;
+        static compactSkinningData(skin: Loader.Skin, weightsData: Float32Array, bonesPerVertex: number, context: Context): {
+            weights: Float32Array;
+            indices: Float32Array;
+        };
+        static getSkeletonRootNodes(skeletonLinks: Loader.Link[], context: Context): Loader.VisualSceneNode[];
         static createMorph(instanceController: Loader.InstanceController, controller: Loader.Controller, context: Context): Geometry;
         static createGeometry(geometry: Loader.Geometry, instanceMaterials: Loader.InstanceMaterial[], context: Context): Geometry;
         /**
@@ -1120,9 +1100,10 @@ declare module COLLADA.Converter {
         */
         static mergeGeometries(geometries: Geometry[], context: Context): Geometry;
         /**
-        * Change all vertex bone indices so that they point to the given new_bones array, instead of the current geometry.bones array
+        * Set the new skeleton for the given geometry.
+        * Changes all vertex bone indices so that they point to the given skeleton bones, instead of the current geometry.skeleton bones
         */
-        static adaptBoneIndices(geometry: Geometry, new_bones: Bone[], context: Context): void;
+        static setSkeleton(geometry: Geometry, skeleton: Skeleton, context: Context): void;
     }
 }
 declare module COLLADA.Converter {
@@ -1133,21 +1114,27 @@ declare module COLLADA.Converter {
         getTargetDataColumns(): number;
     }
     class AnimationTimeStatistics {
-        /** Start of the time line */
-        minTime: number;
-        /** End of the time line */
-        maxTime: number;
-        /** Minimum average fps among all animation tracks */
-        minAvgFps: number;
-        /** Maximum average fps among all animation tracks */
-        maxAvgFps: number;
-        /** Sum of average fps of all tracks */
-        sumAvgFps: number;
-        /** Number of data points */
-        count: number;
+        beginTime: Statistics;
+        endTime: Statistics;
+        duration: Statistics;
+        keyframes: Statistics;
+        fps: Statistics;
         constructor();
-        avgFps(): number;
-        addDataPoint(minTime: number, maxTime: number, avgFps: number): void;
+        addDataPoint(beginTime: number, endTime: number, keyframes: number): void;
+    }
+    class Statistics {
+        data: number[];
+        sorted: boolean;
+        constructor();
+        addDataPoint(value: number): void;
+        private sort();
+        private compute(fn);
+        count(): number;
+        min(): number;
+        max(): number;
+        median(): number;
+        sum(): number;
+        mean(): number;
     }
     class Animation {
         id: string;
@@ -1393,13 +1380,71 @@ declare module COLLADA.Converter {
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
+        truncateResampledAnimations: OptionBool;
         worldTransform: OptionBool;
         worldTransformBake: OptionBool;
         worldTransformUnitScale: OptionBool;
         worldTransformScale: OptionFloat;
         worldTransformRotationAxis: OptionSelect;
         worldTransformRotationAngle: OptionFloat;
+        createSkeleton: OptionBool;
         constructor();
+    }
+}
+declare module COLLADA.Converter {
+    class Skeleton {
+        /** All bones */
+        bones: Bone[];
+        constructor(bones: Bone[]);
+        /**
+        * In the given list, finds a bone that can be merged with the given bone
+        */
+        static findBone(bones: Bone[], bone: Bone): Bone;
+        /**
+        * Find the parent bone of the given bone
+        */
+        static findParent(bones: Bone[], bone: Bone): Bone;
+        static checkConsistency(skeleton: Skeleton, context: Context): void;
+        /**
+        * Creates a skeleton from a skin
+        */
+        static createFromSkin(jointSids: string[], skeletonRootNodes: Loader.VisualSceneNode[], bindShapeMatrix: Mat4, invBindMatrices: Float32Array, context: Context): Skeleton;
+        /**
+        * Creates a skeleton from a node
+        */
+        static createFromNode(node: Node, context: Context): Skeleton;
+        static replaceBone(bones: Bone[], index: number, bone: Bone): Bone[];
+        /**
+        * Add a bone to the list of bones, merging bones where possible
+        */
+        static mergeBone(bones: Bone[], bone: Bone): Bone[];
+        /**
+        * Merges the two skeletons
+        */
+        static mergeSkeletons(skeleton1: Skeleton, skeleton2: Skeleton, context: Context): Skeleton;
+        /**
+        * Assembles a list of skeleton root nodes
+        */
+        static getSkeletonRootNodes(skeletonLinks: Loader.Link[], context: Context): Loader.VisualSceneNode[];
+        /**
+        * Find the parent for each bone
+        * The skeleton(s) may contain more bones than referenced by the skin
+        * This function also adds all bones that are not referenced but used for the skeleton transformation
+        */
+        static addBoneParents(skeleton: Skeleton, context: Context): Skeleton;
+        /**
+        * Given two arrays a and b, such that each bone from a is contained in b,
+        * compute a map that maps the old index (a) of each bone to the new index (b).
+        */
+        static getBoneIndexMap(a: Skeleton, b: Skeleton): Uint32Array;
+        /**
+        * Sorts bones so that child bones appear after their parents in the list.
+        */
+        static sortBones(skeleton: Skeleton, context: Context): Skeleton;
+        /**
+        * Returns true if the bones are sorted so that child bones appear after their parents in the list.
+        */
+        static bonesSorted(bones: Bone[]): boolean;
     }
 }
 declare module COLLADA.Converter {
@@ -1432,8 +1477,8 @@ declare module COLLADA.Converter {
         original_fps: number;
         tracks: AnimationDataTrack[];
         constructor();
-        static create(bones: Bone[], animation: Animation, index_begin: number, index_end: number, fps: number, context: Context): AnimationData;
-        static createFromLabels(bones: Bone[], animation: Animation, labels: AnimationLabel[], context: Context): AnimationData[];
+        static create(skeleton: Skeleton, animation: Animation, index_begin: number, index_end: number, fps: number, context: Context): AnimationData;
+        static createFromLabels(skeleton: Skeleton, animation: Animation, labels: AnimationLabel[], context: Context): AnimationData[];
     }
 }
 declare module COLLADA.Converter {
@@ -1639,8 +1684,8 @@ declare module COLLADA.Exporter {
     }
 }
 declare module COLLADA.Exporter {
-    class Bone {
-        static toJSON(bone: Converter.Bone, context: Context): BoneJSON;
+    class Skeleton {
+        static toJSON(skeleton: Converter.Skeleton, context: Context): BoneJSON[];
     }
 }
 declare module COLLADA.Exporter {
@@ -1679,7 +1724,7 @@ declare module COLLADA.Threejs {
 }
 declare module COLLADA.Threejs {
     class Bone {
-        static toJSON(bone: Converter.Bone, context: Context): any;
+        static toJSON(skeleton: Converter.Skeleton, bone: Converter.Bone, context: Context): any;
     }
 }
 declare module COLLADA.Threejs {

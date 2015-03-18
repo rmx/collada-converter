@@ -83,12 +83,14 @@ module COLLADA.Converter {
         applyBindShape: OptionBool;
         removeTexturePath: OptionBool;
         sortBones: OptionBool;
+        truncateResampledAnimations: OptionBool;
         worldTransform: OptionBool;
         worldTransformBake: OptionBool;
         worldTransformUnitScale: OptionBool;
         worldTransformScale: OptionFloat;
         worldTransformRotationAxis: OptionSelect;
         worldTransformRotationAngle: OptionFloat;
+        createSkeleton: OptionBool;
 
         constructor() {
             this.singleAnimation = new OptionBool("Single animation", true,
@@ -129,6 +131,10 @@ module COLLADA.Converter {
                 "Rotation axis. See the 'worldTransform' option.");
             this.worldTransformRotationAngle = new OptionFloat("World transform: rotation angle", 0, 0, 360,
                 "Rotation angle (in degrees). See the 'worldTransform' option.");
+            this.truncateResampledAnimations = new OptionBool("Truncate resampled animations", true,
+                "True: animation durations will be truncated in order to keep the requested FPS. False: requested FPS will be slightly modified to keep the original duration.");
+            this.createSkeleton = new OptionBool("Generate a skeleton", true,
+                "If true, a skeleton will be generated and all geometry will be attached to skeleton bones. If false, no skeleton is generated and all geometry will be static.");
         }
 
     }

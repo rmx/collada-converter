@@ -13,39 +13,92 @@ module COLLADA.Converter {
     }
 
     export class AnimationTimeStatistics {
-        /** Start of the time line */
-        minTime: number;
-        /** End of the time line */
-        maxTime: number;
-        /** Minimum average fps among all animation tracks */
-        minAvgFps: number;
-        /** Maximum average fps among all animation tracks */
-        maxAvgFps: number;
-        /** Sum of average fps of all tracks */
-        sumAvgFps: number;
-        /** Number of data points */
-        count: number;
+        beginTime: Statistics;
+        endTime: Statistics;
+        duration: Statistics;
+        keyframes: Statistics;
+        fps: Statistics;
 
         constructor() {
-            this.minTime = Infinity;
-            this.maxTime = -Infinity;
-            this.minAvgFps = Infinity;
-            this.maxAvgFps = -Infinity;
-            this.sumAvgFps = 0;
-            this.count = 0;
+            this.beginTime = new Statistics();
+            this.endTime = new Statistics();
+            this.duration = new Statistics();
+            this.keyframes = new Statistics();
+            this.fps = new Statistics();
         }
 
-        avgFps(): number {
-            return (this.count > 0) ? (this.sumAvgFps / this.count) : null;
+        addDataPoint(beginTime: number, endTime: number, keyframes: number) {
+            var duration = endTime - beginTime;
+
+            this.beginTime.addDataPoint(beginTime);
+            this.endTime.addDataPoint(endTime);
+            this.duration.addDataPoint(duration);
+            this.keyframes.addDataPoint(keyframes);
+
+            if (duration > 0) {
+                var fps = (keyframes - 1) / duration;
+                this.fps.addDataPoint(fps);
+            }
+        }
+    }
+
+    export class Statistics {
+        data: number[];
+        sorted: boolean;
+
+        constructor() {
+            this.data = [];
+            this.sorted = true;
         }
 
-        addDataPoint(minTime: number, maxTime: number, avgFps: number) {
-            this.count++;
-            this.minTime = Math.min(this.minTime, minTime);
-            this.maxTime = Math.max(this.maxTime, maxTime);
-            this.minAvgFps = Math.min(this.minAvgFps, avgFps);
-            this.maxAvgFps = Math.max(this.maxAvgFps, avgFps);
-            this.sumAvgFps += avgFps;
+        addDataPoint(value: number) {
+            this.data.push(value);
+            this.sorted = false;
+        }
+
+        private sort() {
+            if (!this.sorted) {
+                this.sorted = true;
+                this.data.sort();
+            }
+        }
+
+        private compute(fn: (data:number[])=>number) {
+            if (this.data.length > 0) {
+                this.sort();
+                return fn(this.data);
+            } else {
+                return null;
+            }
+        }
+
+        count(): number {
+            return this.compute((data) => data.length);
+        }
+
+        min(): number {
+            return this.compute((data) => data[0]);
+        }
+
+        max(): number {
+            return this.compute((data) => data[data.length - 1]);
+        }
+
+        median(): number {
+            return this.compute((data) => {
+                var m = (this.data.length - 1) / 2;
+                var l = this.data[Math.floor(m)];
+                var r = this.data[Math.ceil(m)];
+                return (l + r) / 2;
+            });
+        }
+
+        sum(): number {
+            return this.compute((data) => data.reduce((prev, cur) => prev + cur, 0));
+        }
+
+        mean(): number {
+            return this.compute((data) => this.sum() / this.count());
         }
     }
 
@@ -91,11 +144,14 @@ module COLLADA.Converter {
             // Channels
             for (var i: number = 0; i < animation.channels.length; ++i) {
                 var channel: COLLADA.Converter.AnimationChannel = animation.channels[i];
-                var channelMinTime: number = channel.input[(index_begin !== null) ? index_begin : 0];
-                var channelMaxTime: number = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
-                var channelAvgFps: number = channel.input.length / (channelMaxTime - channelMinTime);
 
-                result.addDataPoint(channelMinTime, channelMaxTime, channelAvgFps);
+                if (channel) {
+                    var channelMinTime: number = channel.input[(index_begin !== null) ? index_begin : 0];
+                    var channelMaxTime: number = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
+                    var channelKeyframes: number = channel.input.length;
+
+                    result.addDataPoint(channelMinTime, channelMaxTime, channelKeyframes);
+                }
             }
         }
     }

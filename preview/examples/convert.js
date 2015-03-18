@@ -353,7 +353,7 @@ var RMXBoneMatrixTexture = (function () {
     * The smallest texture size that can hold the given number of bones.
     */
     RMXBoneMatrixTexture.optimalSize = function (bones) {
-        var result = 2;
+        var result = 4;
         while (RMXBoneMatrixTexture.capacity(result) < bones) {
             result = result * 2;
             // A 2K x 2K texture can hold 1 million bones.
@@ -949,10 +949,87 @@ var ColladaConverterOption = (function () {
     }
     return ColladaConverterOption;
 })();
+// Code from https://github.com/lydell/json-stringify-pretty-compact
+// Copyright 2014 Simon Lydell
+// X11 (“MIT”) Licensed. (See LICENSE.)
+var stringify;
+(function (_stringify) {
+    function stringify(obj, options) {
+        options = options || {};
+        var indent = JSON.stringify([1], null, get(options, "indent", 2)).slice(2, -3);
+        var maxLength = (indent === "" ? Infinity : get(options, "maxLength", 80));
+        return (function _stringify(obj, currentIndent, reserved) {
+            if (obj && typeof obj.toJSON === "function") {
+                obj = obj.toJSON();
+            }
+            var string = JSON.stringify(obj);
+            if (string === undefined) {
+                return string;
+            }
+            var length = maxLength - currentIndent.length - reserved;
+            if (string.length <= length) {
+                var prettified = prettify(string);
+                if (prettified.length <= length) {
+                    return prettified;
+                }
+            }
+            if (typeof obj === "object" && obj !== null) {
+                var nextIndent = currentIndent + indent;
+                var items = [];
+                var delimiters;
+                var comma = function (array, index) {
+                    return (index === array.length - 1 ? 0 : 1);
+                };
+                if (Array.isArray(obj)) {
+                    for (var index = 0; index < obj.length; index++) {
+                        items.push(_stringify(obj[index], nextIndent, comma(obj, index)) || "null");
+                    }
+                    delimiters = "[]";
+                }
+                else {
+                    Object.keys(obj).forEach(function (key, index, array) {
+                        var keyPart = JSON.stringify(key) + ": ";
+                        var value = _stringify(obj[key], nextIndent, keyPart.length + comma(array, index));
+                        if (value !== undefined) {
+                            items.push(keyPart + value);
+                        }
+                    });
+                    delimiters = "{}";
+                }
+                if (items.length > 0) {
+                    return [
+                        delimiters[0],
+                        indent + items.join(",\n" + nextIndent),
+                        delimiters[1]
+                    ].join("\n" + currentIndent);
+                }
+            }
+            return string;
+        }(obj, "", 0));
+    }
+    _stringify.stringify = stringify;
+    // Note: This regex matches even invalid JSON strings, but since we’re
+    // working on the output of `JSON.stringify` we know that only valid strings
+    // are present (unless the user supplied a weird `options.indent` but in
+    // that case we don’t care since the output would be invalid anyway).
+    var stringOrChar = /("(?:[^"]|\\.)*")|[:,]/g;
+    function prettify(string) {
+        return string.replace(stringOrChar, function (match, string) {
+            if (string) {
+                return match;
+            }
+            return match + " ";
+        });
+    }
+    function get(options, name, defaultValue) {
+        return (name in options ? options[name] : defaultValue);
+    }
+})(stringify || (stringify = {}));
 /// <reference path="../lib/collada.d.ts" />
 /// <reference path="../external/jquery/jquery.d.ts" />
 /// <reference path="./threejs-renderer.ts" />
 /// <reference path="./convert-options.ts" />
+/// <reference path="./stringify.ts" />
 // ----------------------------------------------------------------------------
 // Evil global data
 // ----------------------------------------------------------------------------
@@ -1079,6 +1156,11 @@ function downloadJSON(data, name) {
     var mime = "application/json";
     var url = COLLADA.Exporter.Utils.jsonToBlobURI(data, mime);
     downloadUrl(url, name, mime);
+}
+function previewJSON(data) {
+    var str = stringify.stringify(data, { maxLength: 120 });
+    $("#preview-data").val(str);
+    $("#preview-modal").modal('show');
 }
 function downloadBinary(data, name) {
     var mime = "application/octet-stream";
@@ -1290,7 +1372,7 @@ function convertLoad() {
     loaderlog.onmessage = function (message, level) {
         writeLog("loader", message, level);
     };
-    loader.log = new COLLADA.LogFilter(loaderlog, 2 /* Info */);
+    loader.log = new COLLADA.LogFilter(loaderlog, 3 /* Info */);
     // Load
     timeStart("COLLADA parsing");
     conversion_data.s2_loaded = loader.loadFromXML("id", conversion_data.s1_xml);
@@ -1368,6 +1450,7 @@ function init() {
     renderer.init(canvas);
     // Create option elements
     var optionsForm = $("#form-options");
+    optionElements.push(new ColladaConverterOption(options.createSkeleton, optionsForm));
     optionElements.push(new ColladaConverterOption(options.enableAnimations, optionsForm));
     optionElements.push(new ColladaConverterOption(options.animationFps, optionsForm));
     optionElements.push(new ColladaConverterOption(options.worldTransform, optionsForm));
@@ -1383,8 +1466,12 @@ function init() {
     $("#drop-target").on("drop", onFileDrop);
     $("#convert").click(onConvertClick);
     $("#output-custom-json .output-download").click(function () { return downloadJSON(conversion_data.s4_exported_custom.json, "model.json"); });
-    $("#output-custom-binary .output-download").click(function () { return downloadJSON(conversion_data.s4_exported_custom.data, "model.bin"); });
+    $("#output-custom-binary .output-download").click(function () { return downloadBinary(conversion_data.s4_exported_custom.data, "model.bin"); });
     $("#output-threejs .output-download").click(function () { return downloadJSON(conversion_data.s5_exported_threejs, "model-threejs.json"); });
+    $("#output-custom-json .output-view").click(function () { return previewJSON(conversion_data.s4_exported_custom.json); });
+    $("#output-custom-binary .output-view").click(function () { return alert("Binary preview not implemented"); });
+    $("#output-threejs .output-view").click(function () { return previewJSON(conversion_data.s5_exported_threejs); });
+    $("#close-preview").click(function () { return $("#preview-modal").modal('hide'); });
     // Update all UI elements
     reset();
     writeProgress("Converter initialized");

@@ -2,6 +2,7 @@
 /// <reference path="../external/jquery/jquery.d.ts" />
 /// <reference path="./threejs-renderer.ts" />
 /// <reference path="./convert-options.ts" />
+/// <reference path="./stringify.ts" />
 
 // ----------------------------------------------------------------------------
 // Evil global data
@@ -161,6 +162,12 @@ function downloadJSON(data: any, name: string) {
     var mime = "application/json";
     var url = COLLADA.Exporter.Utils.jsonToBlobURI(data, mime);
     downloadUrl(url, name, mime);
+}
+
+function previewJSON(data: any) {
+    var str = stringify.stringify(data, {maxLength: 120});
+    $("#preview-data").val(str);
+    (<any>$("#preview-modal")).modal('show');
 }
 
 function downloadBinary(data: Uint8Array, name: string) {
@@ -474,6 +481,7 @@ function init() {
 
     // Create option elements
     var optionsForm = $("#form-options");
+    optionElements.push(new ColladaConverterOption(options.createSkeleton, optionsForm));
     optionElements.push(new ColladaConverterOption(options.enableAnimations, optionsForm));
     optionElements.push(new ColladaConverterOption(options.animationFps, optionsForm));
     optionElements.push(new ColladaConverterOption(options.worldTransform, optionsForm));
@@ -493,9 +501,18 @@ function init() {
     $("#output-custom-json .output-download").click(() =>
         downloadJSON(conversion_data.s4_exported_custom.json, "model.json"));
     $("#output-custom-binary .output-download").click(() =>
-        downloadJSON(conversion_data.s4_exported_custom.data, "model.bin"));
+        downloadBinary(conversion_data.s4_exported_custom.data, "model.bin"));
     $("#output-threejs .output-download").click(() =>
         downloadJSON(conversion_data.s5_exported_threejs, "model-threejs.json"));
+
+    $("#output-custom-json .output-view").click(() =>
+        previewJSON(conversion_data.s4_exported_custom.json));
+    $("#output-custom-binary .output-view").click(() =>
+        alert("Binary preview not implemented"));
+    $("#output-threejs .output-view").click(() =>
+        previewJSON(conversion_data.s5_exported_threejs));
+    $("#close-preview").click(() =>
+        (<any>$("#preview-modal")).modal('hide'));
 
     // Update all UI elements
     reset();

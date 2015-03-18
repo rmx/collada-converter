@@ -90,7 +90,7 @@ var COLLADA;
                     this.target = object;
                 }
                 else {
-                    context.log.write("Could not find URL target with URL " + this.url, 3 /* Warning */);
+                    context.log.write("Could not find URL target with URL " + this.url, 4 /* Warning */);
                 }
             };
             return UrlLink;
@@ -128,7 +128,7 @@ var COLLADA;
                     this.target = object;
                 }
                 else {
-                    context.log.write("Could not find FX target with URL " + this.url, 3 /* Warning */);
+                    context.log.write("Could not find FX target with URL " + this.url, 4 /* Warning */);
                 }
                 ;
             };
@@ -207,9 +207,11 @@ var COLLADA;
             *   @returns The collada element the URL points to, or an error why it wasn't found
             */
             SidLink.findSidTarget = function (url, root, sids, context) {
+                var result = { result: null, warning: null };
                 if (root == null) {
-                    context.log.write("Could not resolve SID target " + sids.join("/") + ", missing root element", 3 /* Warning */);
-                    return null;
+                    result.result = null;
+                    result.warning = "Could not resolve SID target " + sids.join("/") + ", missing root element";
+                    return result;
                 }
                 var parentObject = root;
                 var childObject = null;
@@ -236,26 +238,33 @@ var COLLADA;
                     }
                     // Abort if the current SID part was not found
                     if (childObject == null) {
-                        context.log.write("Could not resolve SID target " + sids.join("/") + ", missing SID part " + sid, 3 /* Warning */);
-                        return null;
+                        result.result = null;
+                        result.warning = "Could not resolve SID target " + sids.join("/") + ", missing SID part " + sid;
+                        return result;
                     }
                     parentObject = childObject;
                 }
                 // All parts processed, return the final target
-                return childObject;
+                result.result = childObject;
+                result.warning = null;
+                return result;
             };
             SidLink.prototype.resolve = function (context) {
                 var object = null;
                 if (this.id == null) {
-                    context.log.write("Could not resolve SID #" + this.url + ", link has no root ID", 3 /* Warning */);
+                    context.log.write("Could not resolve SID #" + this.url + ", link has no root ID", 4 /* Warning */);
                     return;
                 }
                 object = context.ids[this.id];
                 if (object == null) {
-                    context.log.write("Could not resolve SID #" + this.url + ", could not find root element " + this.id, 3 /* Warning */);
+                    context.log.write("Could not resolve SID #" + this.url + ", could not find root element " + this.id, 4 /* Warning */);
                     return;
                 }
-                this.target = SidLink.findSidTarget(this.url, object, this.sids, context);
+                var result = SidLink.findSidTarget(this.url, object, this.sids, context);
+                if (result.warning) {
+                    context.log.write(result.warning, 4 /* Warning */);
+                }
+                this.target = result.result;
             };
             return SidLink;
         })(Link);
@@ -299,7 +308,7 @@ var COLLADA;
                     return link.target;
                 }
                 else {
-                    context.log.write("Link with url " + link.url + " does not point to a " + typeName + ", link target ignored", 4 /* Error */);
+                    context.log.write("Link with url " + link.url + " does not point to a " + typeName + ", link target ignored", 5 /* Error */);
                     return null;
                 }
             };
@@ -356,7 +365,7 @@ var COLLADA;
                     return defaultValue;
                 }
                 else {
-                    this.log.write("Element " + el.nodeName + " is missing required float attribute " + name + ". Using default value " + defaultValue + ".", 4 /* Error */);
+                    this.log.write("Element " + el.nodeName + " is missing required float attribute " + name + ". Using default value " + defaultValue + ".", 5 /* Error */);
                     return defaultValue;
                 }
             };
@@ -369,7 +378,7 @@ var COLLADA;
                     return defaultValue;
                 }
                 else {
-                    this.log.write("Element " + el.nodeName + " is missing required integer attribute " + name + ". Using default value " + defaultValue + ".", 4 /* Error */);
+                    this.log.write("Element " + el.nodeName + " is missing required integer attribute " + name + ". Using default value " + defaultValue + ".", 5 /* Error */);
                     return defaultValue;
                 }
             };
@@ -382,7 +391,7 @@ var COLLADA;
                     return defaultValue;
                 }
                 else {
-                    this.log.write("Element " + el.nodeName + " is missing required string attribute " + name + ". Using default value " + defaultValue + ".", 4 /* Error */);
+                    this.log.write("Element " + el.nodeName + " is missing required string attribute " + name + ". Using default value " + defaultValue + ".", 5 /* Error */);
                     return defaultValue;
                 }
             };
@@ -410,7 +419,7 @@ var COLLADA;
                     return null;
                 }
                 else {
-                    this.log.write("Element " + el.nodeName + " is missing required URL link attribute " + name + ".", 4 /* Error */);
+                    this.log.write("Element " + el.nodeName + " is missing required URL link attribute " + name + ".", 5 /* Error */);
                     return null;
                 }
             };
@@ -423,7 +432,7 @@ var COLLADA;
                     return null;
                 }
                 else {
-                    this.log.write("Element " + el.nodeName + " is missing required SID link attribute " + name + ".", 4 /* Error */);
+                    this.log.write("Element " + el.nodeName + " is missing required SID link attribute " + name + ".", 5 /* Error */);
                     return null;
                 }
             };
@@ -436,7 +445,7 @@ var COLLADA;
                     return null;
                 }
                 else {
-                    this.log.write("Element " + el.nodeName + " is missing required FX link attribute " + name + ".", 4 /* Error */);
+                    this.log.write("Element " + el.nodeName + " is missing required FX link attribute " + name + ".", 5 /* Error */);
                     return null;
                 }
             };
@@ -508,7 +517,7 @@ var COLLADA;
                     return rgba;
                 }
                 else {
-                    this.log.write("Skipped color element because it does not contain 4 numbers", 4 /* Error */);
+                    this.log.write("Skipped color element because it does not contain 4 numbers", 5 /* Error */);
                     return null;
                 }
             };
@@ -517,13 +526,13 @@ var COLLADA;
                 // Abort if the object has no ID
                 if (id == null) {
                     if (needsId) {
-                        this.log.write("Object has no ID, object was not registered as a URL target.", 4 /* Error */);
+                        this.log.write("Object has no ID, object was not registered as a URL target.", 5 /* Error */);
                     }
                     return;
                 }
                 // IDs must be unique
                 if (this.ids[id] != null) {
-                    this.log.write("There is already an object with ID " + id + ". IDs must be globally unique.", 4 /* Error */);
+                    this.log.write("There is already an object with ID " + id + ". IDs must be globally unique.", 5 /* Error */);
                     return;
                 }
                 // URL links are registered globally
@@ -532,11 +541,11 @@ var COLLADA;
             Context.prototype.registerFxTarget = function (object, scope) {
                 var sid = object.sid;
                 if (sid == null) {
-                    this.log.write("Cannot add a FX target: object has no SID.", 4 /* Error */);
+                    this.log.write("Cannot add a FX target: object has no SID.", 5 /* Error */);
                     return;
                 }
                 if (scope.fxChildren[sid] != null) {
-                    this.log.write("There is already an FX target with SID " + sid + ".", 4 /* Error */);
+                    this.log.write("There is already an FX target with SID " + sid + ".", 5 /* Error */);
                     return;
                 }
                 // FX links are registered within the parent scope
@@ -568,10 +577,10 @@ var COLLADA;
                 return path;
             };
             Context.prototype.reportUnexpectedChild = function (child) {
-                this.log.write("Skipped unexpected element " + (this.getNodePath(child)) + ".", 3 /* Warning */);
+                this.log.write("Skipped unexpected element " + (this.getNodePath(child)) + ".", 4 /* Warning */);
             };
             Context.prototype.reportUnhandledChild = function (child) {
-                this.log.write("Element " + (this.getNodePath(child)) + " is legal, but not handled by this loader.", 1 /* Trace */);
+                this.log.write("Element " + (this.getNodePath(child)) + " is legal, but not handled by this loader.", 2 /* Trace */);
             };
             Context.prototype.resolveAllLinks = function () {
                 var linksLen = this.links.length;
@@ -1073,7 +1082,7 @@ var COLLADA;
             */
             EffectTechnique.parseExtra = function (node, technique, context) {
                 if (technique == null) {
-                    context.log.write("Ignored element <extra>, because there is no <technique>.", 3 /* Warning */);
+                    context.log.write("Ignored element <extra>, because there is no <technique>.", 4 /* Warning */);
                     return;
                 }
                 Loader.Utils.forEachChild(node, function (child) {
@@ -1129,7 +1138,7 @@ var COLLADA;
                             COLLADA.Loader.Effect.parseProfileCommon(child, result, context);
                             break;
                         case "profile":
-                            context.log.write("Skipped non-common effect profile for effect " + result.id + ".", 3 /* Warning */);
+                            context.log.write("Skipped non-common effect profile for effect " + result.id + ".", 4 /* Warning */);
                             break;
                         case "extra":
                             COLLADA.Loader.EffectTechnique.parseExtra(child, result.technique, context);
@@ -1292,7 +1301,7 @@ var COLLADA;
                 source.stride = context.getAttributeAsInt(node, "stride", 1, false);
                 source.offset = context.getAttributeAsInt(node, "offset", 0, false);
                 if (sourceId !== "#" + source.sourceId) {
-                    context.log.write("Source " + source.id + " uses a non-local data source, this is not supported", 4 /* Error */);
+                    context.log.write("Source " + source.id + " uses a non-local data source, this is not supported", 5 /* Error */);
                 }
                 Loader.Utils.forEachChild(node, function (child) {
                     switch (child.nodeName) {
@@ -1318,8 +1327,13 @@ var COLLADA;
                 else if ((semantic != null) && (type != null)) {
                     source.params[semantic] = type;
                 }
+                else if (type != null) {
+                    // Both name and semantic are optional
+                    source.params["unnamed param #" + Object.keys(source.params).length] = type;
+                }
                 else {
-                    context.log.write("Accessor param for source " + source.id + " ignored due to missing type, name, or semantic", 3 /* Warning */);
+                    // Type is required
+                    context.log.write("Accessor param for source " + source.id + " ignored due to missing type", 4 /* Warning */);
                 }
             };
             return Source;
@@ -1491,7 +1505,7 @@ var COLLADA;
                             break;
                         case "convex_mesh":
                         case "spline":
-                            context.log.write("Geometry type " + child.nodeName + " not supported.", 4 /* Error */);
+                            context.log.write("Geometry type " + child.nodeName + " not supported.", 5 /* Error */);
                             break;
                         case "extra":
                             COLLADA.Loader.Geometry.parseGeometryExtra(child, result, context);
@@ -1523,7 +1537,7 @@ var COLLADA;
                         case "linestrips":
                         case "trifans":
                         case "tristrips":
-                            context.log.write("Geometry primitive type " + child.nodeName + " not supported.", 4 /* Error */);
+                            context.log.write("Geometry primitive type " + child.nodeName + " not supported.", 5 /* Error */);
                             break;
                         default:
                             context.reportUnexpectedChild(child);
@@ -1606,7 +1620,7 @@ var COLLADA;
                         joints.invBindMatrices = input;
                         break;
                     default:
-                        context.log.write("Unknown joints input semantic " + input.semantic, 4 /* Error */);
+                        context.log.write("Unknown joints input semantic " + input.semantic, 5 /* Error */);
                 }
             };
             return Joints;
@@ -1667,7 +1681,7 @@ var COLLADA;
                         weights.weights = input;
                         break;
                     default:
-                        context.log.write("Unknown vertex weights input semantic " + input.semantic, 4 /* Error */);
+                        context.log.write("Unknown vertex weights input semantic " + input.semantic, 5 /* Error */);
                 }
             };
             return VertexWeights;
@@ -1744,7 +1758,7 @@ var COLLADA;
             */
             Morph.parse = function (node, context) {
                 var result = new COLLADA.Loader.Morph();
-                context.log.write("Morph controllers not implemented", 4 /* Error */);
+                context.log.write("Morph controllers not implemented", 5 /* Error */);
                 return result;
             };
             return Morph;
@@ -1784,13 +1798,13 @@ var COLLADA;
                     switch (child.nodeName) {
                         case "skin":
                             if (result.skin != null) {
-                                context.log.write("Controller " + result.id + " has multiple skins", 4 /* Error */);
+                                context.log.write("Controller " + result.id + " has multiple skins", 5 /* Error */);
                             }
                             result.skin = COLLADA.Loader.Skin.parse(child, context);
                             break;
                         case "morph":
                             if (result.morph != null) {
-                                context.log.write("Controller " + result.id + " has multiple morphs", 4 /* Error */);
+                                context.log.write("Controller " + result.id + " has multiple morphs", 5 /* Error */);
                             }
                             result.morph = COLLADA.Loader.Morph.parse(child, context);
                             break;
@@ -2234,7 +2248,7 @@ var COLLADA;
                     };
                 }
                 else {
-                    context.log.write("Skipped a material vertex binding because of missing semantics.", 3 /* Warning */);
+                    context.log.write("Skipped a material vertex binding because of missing semantics.", 4 /* Warning */);
                 }
             };
             /**
@@ -2249,7 +2263,7 @@ var COLLADA;
                     };
                 }
                 else {
-                    context.log.write("Skipped a material uniform binding because of missing semantics.", 3 /* Warning */);
+                    context.log.write("Skipped a material uniform binding because of missing semantics.", 4 /* Warning */);
                 }
             };
             return InstanceMaterial;
@@ -2428,10 +2442,10 @@ var COLLADA;
                         expectedDataLength = 9;
                         break;
                     default:
-                        context.log.write("Unknown transformation type " + result.type + ".", 4 /* Error */);
+                        context.log.write("Unknown transformation type " + result.type + ".", 5 /* Error */);
                 }
                 if (result.data.length !== expectedDataLength) {
-                    context.log.write("Wrong number of elements for transformation type '" + result.type + "': expected " + expectedDataLength + ", found " + result.data.length, 4 /* Error */);
+                    context.log.write("Wrong number of elements for transformation type '" + result.type + "': expected " + expectedDataLength + ", found " + result.data.length, 5 /* Error */);
                 }
                 return result;
             };
@@ -2629,7 +2643,7 @@ var COLLADA;
                         sampler.outTangents.push(input);
                         break;
                     default:
-                        context.log.write("Unknown sampler input semantic " + input.semantic, 4 /* Error */);
+                        context.log.write("Unknown sampler input semantic " + input.semantic, 5 /* Error */);
                 }
             };
             return Sampler;
@@ -2774,11 +2788,11 @@ var COLLADA;
                 // There should be one top level <COLLADA> element
                 var colladaNodes = doc.getElementsByTagName("COLLADA");
                 if (colladaNodes.length === 0) {
-                    context.log.write("Cannot parse document, no top level COLLADA element.", 4 /* Error */);
+                    context.log.write("Cannot parse document, no top level COLLADA element.", 5 /* Error */);
                     return new COLLADA.Loader.Document();
                 }
                 else if (colladaNodes.length > 1) {
-                    context.log.write("Cannot parse document, more than one top level COLLADA element.", 4 /* Error */);
+                    context.log.write("Cannot parse document, more than one top level COLLADA element.", 5 /* Error */);
                     return new COLLADA.Loader.Document();
                 }
                 return COLLADA.Loader.Document.parseCOLLADA(colladaNodes[0] || colladaNodes.item(0), context);
@@ -2838,25 +2852,28 @@ var COLLADA;
 var COLLADA;
 (function (COLLADA) {
     (function (LogLevel) {
-        LogLevel[LogLevel["Trace"] = 1] = "Trace";
-        LogLevel[LogLevel["Info"] = 2] = "Info";
-        LogLevel[LogLevel["Warning"] = 3] = "Warning";
-        LogLevel[LogLevel["Error"] = 4] = "Error";
-        LogLevel[LogLevel["Exception"] = 5] = "Exception";
+        LogLevel[LogLevel["Debug"] = 1] = "Debug";
+        LogLevel[LogLevel["Trace"] = 2] = "Trace";
+        LogLevel[LogLevel["Info"] = 3] = "Info";
+        LogLevel[LogLevel["Warning"] = 4] = "Warning";
+        LogLevel[LogLevel["Error"] = 5] = "Error";
+        LogLevel[LogLevel["Exception"] = 6] = "Exception";
     })(COLLADA.LogLevel || (COLLADA.LogLevel = {}));
     var LogLevel = COLLADA.LogLevel;
     ;
     function LogLevelToString(level) {
         switch (level) {
-            case 1 /* Trace */:
+            case 1 /* Debug */:
+                return "DEBUG";
+            case 2 /* Trace */:
                 return "TRACE";
-            case 2 /* Info */:
+            case 3 /* Info */:
                 return "INFO";
-            case 3 /* Warning */:
+            case 4 /* Warning */:
                 return "WARNING";
-            case 4 /* Error */:
+            case 5 /* Error */:
                 return "ERROR";
-            case 5 /* Exception */:
+            case 6 /* Exception */:
                 return "EXCEPTION";
             default:
                 return "OTHER";
@@ -2958,7 +2975,7 @@ var COLLADA;
                     context.resolveAllLinks();
                 }
                 catch (err) {
-                    context.log.write(err.message, 5 /* Exception */);
+                    context.log.write(err.message, 6 /* Exception */);
                     this._reportError(id, context);
                     return null;
                 }
@@ -2982,7 +2999,7 @@ var COLLADA;
                                     loader._reportSuccess(id, result, context);
                                 }
                                 else {
-                                    context.log.write("Empty or non-existing file " + url + ".", 4 /* Error */);
+                                    context.log.write("Empty or non-existing file " + url + ".", 5 /* Error */);
                                     loader._reportError(id, context);
                                 }
                             }
@@ -2999,7 +3016,7 @@ var COLLADA;
                     req.send(null);
                 }
                 else {
-                    context.log.write("Don't know how to parse XML!", 4 /* Error */);
+                    context.log.write("Don't know how to parse XML!", 5 /* Error */);
                     loader._reportError(id, context);
                 }
             };
@@ -3041,24 +3058,24 @@ var COLLADA;
             Material.createMaterial = function (instanceMaterial, context) {
                 var material = COLLADA.Loader.Material.fromLink(instanceMaterial.material, context);
                 if (material === null) {
-                    context.log.write("Material not found, material skipped.", 3 /* Warning */);
+                    context.log.write("Material not found, material skipped.", 4 /* Warning */);
                     return COLLADA.Converter.Material.createDefaultMaterial(context);
                 }
                 var effect = COLLADA.Loader.Effect.fromLink(material.effect, context);
                 if (effect === null) {
-                    context.log.write("Material effect not found, using default material", 3 /* Warning */);
+                    context.log.write("Material effect not found, using default material", 4 /* Warning */);
                     return COLLADA.Converter.Material.createDefaultMaterial(context);
                 }
                 var technique = effect.technique;
                 if (technique === null) {
-                    context.log.write("Material effect not found, using default material", 3 /* Warning */);
+                    context.log.write("Material effect not found, using default material", 4 /* Warning */);
                     return COLLADA.Converter.Material.createDefaultMaterial(context);
                 }
                 if (technique.diffuse !== null && technique.diffuse.color !== null) {
-                    context.log.write("Material " + material.id + " contains constant diffuse colors, colors ignored", 3 /* Warning */);
+                    context.log.write("Material " + material.id + " contains constant diffuse colors, colors ignored", 4 /* Warning */);
                 }
                 if (technique.specular !== null && technique.specular.color !== null) {
-                    context.log.write("Material " + material.id + " contains constant specular colors, colors ignored", 3 /* Warning */);
+                    context.log.write("Material " + material.id + " contains constant specular colors, colors ignored", 4 /* Warning */);
                 }
                 var result = context.materials.findConverter(material);
                 if (result)
@@ -3078,11 +3095,11 @@ var COLLADA;
                     var instanceMaterial = instanceMaterials[i];
                     var symbol = instanceMaterial.symbol;
                     if (symbol === null) {
-                        context.log.write("Material instance has no symbol, material skipped.", 3 /* Warning */);
+                        context.log.write("Material instance has no symbol, material skipped.", 4 /* Warning */);
                         continue;
                     }
                     if (result.symbols[symbol] != null) {
-                        context.log.write("Material symbol " + symbol + " used multiple times", 4 /* Error */);
+                        context.log.write("Material symbol " + symbol + " used multiple times", 5 /* Error */);
                         continue;
                     }
                     result.symbols[symbol] = COLLADA.Converter.Material.createMaterial(instanceMaterial, context);
@@ -3338,21 +3355,21 @@ var COLLADA;
                     return null;
                 }
                 if (source.stride > outDim) {
-                    context.log.write("Source data for " + name + " contains too many dimensions, " + (source.stride - outDim) + " dimensions will be ignored", 3 /* Warning */);
+                    context.log.write("Source data for " + name + " contains too many dimensions, " + (source.stride - outDim) + " dimensions will be ignored", 4 /* Warning */);
                 }
                 else if (source.stride < outDim) {
-                    context.log.write("Source data for " + name + " does not contain enough dimensions, " + (outDim - source.stride) + " dimensions will be zero", 3 /* Warning */);
+                    context.log.write("Source data for " + name + " does not contain enough dimensions, " + (outDim - source.stride) + " dimensions will be zero", 4 /* Warning */);
                 }
                 // Start and end index
                 var iBegin = source.offset;
                 var iEnd = source.offset + source.count * source.stride;
                 if (iEnd > source.data.length) {
-                    context.log.write("Source for " + name + " tries to access too many elements, data ignored", 3 /* Warning */);
+                    context.log.write("Source for " + name + " tries to access too many elements, data ignored", 4 /* Warning */);
                     return null;
                 }
                 // Get source raw data
                 if (!(source.data instanceof Float32Array)) {
-                    context.log.write("Source for " + name + " does not contain floating point data, data ignored", 3 /* Warning */);
+                    context.log.write("Source for " + name + " does not contain floating point data, data ignored", 4 /* Warning */);
                     return null;
                 }
                 var srcData = source.data;
@@ -3374,21 +3391,21 @@ var COLLADA;
                     return null;
                 }
                 if (source.stride > outDim) {
-                    context.log.write("Source data for " + name + " contains too many dimensions, " + (source.stride - outDim) + " dimensions will be ignored", 3 /* Warning */);
+                    context.log.write("Source data for " + name + " contains too many dimensions, " + (source.stride - outDim) + " dimensions will be ignored", 4 /* Warning */);
                 }
                 else if (source.stride < outDim) {
-                    context.log.write("Source data for " + name + " does not contain enough dimensions, " + (outDim - source.stride) + " dimensions will be zero", 3 /* Warning */);
+                    context.log.write("Source data for " + name + " does not contain enough dimensions, " + (outDim - source.stride) + " dimensions will be zero", 4 /* Warning */);
                 }
                 // Start and end index
                 var iBegin = source.offset;
                 var iEnd = source.offset + source.count * source.stride;
                 if (iEnd > source.data.length) {
-                    context.log.write("Source for " + name + " tries to access too many elements, data ignored", 3 /* Warning */);
+                    context.log.write("Source for " + name + " tries to access too many elements, data ignored", 4 /* Warning */);
                     return null;
                 }
                 // Get source raw data
                 if (!(source.data instanceof Array)) {
-                    context.log.write("Source for " + name + " does not contain string data, data ignored", 3 /* Warning */);
+                    context.log.write("Source for " + name + " does not contain string data, data ignored", 4 /* Warning */);
                     return null;
                 }
                 var srcData = source.data;
@@ -3462,7 +3479,7 @@ var COLLADA;
                         mat4.rotateZ(mat, mat, rotationAngle);
                         break;
                     default:
-                        context.log.write("Unknown rotation axis", 3 /* Warning */);
+                        context.log.write("Unknown rotation axis", 4 /* Warning */);
                         break;
                 }
                 return mat;
@@ -3489,13 +3506,18 @@ var COLLADA;
             function Bone(node) {
                 this.node = node;
                 this.name = node.name;
-                this.index = null;
                 this.parent = null;
-                this.attachedToSkin = false;
                 this.invBindMatrix = mat4.create();
+                mat4.identity(this.invBindMatrix);
+                this.attachedToSkin = false;
             }
-            Bone.prototype.parentIndex = function () {
-                return this.parent === null ? -1 : this.parent.index;
+            Bone.prototype.clone = function () {
+                var result = new Bone(this.node);
+                result.name = this.name;
+                result.parent = this.parent;
+                result.invBindMatrix = mat4.clone(this.invBindMatrix);
+                result.attachedToSkin = this.attachedToSkin;
+                return result;
             };
             Bone.prototype.depth = function () {
                 return this.parent === null ? 0 : (this.parent.depth() + 1);
@@ -3510,205 +3532,82 @@ var COLLADA;
             Bone.findBoneNode = function (boneSid, skeletonRootNodes, context) {
                 // The spec is inconsistent here.
                 // The joint ids do not seem to be real scoped identifiers(chapter 3.3, "COLLADA Target Addressing"), since they lack the first part (the anchor id)
-                // The skin element(chapter 5, "skin" element) * implies * that the joint ids are scoped identifiers relative to the skeleton root node,
-                // so perform a sid - like breadth - first search.
+                // The skin element(chapter 5, "skin" element) *implies* that the joint ids are scoped identifiers relative to the skeleton root node,
+                // so perform a SID-like breadth-first search.
                 var boneNode = null;
+                var warnings = [];
                 for (var i = 0; i < skeletonRootNodes.length; i++) {
                     var skeletonRoot = skeletonRootNodes[i];
                     var sids = boneSid.split("/");
-                    boneNode = COLLADA.Loader.SidLink.findSidTarget(boneSid, skeletonRoot, sids, context);
-                    if (boneNode != null) {
+                    var result = COLLADA.Loader.SidLink.findSidTarget(boneSid, skeletonRoot, sids, context);
+                    if (result.result != null) {
+                        boneNode = result.result;
                         break;
                     }
+                    else {
+                        warnings.push(result.warning);
+                    }
                 }
-                if (context.isInstanceOf(boneNode, "VisualSceneNode")) {
+                if (boneNode === null) {
+                    context.log.write("Joint with SID " + boneSid + " not found, joint ignored. Related warnings:\n" + warnings.join("\n"), 4 /* Warning */);
+                    return null;
+                }
+                else if (context.isInstanceOf(boneNode, "VisualSceneNode")) {
                     return boneNode;
                 }
                 else {
-                    context.log.write("Joint " + boneSid + " does not point to a visual scene node, joint ignored", 3 /* Warning */);
+                    context.log.write("Joint " + boneSid + " does not point to a visual scene node, joint ignored", 4 /* Warning */);
                     return null;
                 }
             };
-            /**
-            * Find the parent for each bone
-            * The skeleton(s) may contain more bones than referenced by the skin
-            * This function also adds all bones that are not referenced but used for the skeleton transformation
-            */
-            Bone.findBoneParents = function (bones, context) {
-                var i = 0;
-                while (i < bones.length) {
-                    // Select the next unprocessed bone
-                    var bone = bones[i];
-                    i = i + 1;
-                    for (var k = 0; k < bones.length; k++) {
-                        var parentBone = bones[k];
-                        if (bone.node.parent === parentBone.node) {
-                            bone.parent = parentBone;
-                            break;
-                        }
-                    }
-                    // If no parent bone found, add it to the list
-                    if ((bone.node.parent != null) && (bone.parent == null)) {
-                        bone.parent = COLLADA.Converter.Bone.create(bone.node.parent);
-                        bones.push(bone.parent);
-                    }
-                }
-            };
-            /**
-            * Create all bones used in the given skin
-            */
-            Bone.createSkinBones = function (jointSids, skeletonRootNodes, bindShapeMatrix, invBindMatrices, context) {
-                var bones = [];
-                for (var i = 0; i < jointSids.length; i++) {
-                    var jointSid = jointSids[i];
-                    var jointNode = COLLADA.Converter.Bone.findBoneNode(jointSid, skeletonRootNodes, context);
-                    if (jointNode === null) {
-                        context.log.write("Joint " + jointSid + " not found for skeleton, no bones created", 3 /* Warning */);
-                        return [];
-                    }
-                    var converterNode = context.nodes.findConverter(jointNode);
-                    if (converterNode === null) {
-                        context.log.write("Joint " + jointSid + " not converted for skeleton, no bones created", 3 /* Warning */);
-                        return [];
-                    }
-                    var bone = COLLADA.Converter.Bone.create(converterNode);
-                    bone.attachedToSkin = true;
-                    COLLADA.MathUtils.mat4Extract(invBindMatrices, i, bone.invBindMatrix);
-                    // Collada skinning equation: boneWeight*boneMatrix*invBindMatrix*bindShapeMatrix*vertexPos
-                    // (see chapter 4: "Skin Deformation (or Skinning) in COLLADA")
-                    // Here we could pre-multiply the inverse bind matrix and the bind shape matrix
-                    // We do not pre-multiply the bind shape matrix, because the same bone could be bound to
-                    // different meshes using different bind shape matrices and we would have to duplicate the bones
-                    // mat4.multiply(bone.invBindMatrix, bone.invBindMatrix, bindShapeMatrix);
-                    bones.push(bone);
-                }
-                // Add all missing bones of the skeleton
-                COLLADA.Converter.Bone.findBoneParents(bones, context);
-                // Set indices
-                COLLADA.Converter.Bone.updateIndices(bones);
-                return bones;
-            };
-            /**
-            * Updates the index member for all bones of the given array
-            */
-            Bone.updateIndices = function (bones) {
-                for (var i = 0; i < bones.length; ++i) {
-                    var bone = bones[i];
-                    bone.index = i;
-                }
-            };
-            /**
-            * Returns true if the two bones can safely be merged, i.e.,
-            * they reference the same scene graph node and have the same inverse bind matrix
-            */
-            Bone.sameBone = function (a, b) {
-                if (a.node !== b.node) {
+            Bone.sameInvBindMatrix = function (a, b, tolerance) {
+                if (a === null || b === null) {
                     return false;
                 }
                 for (var i = 0; i < 16; ++i) {
                     var ai = a.invBindMatrix[i];
                     var bi = b.invBindMatrix[i];
-                    if (Math.abs(ai - bi) > 1e-5) {
+                    if (Math.abs(ai - bi) > tolerance) {
                         return false;
                     }
                 }
                 return true;
             };
             /**
-            * Appends bones from src to dest, so that each bone is unique
+            * Returns true if the two bones can safely be merged, i.e.,
+            * they reference the same scene graph node and have the same inverse bind matrix
             */
-            Bone.appendBones = function (dest, src) {
-                for (var is = 0; is < src.length; ++is) {
-                    var src_bone = src[is];
-                    COLLADA.Converter.Bone.appendBone(dest, src_bone);
+            Bone.safeToMerge = function (a, b) {
+                if (a === b) {
+                    return true;
                 }
-                // Update bone indices
-                COLLADA.Converter.Bone.updateIndices(dest);
+                if (a === null || b === null) {
+                    return false;
+                }
+                if (a.node !== b.node) {
+                    return false;
+                }
+                if (a.attachedToSkin && b.attachedToSkin && !Bone.sameInvBindMatrix(a, b, 1e-5)) {
+                    return false;
+                }
+                return true;
             };
             /**
-            * Appends src_bone to dest
+            * Merges the two given bones. Returns null if they cannot be merged.
             */
-            Bone.appendBone = function (dest, src_bone) {
-                var already_present = false;
-                for (var id = 0; id < dest.length; ++id) {
-                    var dest_bone = dest[id];
-                    if (COLLADA.Converter.Bone.sameBone(dest_bone, src_bone)) {
-                        already_present = true;
-                        // Merge the 'attached to skin' property
-                        dest_bone.attachedToSkin = dest_bone.attachedToSkin || src_bone.attachedToSkin;
-                        return dest_bone;
-                    }
+            Bone.mergeBone = function (a, b) {
+                if (!Bone.safeToMerge(a, b)) {
+                    return null;
                 }
-                if (!already_present) {
-                    dest.push(src_bone);
-                    if (src_bone.parent !== null) {
-                        src_bone.parent = COLLADA.Converter.Bone.appendBone(dest, src_bone.parent);
-                    }
+                if (a.attachedToSkin) {
+                    return a.clone();
                 }
-                return src_bone;
-            };
-            /**
-            * Given two arrays a and b, such that each bone from a is contained in b,
-            * compute a map that maps the old index (a) of each bone to the new index (b).
-            */
-            Bone.getBoneIndexMap = function (a, b) {
-                var result = new Uint32Array(a.length);
-                for (var i = 0; i < a.length; ++i) {
-                    var bone_a = a[i];
-                    // Find the index of the current bone in b
-                    var new_index = -1;
-                    for (var j = 0; j < b.length; ++j) {
-                        var bone_b = b[j];
-                        if (COLLADA.Converter.Bone.sameBone(bone_a, bone_b)) {
-                            new_index = j;
-                            break;
-                        }
-                    }
-                    if (new_index < 0) {
-                        var a_name = bone_a.name;
-                        var b_names = b.map(function (b) { return b.name; });
-                        throw new Error("Bone " + a_name + " not found in " + b_names);
-                    }
-                    result[i] = new_index;
+                else if (b.attachedToSkin) {
+                    return b.clone();
                 }
-                return result;
-            };
-            /**
-            * Returns true if the bones are sorted so that child bones appear after their parents in the list.
-            */
-            Bone.bonesSorted = function (bones) {
-                var errors = 0;
-                bones.forEach(function (bone) {
-                    if (bone.index <= bone.parentIndex()) {
-                        ++errors;
-                    }
-                });
-                return errors == 0;
-            };
-            /**
-            * Sorts bones so that child bones appear after their parents in the list.
-            */
-            Bone.sortBones = function (bones) {
-                var result = bones.slice(0);
-                result = result.sort(function (a, b) {
-                    var ad = a.depth();
-                    var bd = b.depth();
-                    if (ad < bd) {
-                        return -1;
-                    }
-                    else if (ad > bd) {
-                        return 1;
-                    }
-                    else {
-                        return (a.parentIndex() - b.parentIndex()) + 0.001 * (a.index - b.index);
-                    }
-                });
-                // Bone indices have changed
-                Bone.updateIndices(result);
-                if (result.length != bones.length || Bone.bonesSorted(result) == false) {
-                    throw new Error("Error while sorting bones");
+                else {
+                    return a.clone();
                 }
-                return result;
             };
             return Bone;
         })();
@@ -3823,13 +3722,13 @@ var COLLADA;
                             inputTriTexcoord.push(input);
                             break;
                         default:
-                            context.log.write("Unknown triangles input semantic " + input.semantic + " ignored", 3 /* Warning */);
+                            context.log.write("Unknown triangles input semantic " + input.semantic + " ignored", 4 /* Warning */);
                     }
                 }
                 // Per-triangle data source
                 var srcTriVertices = COLLADA.Loader.Vertices.fromLink(inputTriVertices.source, context);
                 if (srcTriVertices === null) {
-                    context.log.write("Geometry " + geometry.id + " has no vertices, geometry ignored", 3 /* Warning */);
+                    context.log.write("Geometry " + geometry.id + " has no vertices, geometry ignored", 4 /* Warning */);
                     return null;
                 }
                 var srcTriNormal = COLLADA.Loader.Source.fromLink(inputTriNormal != null ? inputTriNormal.source : null, context);
@@ -3856,13 +3755,13 @@ var COLLADA;
                             inputVertTexcoord.push(input);
                             break;
                         default:
-                            context.log.write("Unknown vertices input semantic " + input.semantic + " ignored", 3 /* Warning */);
+                            context.log.write("Unknown vertices input semantic " + input.semantic + " ignored", 4 /* Warning */);
                     }
                 }
                 // Per-vertex data source
                 var srcVertPos = COLLADA.Loader.Source.fromLink(inputVertPos.source, context);
                 if (srcVertPos === null) {
-                    context.log.write("Geometry " + geometry.id + " has no vertex positions, geometry ignored", 3 /* Warning */);
+                    context.log.write("Geometry " + geometry.id + " has no vertex positions, geometry ignored", 4 /* Warning */);
                     return null;
                 }
                 var srcVertNormal = COLLADA.Loader.Source.fromLink(inputVertNormal != null ? inputVertNormal.source : null, context);
@@ -3883,18 +3782,18 @@ var COLLADA;
                         for (var i = 0; i < vcount.length; i++) {
                             var c = vcount[i];
                             if (c !== 3) {
-                                context.log.write("Geometry " + geometry.id + " has non-triangle polygons, geometry ignored.", 3 /* Warning */);
+                                context.log.write("Geometry " + geometry.id + " has non-triangle polygons, geometry ignored.", 4 /* Warning */);
                                 return null;
                             }
                         }
                     }
                     else {
-                        context.log.write("Geometry " + geometry.id + " has polygons with an unknown number of vertices per polygon. Assuming all triangles.", 3 /* Warning */);
+                        context.log.write("Geometry " + geometry.id + " has polygons with an unknown number of vertices per polygon. Assuming all triangles.", 4 /* Warning */);
                     }
                 }
                 // Security checks
                 if (srcVertPos.stride !== 3) {
-                    context.log.write("Geometry " + geometry.id + " vertex positions are not 3D vectors, geometry ignored", 3 /* Warning */);
+                    context.log.write("Geometry " + geometry.id + " vertex positions are not 3D vectors, geometry ignored", 4 /* Warning */);
                     return null;
                 }
                 // Extract indices used by this chunk
@@ -3904,14 +3803,14 @@ var COLLADA;
                 var triangleVertexStride = triangleStride / 3;
                 var indices = COLLADA.Converter.Utils.compactIndices(colladaIndices, triangleVertexStride, inputTriVertices.offset);
                 if ((indices === null) || (indices.length === 0)) {
-                    context.log.write("Geometry " + geometry.id + " does not contain any indices, geometry ignored", 4 /* Error */);
+                    context.log.write("Geometry " + geometry.id + " does not contain any indices, geometry ignored", 5 /* Error */);
                     return null;
                 }
                 // The vertex count (size of the vertex buffer) is the number of unique indices in the index buffer
                 var vertexCount = COLLADA.Converter.Utils.maxIndex(indices) + 1;
                 var triangleCount = indices.length / 3;
                 if (triangleCount !== trianglesCount) {
-                    context.log.write("Geometry " + geometry.id + " has an inconsistent number of indices, geometry ignored", 4 /* Error */);
+                    context.log.write("Geometry " + geometry.id + " has an inconsistent number of indices, geometry ignored", 5 /* Error */);
                     return null;
                 }
                 // Position buffer
@@ -3928,7 +3827,7 @@ var COLLADA;
                     COLLADA.Converter.Utils.reIndex(dataTriNormal, colladaIndices, triangleVertexStride, indexOffsetNormal, 3, normal, indices, 1, 0, 3);
                 }
                 else {
-                    context.log.write("Geometry " + geometry.id + " has no normal data, using zero vectors", 3 /* Warning */);
+                    context.log.write("Geometry " + geometry.id + " has no normal data, using zero vectors", 4 /* Warning */);
                 }
                 // Texture coordinate buffer
                 var texcoord = new Float32Array(vertexCount * 2);
@@ -3940,7 +3839,7 @@ var COLLADA;
                     COLLADA.Converter.Utils.reIndex(dataTriTexcoord[0], colladaIndices, triangleVertexStride, indexOffsetTexcoord, 2, texcoord, indices, 1, 0, 2);
                 }
                 else {
-                    context.log.write("Geometry " + geometry.id + " has no texture coordinate data, using zero vectors", 3 /* Warning */);
+                    context.log.write("Geometry " + geometry.id + " has no texture coordinate data, using zero vectors", 4 /* Warning */);
                 }
                 // Geometry data buffers
                 var geometryData = new GeometryData();
@@ -4094,27 +3993,34 @@ var COLLADA;
             function Geometry() {
                 this.name = "";
                 this.chunks = [];
-                this.bones = [];
+                this.skeleton = null;
                 this.boundingBox = new Converter.BoundingBox();
             }
+            Geometry.prototype.getSkeleton = function () {
+                return this.skeleton;
+            };
             /**
             * Creates a static (non-animated) geometry
             */
-            Geometry.createStatic = function (instanceGeometry, context) {
+            Geometry.createStatic = function (instanceGeometry, node, context) {
                 var geometry = COLLADA.Loader.Geometry.fromLink(instanceGeometry.geometry, context);
                 if (geometry === null) {
-                    context.log.write("Geometry instance has no geometry, mesh ignored", 3 /* Warning */);
+                    context.log.write("Geometry instance has no geometry, mesh ignored", 4 /* Warning */);
                     return null;
                 }
-                return COLLADA.Converter.Geometry.createGeometry(geometry, instanceGeometry.materials, context);
+                var result = COLLADA.Converter.Geometry.createGeometry(geometry, instanceGeometry.materials, context);
+                if (context.options.createSkeleton.value) {
+                    COLLADA.Converter.Geometry.addSkeleton(result, node, context);
+                }
+                return result;
             };
             /**
             * Creates an animated (skin or morph) geometry
             */
-            Geometry.createAnimated = function (instanceController, context) {
+            Geometry.createAnimated = function (instanceController, node, context) {
                 var controller = COLLADA.Loader.Controller.fromLink(instanceController.controller, context);
                 if (controller === null) {
-                    context.log.write("Controller instance has no controller, mesh ignored", 3 /* Warning */);
+                    context.log.write("Controller instance has no controller, mesh ignored", 4 /* Warning */);
                     return null;
                 }
                 if (controller.skin !== null) {
@@ -4132,57 +4038,47 @@ var COLLADA;
                 // Controller element
                 var controller = COLLADA.Loader.Controller.fromLink(instanceController.controller, context);
                 if (controller === null) {
-                    context.log.write("Controller instance has no controller, mesh ignored", 4 /* Error */);
+                    context.log.write("Controller instance has no controller, mesh ignored", 5 /* Error */);
                     return null;
                 }
                 // Skin element
                 var skin = controller.skin;
                 if (skin === null) {
-                    context.log.write("Controller has no skin, mesh ignored", 4 /* Error */);
+                    context.log.write("Controller has no skin, mesh ignored", 5 /* Error */);
                     return null;
                 }
                 // Geometry element
                 var loaderGeometry = COLLADA.Loader.Geometry.fromLink(skin.source, context);
                 if (loaderGeometry === null) {
-                    context.log.write("Controller has no geometry, mesh ignored", 4 /* Error */);
+                    context.log.write("Controller has no geometry, mesh ignored", 5 /* Error */);
                     return null;
                 }
                 // Create skin geometry
                 var geometry = COLLADA.Converter.Geometry.createGeometry(loaderGeometry, instanceController.materials, context);
-                // Skeleton root nodes
-                var skeletonLinks = instanceController.skeletons;
-                var skeletonRootNodes = [];
-                for (var i = 0; i < skeletonLinks.length; i++) {
-                    var skeletonLink = skeletonLinks[i];
-                    var skeletonRootNode = COLLADA.Loader.VisualSceneNode.fromLink(skeletonLink, context);
-                    if (skeletonRootNode === null) {
-                        context.log.write("Skeleton root node " + skeletonLink.getUrl() + " not found, skeleton root ignored", 3 /* Warning */);
-                        continue;
-                    }
-                    skeletonRootNodes.push(skeletonRootNode);
+                if (!context.options.createSkeleton.value) {
+                    context.log.write("Geometry " + geometry.name + " contains skinning data, but the creation of skeletons is disabled in the options. Using static geometry only.", 4 /* Warning */);
+                    return geometry;
                 }
+                // Find skeleton root nodes
+                var skeletonRootNodes = COLLADA.Converter.Geometry.getSkeletonRootNodes(instanceController.skeletons, context);
                 if (skeletonRootNodes.length === 0) {
-                    context.log.write("Controller has no skeleton, using the whole scene as the skeleton root", 3 /* Warning */);
-                    skeletonRootNodes = context.nodes.collada.filter(function (node) { return (context.isInstanceOf(node.parent, "VisualScene")); });
-                }
-                if (skeletonRootNodes.length === 0) {
-                    context.log.write("Controller still has no skeleton, using unskinned geometry", 3 /* Warning */);
+                    context.log.write("Controller still has no skeleton, using unskinned geometry", 4 /* Warning */);
                     return geometry;
                 }
                 // Joints
                 var jointsElement = skin.joints;
                 if (jointsElement === null) {
-                    context.log.write("Skin has no joints element, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has no joints element, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var jointsInput = jointsElement.joints;
                 if (jointsInput === null) {
-                    context.log.write("Skin has no joints input, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has no joints input, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var jointsSource = COLLADA.Loader.Source.fromLink(jointsInput.source, context);
                 if (jointsSource === null) {
-                    context.log.write("Skin has no joints source, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has no joints source, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var jointSids = jointsSource.data;
@@ -4195,41 +4091,41 @@ var COLLADA;
                 // InvBindMatrices
                 var invBindMatricesInput = jointsElement.invBindMatrices;
                 if (invBindMatricesInput === null) {
-                    context.log.write("Skin has no inverse bind matrix input, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has no inverse bind matrix input, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var invBindMatricesSource = COLLADA.Loader.Source.fromLink(invBindMatricesInput.source, context);
                 if (jointsSource === null) {
-                    context.log.write("Skin has no inverse bind matrix source, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has no inverse bind matrix source, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 if (invBindMatricesSource.data.length !== jointsSource.data.length * 16) {
-                    context.log.write("Skin has an inconsistent length of joint data sources, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has an inconsistent length of joint data sources, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 if (!(invBindMatricesSource.data instanceof Float32Array)) {
-                    context.log.write("Skin inverse bind matrices data does not contain floating point data, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin inverse bind matrices data does not contain floating point data, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var invBindMatrices = invBindMatricesSource.data;
                 // Vertex weights
                 var weightsElement = skin.vertexWeights;
                 if (weightsElement === null) {
-                    context.log.write("Skin contains no bone weights element, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin contains no bone weights element, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var weightsInput = weightsElement.weights;
                 if (weightsInput === null) {
-                    context.log.write("Skin contains no bone weights input, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin contains no bone weights input, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var weightsSource = COLLADA.Loader.Source.fromLink(weightsInput.source, context);
                 if (weightsSource === null) {
-                    context.log.write("Skin has no bone weights source, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Skin has no bone weights source, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 if (!(weightsSource.data instanceof Float32Array)) {
-                    context.log.write("Bone weights data does not contain floating point data, using unskinned mesh", 3 /* Warning */);
+                    context.log.write("Bone weights data does not contain floating point data, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
                 var weightsData = weightsSource.data;
@@ -4237,27 +4133,48 @@ var COLLADA;
                 if (skin.vertexWeights.joints.source.url !== skin.joints.joints.source.url) {
                     // Holy crap, how many indirections does this stupid format have?!?
                     // If the data sources differ, we would have to reorder the elements of the "bones" array.
-                    context.log.write("Skin uses different data sources for joints in <joints> and <vertex_weights>, this is not supported. Using unskinned mesh.", 3 /* Warning */);
+                    context.log.write("Skin uses different data sources for joints in <joints> and <vertex_weights>, this is not supported. Using unskinned mesh.", 4 /* Warning */);
                     return geometry;
                 }
                 // Bones
-                var bones = COLLADA.Converter.Bone.createSkinBones(jointSids, skeletonRootNodes, bindShapeMatrix, invBindMatrices, context);
-                if (bones === null || bones.length === 0) {
-                    context.log.write("Skin contains no bones, using unskinned mesh", 3 /* Warning */);
+                var skeleton = Converter.Skeleton.createFromSkin(jointSids, skeletonRootNodes, bindShapeMatrix, invBindMatrices, context);
+                if (skeleton.bones.length === 0) {
+                    context.log.write("Skin contains no bones, using unskinned mesh", 4 /* Warning */);
                     return geometry;
                 }
-                // Sort bones if necessary
-                var index_map = null;
-                if (context.options.sortBones.value) {
-                    var unsorted_bones = bones;
-                    bones = COLLADA.Converter.Bone.sortBones(unsorted_bones);
-                    index_map = COLLADA.Converter.Bone.getBoneIndexMap(unsorted_bones, bones);
-                }
-                else {
-                    index_map = COLLADA.Converter.Bone.getBoneIndexMap(bones, bones);
-                }
+                Geometry.setSkeleton(geometry, skeleton, context);
                 // Compact skinning data
                 var bonesPerVertex = 4;
+                var skinningData = COLLADA.Converter.Geometry.compactSkinningData(skin, weightsData, bonesPerVertex, context);
+                var skinIndices = skinningData.indices;
+                var skinWeights = skinningData.weights;
+                for (var i = 0; i < geometry.chunks.length; ++i) {
+                    var chunk = geometry.chunks[i];
+                    var chunkData = chunk.data;
+                    var chunkSrcIndices = chunk._colladaIndices;
+                    // Distribute indices to chunks
+                    chunkData.boneindex = new Uint8Array(chunk.vertexCount * bonesPerVertex);
+                    COLLADA.Converter.Utils.reIndex(skinIndices, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset, bonesPerVertex, chunkData.boneindex, chunkData.indices, 1, 0, bonesPerVertex);
+                    // Distribute weights to chunks
+                    chunkData.boneweight = new Float32Array(chunk.vertexCount * bonesPerVertex);
+                    COLLADA.Converter.Utils.reIndex(skinWeights, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset, bonesPerVertex, chunkData.boneweight, chunkData.indices, 1, 0, bonesPerVertex);
+                }
+                for (var i = 0; i < geometry.chunks.length; ++i) {
+                    var chunk = geometry.chunks[i];
+                    chunk.bindShapeMatrix = mat4.clone(bindShapeMatrix);
+                }
+                // Apply bind shape matrices
+                if (context.options.applyBindShape.value === true) {
+                    Geometry.applyBindShapeMatrices(geometry, context);
+                }
+                // Sort bones if necessary
+                if (context.options.sortBones.value) {
+                    skeleton = COLLADA.Converter.Skeleton.sortBones(skeleton, context);
+                }
+                COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
+                return geometry;
+            };
+            Geometry.compactSkinningData = function (skin, weightsData, bonesPerVertex, context) {
                 var weightsIndices = skin.vertexWeights.v;
                 var weightsCounts = skin.vertexWeights.vcount;
                 var skinVertexCount = weightsCounts.length;
@@ -4276,7 +4193,6 @@ var COLLADA;
                     weightCounts[Math.min(weightCount, weightCounts.length - 1)]++;
                     for (var w = 0; w < weightCount; ++w) {
                         var boneIndex = weightsIndices[vindex];
-                        boneIndex = index_map[boneIndex];
                         var boneWeightIndex = weightsIndices[vindex + 1];
                         vindex += 2;
                         var boneWeight = weightsData[boneWeightIndex];
@@ -4300,35 +4216,32 @@ var COLLADA;
                     }
                 }
                 if (verticesWithTooManyInfluences > 0) {
-                    context.log.write("" + verticesWithTooManyInfluences + " vertices are influenced by too many bones, some influences were ignored. Only " + bonesPerVertex + " bones per vertex are supported.", 3 /* Warning */);
+                    context.log.write("" + verticesWithTooManyInfluences + " vertices are influenced by too many bones, some influences were ignored. Only " + bonesPerVertex + " bones per vertex are supported.", 4 /* Warning */);
                 }
                 if (verticesWithInvalidTotalWeight > 0) {
-                    context.log.write("" + verticesWithInvalidTotalWeight + " vertices have zero or infinite total weight, skin will be broken.", 3 /* Warning */);
+                    context.log.write("" + verticesWithInvalidTotalWeight + " vertices have zero or infinite total weight, skin will be broken.", 4 /* Warning */);
                 }
-                for (var i = 0; i < geometry.chunks.length; ++i) {
-                    var chunk = geometry.chunks[i];
-                    var chunkData = chunk.data;
-                    var chunkSrcIndices = chunk._colladaIndices;
-                    // Distribute indices to chunks
-                    chunkData.boneindex = new Uint8Array(chunk.vertexCount * bonesPerVertex);
-                    COLLADA.Converter.Utils.reIndex(skinIndices, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset, bonesPerVertex, chunkData.boneindex, chunkData.indices, 1, 0, bonesPerVertex);
-                    // Distribute weights to chunks
-                    chunkData.boneweight = new Float32Array(chunk.vertexCount * bonesPerVertex);
-                    COLLADA.Converter.Utils.reIndex(skinWeights, chunkSrcIndices.indices, chunkSrcIndices.indexStride, chunkSrcIndices.indexOffset, bonesPerVertex, chunkData.boneweight, chunkData.indices, 1, 0, bonesPerVertex);
+                return { weights: skinWeights, indices: skinIndices };
+            };
+            Geometry.getSkeletonRootNodes = function (skeletonLinks, context) {
+                var skeletonRootNodes = [];
+                for (var i = 0; i < skeletonLinks.length; i++) {
+                    var skeletonLink = skeletonLinks[i];
+                    var skeletonRootNode = COLLADA.Loader.VisualSceneNode.fromLink(skeletonLink, context);
+                    if (skeletonRootNode === null) {
+                        context.log.write("Skeleton root node " + skeletonLink.getUrl() + " not found, skeleton root ignored", 4 /* Warning */);
+                        continue;
+                    }
+                    skeletonRootNodes.push(skeletonRootNode);
                 }
-                for (var i = 0; i < geometry.chunks.length; ++i) {
-                    var chunk = geometry.chunks[i];
-                    chunk.bindShapeMatrix = mat4.clone(bindShapeMatrix);
+                if (skeletonRootNodes.length === 0) {
+                    context.log.write("Controller has no skeleton, using the whole scene as the skeleton root", 4 /* Warning */);
+                    skeletonRootNodes = context.nodes.collada.filter(function (node) { return (context.isInstanceOf(node.parent, "VisualScene")); });
                 }
-                // Apply bind shape matrices
-                if (context.options.applyBindShape.value === true) {
-                    Geometry.applyBindShapeMatrices(geometry, context);
-                }
-                geometry.bones = bones;
-                return geometry;
+                return skeletonRootNodes;
             };
             Geometry.createMorph = function (instanceController, controller, context) {
-                context.log.write("Morph animated meshes not supported, mesh ignored", 3 /* Warning */);
+                context.log.write("Morph animated meshes not supported, mesh ignored", 4 /* Warning */);
                 return null;
             };
             Geometry.createGeometry = function (geometry, instanceMaterials, context) {
@@ -4344,12 +4257,12 @@ var COLLADA;
                     if (triangles.material !== null) {
                         material = materialMap.symbols[triangles.material];
                         if (material === null) {
-                            context.log.write("Material symbol " + triangles.material + " has no bound material instance, using default material", 3 /* Warning */);
+                            context.log.write("Material symbol " + triangles.material + " has no bound material instance, using default material", 4 /* Warning */);
                             material = COLLADA.Converter.Material.createDefaultMaterial(context);
                         }
                     }
                     else {
-                        context.log.write("Missing material index, using default material", 3 /* Warning */);
+                        context.log.write("Missing material index, using default material", 4 /* Warning */);
                         material = COLLADA.Converter.Material.createDefaultMaterial(context);
                     }
                     // Create a geometry chunk
@@ -4381,12 +4294,12 @@ var COLLADA;
             * Adapts inverse bind matrices to account for any additional transformations due to the world transform
             */
             Geometry.setupWorldTransform = function (geometry, context) {
-                if (geometry.bones == null)
+                if (geometry.skeleton === null)
                     return;
                 // Skinning equation:                [worldMatrix]     * [invBindMatrix]        * [pos]
                 // Same with transformation A added: [worldMatrix]     * [invBindMatrix * A^-1] * [A * pos]
                 // Same with transformation B added: [worldMatrix * B] * [B^-1 * invBindMatrix] * [pos]
-                geometry.bones.forEach(function (bone) {
+                geometry.skeleton.bones.forEach(function (bone) {
                     // Transformation A (the world scale)
                     if (context.options.worldTransformBake) {
                         mat4.multiply(bone.invBindMatrix, bone.invBindMatrix, Converter.Utils.getWorldInvTransform(context));
@@ -4407,8 +4320,8 @@ var COLLADA;
                     var chunk = geometry.chunks[i];
                     Converter.GeometryChunk.scaleChunk(chunk, scale, context);
                 }
-                if (geometry.bones) {
-                    geometry.bones.forEach(function (bone) {
+                if (geometry.skeleton !== null) {
+                    geometry.skeleton.bones.forEach(function (bone) {
                         bone.invBindMatrix[12] *= scale;
                         bone.invBindMatrix[13] *= scale;
                         bone.invBindMatrix[14] *= scale;
@@ -4446,12 +4359,9 @@ var COLLADA;
                 }
             };
             Geometry.addSkeleton = function (geometry, node, context) {
-                // Create a single bone
-                var colladaNode = context.nodes.findCollada(node);
-                var bone = COLLADA.Converter.Bone.create(node);
-                mat4.identity(bone.invBindMatrix);
-                geometry.bones.push(bone);
-                COLLADA.Converter.Bone.updateIndices(geometry.bones);
+                // Create a skeleton from a single node
+                var skeleton = COLLADA.Converter.Skeleton.createFromNode(node, context);
+                COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
                 for (var i = 0; i < geometry.chunks.length; ++i) {
                     var chunk = geometry.chunks[i];
                     var chunkData = chunk.data;
@@ -4468,64 +4378,72 @@ var COLLADA;
                         chunkData.boneweight[4 * v + 3] = 0;
                     }
                 }
+                // Sort bones if necessary
+                if (context.options.sortBones.value) {
+                    skeleton = COLLADA.Converter.Skeleton.sortBones(skeleton, context);
+                }
+                COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
             };
             /**
             * Moves all data from given geometries into one merged geometry.
             * The original geometries will be empty after this operation (lazy design to avoid data duplication).
             */
             Geometry.mergeGeometries = function (geometries, context) {
-                if (geometries.length === 1) {
+                if (geometries.length === 0) {
+                    context.log.write("No geometries to merge", 4 /* Warning */);
+                    return null;
+                }
+                else if (geometries.length === 1) {
                     return geometries[0];
                 }
                 var result = new COLLADA.Converter.Geometry();
                 result.name = "merged_geometry";
                 // Merge skeleton bones
-                var merged_bones = [];
-                for (var i = 0; i < geometries.length; ++i) {
-                    COLLADA.Converter.Bone.appendBones(merged_bones, geometries[i].bones);
-                }
-                result.bones = merged_bones;
+                var skeleton = new Converter.Skeleton([]);
+                geometries.forEach(function (g) {
+                    if (g.skeleton !== null) {
+                        skeleton = COLLADA.Converter.Skeleton.mergeSkeletons(skeleton, g.skeleton, context);
+                    }
+                });
                 // Sort bones if necessary
                 if (context.options.sortBones.value) {
-                    merged_bones = COLLADA.Converter.Bone.sortBones(merged_bones);
+                    skeleton = COLLADA.Converter.Skeleton.sortBones(skeleton, context);
                 }
-                for (var i = 0; i < geometries.length; ++i) {
-                    COLLADA.Converter.Geometry.adaptBoneIndices(geometries[i], merged_bones, context);
-                }
-                // Set bone indices
-                COLLADA.Converter.Bone.updateIndices(merged_bones);
-                for (var i = 0; i < merged_bones.length; ++i) {
-                    var bone = merged_bones[i];
-                    if (bone.parent !== null) {
-                        if (bone.parent != merged_bones[bone.parentIndex()])
-                            throw new Error("Inconsistent bone parent");
-                    }
-                }
-                for (var i = 0; i < geometries.length; ++i) {
-                    result.chunks = result.chunks.concat(geometries[i].chunks);
-                }
-                for (var i = 0; i < geometries.length; ++i) {
-                    geometries[i].chunks = [];
-                    geometries[i].bones = [];
-                }
+                COLLADA.Converter.Geometry.setSkeleton(result, skeleton, context);
+                // Recode bone indices
+                geometries.forEach(function (geometry) {
+                    COLLADA.Converter.Geometry.setSkeleton(geometry, skeleton, context);
+                });
+                // Merge geometry chunks
+                geometries.forEach(function (geometry) {
+                    result.chunks = result.chunks.concat(geometry.chunks);
+                });
+                // We modified the original data, unlink it from the original geometries
+                geometries.forEach(function (geometry) {
+                    geometry.chunks = [];
+                });
                 return result;
             };
             /**
-            * Change all vertex bone indices so that they point to the given new_bones array, instead of the current geometry.bones array
+            * Set the new skeleton for the given geometry.
+            * Changes all vertex bone indices so that they point to the given skeleton bones, instead of the current geometry.skeleton bones
             */
-            Geometry.adaptBoneIndices = function (geometry, new_bones, context) {
-                if (geometry.bones.length === 0) {
-                    return;
-                }
-                // Compute the index map
-                var index_map = COLLADA.Converter.Bone.getBoneIndexMap(geometry.bones, new_bones);
-                for (var i = 0; i < geometry.chunks.length; ++i) {
-                    var chunk = geometry.chunks[i];
-                    var boneindex = chunk.data.boneindex;
-                    for (var j = 0; j < boneindex.length; ++j) {
-                        boneindex[j] = index_map[boneindex[j]];
+            Geometry.setSkeleton = function (geometry, skeleton, context) {
+                // Adapt bone indices
+                if (geometry.skeleton !== null) {
+                    // Compute the index map
+                    var index_map = COLLADA.Converter.Skeleton.getBoneIndexMap(geometry.skeleton, skeleton);
+                    for (var i = 0; i < geometry.chunks.length; ++i) {
+                        var chunk = geometry.chunks[i];
+                        var boneindex = chunk.data.boneindex;
+                        if (boneindex !== null) {
+                            for (var j = 0; j < boneindex.length; ++j) {
+                                boneindex[j] = index_map[boneindex[j]];
+                            }
+                        }
                     }
                 }
+                geometry.skeleton = skeleton;
             };
             return Geometry;
         })();
@@ -4542,27 +4460,78 @@ var COLLADA;
     (function (Converter) {
         var AnimationTimeStatistics = (function () {
             function AnimationTimeStatistics() {
-                this.minTime = Infinity;
-                this.maxTime = -Infinity;
-                this.minAvgFps = Infinity;
-                this.maxAvgFps = -Infinity;
-                this.sumAvgFps = 0;
-                this.count = 0;
+                this.beginTime = new Statistics();
+                this.endTime = new Statistics();
+                this.duration = new Statistics();
+                this.keyframes = new Statistics();
+                this.fps = new Statistics();
             }
-            AnimationTimeStatistics.prototype.avgFps = function () {
-                return (this.count > 0) ? (this.sumAvgFps / this.count) : null;
-            };
-            AnimationTimeStatistics.prototype.addDataPoint = function (minTime, maxTime, avgFps) {
-                this.count++;
-                this.minTime = Math.min(this.minTime, minTime);
-                this.maxTime = Math.max(this.maxTime, maxTime);
-                this.minAvgFps = Math.min(this.minAvgFps, avgFps);
-                this.maxAvgFps = Math.max(this.maxAvgFps, avgFps);
-                this.sumAvgFps += avgFps;
+            AnimationTimeStatistics.prototype.addDataPoint = function (beginTime, endTime, keyframes) {
+                var duration = endTime - beginTime;
+                this.beginTime.addDataPoint(beginTime);
+                this.endTime.addDataPoint(endTime);
+                this.duration.addDataPoint(duration);
+                this.keyframes.addDataPoint(keyframes);
+                if (duration > 0) {
+                    var fps = (keyframes - 1) / duration;
+                    this.fps.addDataPoint(fps);
+                }
             };
             return AnimationTimeStatistics;
         })();
         Converter.AnimationTimeStatistics = AnimationTimeStatistics;
+        var Statistics = (function () {
+            function Statistics() {
+                this.data = [];
+                this.sorted = true;
+            }
+            Statistics.prototype.addDataPoint = function (value) {
+                this.data.push(value);
+                this.sorted = false;
+            };
+            Statistics.prototype.sort = function () {
+                if (!this.sorted) {
+                    this.sorted = true;
+                    this.data.sort();
+                }
+            };
+            Statistics.prototype.compute = function (fn) {
+                if (this.data.length > 0) {
+                    this.sort();
+                    return fn(this.data);
+                }
+                else {
+                    return null;
+                }
+            };
+            Statistics.prototype.count = function () {
+                return this.compute(function (data) { return data.length; });
+            };
+            Statistics.prototype.min = function () {
+                return this.compute(function (data) { return data[0]; });
+            };
+            Statistics.prototype.max = function () {
+                return this.compute(function (data) { return data[data.length - 1]; });
+            };
+            Statistics.prototype.median = function () {
+                var _this = this;
+                return this.compute(function (data) {
+                    var m = (_this.data.length - 1) / 2;
+                    var l = _this.data[Math.floor(m)];
+                    var r = _this.data[Math.ceil(m)];
+                    return (l + r) / 2;
+                });
+            };
+            Statistics.prototype.sum = function () {
+                return this.compute(function (data) { return data.reduce(function (prev, cur) { return prev + cur; }, 0); });
+            };
+            Statistics.prototype.mean = function () {
+                var _this = this;
+                return this.compute(function (data) { return _this.sum() / _this.count(); });
+            };
+            return Statistics;
+        })();
+        Converter.Statistics = Statistics;
         var Animation = (function () {
             function Animation() {
                 this.id = null;
@@ -4592,10 +4561,12 @@ var COLLADA;
             Animation.getTimeStatistics = function (animation, index_begin, index_end, result, context) {
                 for (var i = 0; i < animation.channels.length; ++i) {
                     var channel = animation.channels[i];
-                    var channelMinTime = channel.input[(index_begin !== null) ? index_begin : 0];
-                    var channelMaxTime = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
-                    var channelAvgFps = channel.input.length / (channelMaxTime - channelMinTime);
-                    result.addDataPoint(channelMinTime, channelMaxTime, channelAvgFps);
+                    if (channel) {
+                        var channelMinTime = channel.input[(index_begin !== null) ? index_begin : 0];
+                        var channelMaxTime = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
+                        var channelKeyframes = channel.input.length;
+                        result.addDataPoint(channelMinTime, channelMaxTime, channelKeyframes);
+                    }
                 }
             };
             return Animation;
@@ -4624,27 +4595,29 @@ var COLLADA;
             }
             AnimationChannel.prototype.findInputIndices = function (t, context) {
                 var input = this.input;
-                // Handle borders
-                if (t < input[0]) {
+                var warnInvalidTime = function (str) {
                     var warningCount = context.messageCount["findInputIndices-invalidTime"] || 0;
                     if (warningCount < 10) {
-                        context.log.write("Invalid time for resampling: t=" + t + ", t_begin=" + input[0] + ", using first keyframe", 3 /* Warning */);
+                        context.log.write(str, 4 /* Warning */);
                     }
                     else if (warningCount == 10) {
-                        context.log.write("Further warnings about invalid time suppressed.", 3 /* Warning */);
+                        context.log.write("Further warnings about invalid time suppressed.", 4 /* Warning */);
                     }
                     context.messageCount["findInputIndices-invalidTime"] = warningCount + 1;
+                };
+                // Handle borders and special cases
+                if (input.length === 1) {
+                    if (t !== input[0]) {
+                        warnInvalidTime("Resampling input with only one keyframe: t=" + t + ", t_begin=" + input[0] + ", using first keyframe");
+                    }
+                    return { i0: 0, i1: 0 };
+                }
+                else if (t < input[0]) {
+                    warnInvalidTime("Invalid time for resampling: t=" + t + ", t_begin=" + input[0] + ", using first keyframe");
                     return { i0: 0, i1: 1 };
                 }
                 else if (t > input[input.length - 1]) {
-                    var warningCount = context.messageCount["findInputIndices-invalidTime"] || 0;
-                    if (warningCount < 10) {
-                        context.log.write("Invalid time for resampling: t=" + t + ", t_end=" + input[input.length - 1] + ", using last keyframe", 3 /* Warning */);
-                    }
-                    else if (warningCount == 10) {
-                        context.log.write("Further warnings about invalid time suppressed.", 3 /* Warning */);
-                    }
-                    context.messageCount["findInputIndices-invalidTime"] = warningCount + 1;
+                    warnInvalidTime("Invalid time for resampling: t=" + t + ", t_end=" + input[input.length - 1] + ", using last keyframe");
                     return { i0: input.length - 2, i1: input.length - 1 };
                 }
                 for (var i = 0; i < input.length - 1; ++i) {
@@ -4655,7 +4628,7 @@ var COLLADA;
                     }
                 }
                 // Should never get to this
-                context.log.write("Keyframes for time " + t + "not found, using first keyframe", 3 /* Warning */);
+                context.log.write("Keyframes for time " + t + "not found, using first keyframe", 4 /* Warning */);
                 return { i0: 0, i1: 1 };
             };
             AnimationChannel.createInputData = function (input, inputName, dataDim, context) {
@@ -4666,12 +4639,12 @@ var COLLADA;
                 // Source
                 var source = COLLADA.Loader.Source.fromLink(input.source, context);
                 if (source === null) {
-                    context.log.write("Animation channel has no " + inputName + " input data, data ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has no " + inputName + " input data, data ignored", 4 /* Warning */);
                     return null;
                 }
                 // Data
                 if (dataDim != source.stride) {
-                    context.log.write("Animation channel has a nonstandard dimensionality for " + inputName + ", data ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has a nonstandard dimensionality for " + inputName + ", data ignored", 4 /* Warning */);
                     return null;
                 }
                 return COLLADA.Converter.Utils.createFloatArray(source, inputName, dataDim, context);
@@ -4682,7 +4655,7 @@ var COLLADA;
                 // since each channel references a single SID target
                 if (inputs.length > 0) {
                     if (inputs.length > 1) {
-                        context.log.write("Animation channel has more than one " + inputName + " input, using only the first one", 3 /* Warning */);
+                        context.log.write("Animation channel has more than one " + inputName + " input, using only the first one", 4 /* Warning */);
                     }
                     return COLLADA.Converter.AnimationChannel.createInputData(inputs[0], inputName, dataDim, context);
                 }
@@ -4695,20 +4668,20 @@ var COLLADA;
                 // Element
                 var element = COLLADA.Loader.Element.fromLink(channel.target, context);
                 if (element === null) {
-                    context.log.write("Animation channel has an invalid target '" + channel.target.url + "', animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has an invalid target '" + channel.target.url + "', animation ignored", 4 /* Warning */);
                     return null;
                 }
                 // Target
                 var target = context.animationTargets.findConverter(element);
                 if (target === null) {
-                    context.log.write("Animation channel has no converter target '" + channel.target.url + "', animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has no converter target '" + channel.target.url + "', animation ignored", 4 /* Warning */);
                     return null;
                 }
                 result.target = target;
                 // Sampler
                 var sampler = COLLADA.Loader.Sampler.fromLink(channel.source, context);
                 if (sampler === null) {
-                    context.log.write("Animation channel has an invalid sampler '" + channel.source.url + "', animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has an invalid sampler '" + channel.source.url + "', animation ignored", 4 /* Warning */);
                     return null;
                 }
                 // Target dimensionality
@@ -4764,7 +4737,7 @@ var COLLADA;
                             result.dataOffset = 3;
                             break;
                         default:
-                            context.log.write("Unknown semantic for '" + targetLink.url + "', animation ignored", 3 /* Warning */);
+                            context.log.write("Unknown semantic for '" + targetLink.url + "', animation ignored", 4 /* Warning */);
                             return null;
                     }
                 }
@@ -4779,7 +4752,7 @@ var COLLADA;
                             result.dataOffset = targetLink.indices[0] * targetDataRows + targetLink.indices[1];
                             break;
                         default:
-                            context.log.write("Invalid number of indices for '" + targetLink.url + "', animation ignored", 3 /* Warning */);
+                            context.log.write("Invalid number of indices for '" + targetLink.url + "', animation ignored", 4 /* Warning */);
                             return null;
                     }
                 }
@@ -4794,22 +4767,22 @@ var COLLADA;
                 result.inTangent = COLLADA.Converter.AnimationChannel.createInputDataFromArray(sampler.inTangents, "intangent", result.dataCount + 1, context);
                 result.outTangent = COLLADA.Converter.AnimationChannel.createInputDataFromArray(sampler.outTangents, "outtangent", result.dataCount + 1, context);
                 if (result.input === null) {
-                    context.log.write("Animation channel has no input data, animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has no input data, animation ignored", 4 /* Warning */);
                     return null;
                 }
                 if (result.output === null) {
-                    context.log.write("Animation channel has no output data, animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has no output data, animation ignored", 4 /* Warning */);
                     return null;
                 }
                 // Interpolation type
                 var interpolationInput = sampler.interpolation;
                 if (interpolationInput === null) {
-                    context.log.write("Animation channel has no interpolation input, animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has no interpolation input, animation ignored", 4 /* Warning */);
                     return null;
                 }
                 var interpolationSource = COLLADA.Loader.Source.fromLink(interpolationInput.source, context);
                 if (interpolationSource === null) {
-                    context.log.write("Animation channel has no interpolation source, animation ignored", 3 /* Warning */);
+                    context.log.write("Animation channel has no interpolation source, animation ignored", 4 /* Warning */);
                     return null;
                 }
                 result.interpolation = COLLADA.Converter.Utils.createStringArray(interpolationSource, "interpolation type", 1, context);
@@ -4867,6 +4840,8 @@ var COLLADA;
                 var dataCount = channel.dataCount;
                 var dataOffset = channel.dataOffset;
                 var interpolation = channel.interpolation[indices.i0];
+                if (i0 === i1)
+                    interpolation = "STEP";
                 switch (interpolation) {
                     case "STEP":
                         for (var i = 0; i < dataCount; ++i) {
@@ -4894,13 +4869,13 @@ var COLLADA;
                         break;
                     case "CARDINAL":
                     case "BSPLINE":
-                        context.log.write("Interpolation type " + interpolation + " not supported, using STEP", 3 /* Warning */);
+                        context.log.write("Interpolation type " + interpolation + " not supported, using STEP", 4 /* Warning */);
                         for (var i = 0; i < dataCount; ++i) {
                             destData[dataOffset + i] = channel.input[i0 * dataCount + i];
                         }
                         break;
                     default:
-                        context.log.write("Unknown interpolation type " + interpolation + " at time " + time + ", using STEP", 3 /* Warning */);
+                        context.log.write("Unknown interpolation type " + interpolation + " at time " + time + ", using STEP", 4 /* Warning */);
                         for (var i = 0; i < dataCount; ++i) {
                             destData[dataOffset + i] = channel.input[i0 * dataCount + i];
                         }
@@ -5201,7 +5176,7 @@ var COLLADA;
                             converterTransform = new COLLADA.Converter.TransformScale(transform);
                             break;
                         default:
-                            context.log.write("Transformation type " + transform.type + " not supported, transform ignored", 3 /* Warning */);
+                            context.log.write("Transformation type " + transform.type + " not supported, transform ignored", 4 /* Warning */);
                     }
                     if (converterTransform !== null) {
                         context.animationTargets.register(transform, converterTransform);
@@ -5225,20 +5200,20 @@ var COLLADA;
                 var collada_node = context.nodes.findCollada(converter_node);
                 for (var i = 0; i < collada_node.geometries.length; i++) {
                     var loaderGeometry = collada_node.geometries[i];
-                    var converterGeometry = COLLADA.Converter.Geometry.createStatic(loaderGeometry, context);
+                    var converterGeometry = COLLADA.Converter.Geometry.createStatic(loaderGeometry, converter_node, context);
                     converter_node.geometries.push(converterGeometry);
                 }
                 for (var i = 0; i < collada_node.controllers.length; i++) {
                     var loaderController = collada_node.controllers[i];
-                    var converterGeometry = COLLADA.Converter.Geometry.createAnimated(loaderController, context);
+                    var converterGeometry = COLLADA.Converter.Geometry.createAnimated(loaderController, converter_node, context);
                     converter_node.geometries.push(converterGeometry);
                 }
                 // Lights, cameras
                 if (collada_node.lights.length > 0) {
-                    context.log.write("Node " + collada_node.id + " contains lights, lights are ignored", 3 /* Warning */);
+                    context.log.write("Node " + collada_node.id + " contains lights, lights are ignored", 4 /* Warning */);
                 }
                 if (collada_node.cameras.length > 0) {
-                    context.log.write("Node " + collada_node.id + " contains cameras, cameras are ignored", 3 /* Warning */);
+                    context.log.write("Node " + collada_node.id + " contains cameras, cameras are ignored", 4 /* Warning */);
                 }
                 for (var i = 0; i < converter_node.children.length; i++) {
                     var child = converter_node.children[i];
@@ -5262,45 +5237,59 @@ var COLLADA;
             Node.extractGeometries = function (scene_nodes, context) {
                 // Collect all geometries and the corresponding nodes
                 // Detach geometries from nodes in the process
-                var nodes = [];
-                var geometries = [];
+                var result = [];
                 COLLADA.Converter.Node.forEachNode(scene_nodes, function (node) {
                     for (var i = 0; i < node.geometries.length; ++i) {
-                        nodes.push(node);
-                        geometries.push(node.geometries[i]);
+                        result.push({ node: node, geometry: node.geometries[i] });
                     }
                     node.geometries = [];
                 });
-                if (geometries.length === 0) {
-                    context.log.write("No geometry found in the scene, returning an empty geometry", 3 /* Warning */);
+                if (result.length === 0) {
+                    context.log.write("No geometry found in the scene, returning an empty geometry", 4 /* Warning */);
                     var geometry = new COLLADA.Converter.Geometry();
                     geometry.name = "empty_geometry";
                     return [geometry];
                 }
-                for (var i = 0; i < geometries.length; ++i) {
-                    var geometry = geometries[i];
-                    var node = nodes[i];
-                    var is_skinned = geometry.bones.length > 0;
-                    var is_animated = node.isAnimated(true);
-                    if (!is_skinned) {
-                        if (is_animated) {
-                            context.log.write("Geometry '" + geometry.name + "' is not skinned, but attached to an animated node. " + "This animation will be lost because the geometry is being detached from the node.", 3 /* Warning */);
-                        }
-                        var world_matrix = node.getWorldMatrix(context);
+                // Check whether the geometries need a skeleton
+                var skinnedGeometries = 0;
+                var animatedNodeGeometries = 0;
+                result.forEach(function (element) {
+                    if (element.geometry.getSkeleton() !== null)
+                        skinnedGeometries++;
+                    if (element.node.isAnimated(true))
+                        animatedNodeGeometries++;
+                });
+                if (!context.options.createSkeleton.value) {
+                    if (skinnedGeometries > 0) {
+                        context.log.write("Scene contains " + skinnedGeometries + " skinned geometries, but skeleton creation is disabled. Static geometry was generated.", 4 /* Warning */);
+                    }
+                    if (animatedNodeGeometries > 0) {
+                        context.log.write("Scene contains " + animatedNodeGeometries + " static geometries attached to animated nodes, but skeleton creation is disabled. Static geometry was generated.", 4 /* Warning */);
+                    }
+                    // Apply the node transformation to static geometries
+                    result.forEach(function (element) {
+                        var world_matrix = element.node.getWorldMatrix(context);
                         if (context.options.worldTransformUnitScale) {
                             var mat = mat4.create();
-                            mat4.invert(mat, node.transformation_post);
+                            mat4.invert(mat, element.node.transformation_post);
                             mat4.multiply(world_matrix, world_matrix, mat);
                         }
-                        COLLADA.Converter.Geometry.transformGeometry(geometry, world_matrix, context);
-                    }
+                        COLLADA.Converter.Geometry.transformGeometry(element.geometry, world_matrix, context);
+                    });
                 }
                 // Merge all geometries
                 if (context.options.singleGeometry) {
+                    var geometries = result.map(function (element) {
+                        return element.geometry;
+                    });
                     var geometry = COLLADA.Converter.Geometry.mergeGeometries(geometries, context);
-                    geometries = [geometry];
+                    return [geometry];
                 }
-                return geometries;
+                else {
+                    return result.map(function (element) {
+                        return element.geometry;
+                    });
+                }
             };
             Node.setupWorldTransform = function (node, context) {
                 var worldScale = Converter.Utils.getWorldScale(context);
@@ -5352,12 +5341,12 @@ var COLLADA;
                 }
                 var textureSamplerParam = COLLADA.Loader.EffectParam.fromLink(colorOrTexture.textureSampler, context);
                 if (textureSamplerParam === null) {
-                    context.log.write("Texture sampler not found, texture will be missing", 3 /* Warning */);
+                    context.log.write("Texture sampler not found, texture will be missing", 4 /* Warning */);
                     return null;
                 }
                 var textureSampler = textureSamplerParam.sampler;
                 if (textureSampler === null) {
-                    context.log.write("Texture sampler param has no sampler, texture will be missing", 3 /* Warning */);
+                    context.log.write("Texture sampler param has no sampler, texture will be missing", 4 /* Warning */);
                     return null;
                 }
                 var textureImage = null;
@@ -5365,7 +5354,7 @@ var COLLADA;
                     // Collada 1.5 path: texture -> sampler -> image
                     textureImage = COLLADA.Loader.Image.fromLink(textureSampler.image, context);
                     if (textureImage === null) {
-                        context.log.write("Texture image not found, texture will be missing", 3 /* Warning */);
+                        context.log.write("Texture image not found, texture will be missing", 4 /* Warning */);
                         return null;
                     }
                 }
@@ -5373,17 +5362,17 @@ var COLLADA;
                     // Collada 1.4 path: texture -> sampler -> surface -> image
                     var textureSurfaceParam = COLLADA.Loader.EffectParam.fromLink(textureSampler.surface, context);
                     if (textureSurfaceParam === null) {
-                        context.log.write("Texture surface not found, texture will be missing", 3 /* Warning */);
+                        context.log.write("Texture surface not found, texture will be missing", 4 /* Warning */);
                         return null;
                     }
                     var textureSurface = textureSurfaceParam.surface;
                     if (textureSurface === null) {
-                        context.log.write("Texture surface param has no surface, texture will be missing", 3 /* Warning */);
+                        context.log.write("Texture surface param has no surface, texture will be missing", 4 /* Warning */);
                         return null;
                     }
                     textureImage = COLLADA.Loader.Image.fromLink(textureSurface.initFrom, context);
                     if (textureImage === null) {
-                        context.log.write("Texture image not found, texture will be missing", 3 /* Warning */);
+                        context.log.write("Texture image not found, texture will be missing", 4 /* Warning */);
                         return null;
                     }
                 }
@@ -5529,16 +5518,294 @@ var COLLADA;
                 this.worldTransformScale = new OptionFloat("World transform: scale", 1.0, 1e-6, 1e6, "Scale factor. See the 'worldTransform' option.");
                 this.worldTransformRotationAxis = new OptionSelect("World transform: rotation axis", "none", ["none", "x", "y", "z"], "Rotation axis. See the 'worldTransform' option.");
                 this.worldTransformRotationAngle = new OptionFloat("World transform: rotation angle", 0, 0, 360, "Rotation angle (in degrees). See the 'worldTransform' option.");
+                this.truncateResampledAnimations = new OptionBool("Truncate resampled animations", true, "True: animation durations will be truncated in order to keep the requested FPS. False: requested FPS will be slightly modified to keep the original duration.");
+                this.createSkeleton = new OptionBool("Generate a skeleton", true, "If true, a skeleton will be generated and all geometry will be attached to skeleton bones. If false, no skeleton is generated and all geometry will be static.");
             }
             return Options;
         })();
         Converter.Options = Options;
     })(Converter = COLLADA.Converter || (COLLADA.Converter = {}));
 })(COLLADA || (COLLADA = {}));
+/// <reference path="bone.ts" />
+var COLLADA;
+(function (COLLADA) {
+    var Converter;
+    (function (Converter) {
+        var Skeleton = (function () {
+            function Skeleton(bones) {
+                this.bones = bones;
+            }
+            /**
+            * In the given list, finds a bone that can be merged with the given bone
+            */
+            Skeleton.findBone = function (bones, bone) {
+                for (var i = 0; i < bones.length; ++i) {
+                    if (Converter.Bone.safeToMerge(bones[i], bone)) {
+                        return bones[i];
+                    }
+                }
+                return null;
+            };
+            /**
+            * Find the parent bone of the given bone
+            */
+            Skeleton.findParent = function (bones, bone) {
+                if (bone.parent === null) {
+                    return null;
+                }
+                for (var i = 0; i < bones.length; ++i) {
+                    if (bones[i].node === bone.parent.node) {
+                        return bones[i];
+                    }
+                }
+                return null;
+            };
+            Skeleton.checkConsistency = function (skeleton, context) {
+                skeleton.bones.forEach(function (b1, i1) {
+                    skeleton.bones.forEach(function (b2, i2) {
+                        if (i1 !== i2 && Converter.Bone.safeToMerge(b1, b2)) {
+                            throw new Error("Duplicate bone");
+                        }
+                    });
+                });
+                skeleton.bones.forEach(function (b) {
+                    if (b.parent !== null && b.node.parent === null) {
+                        throw new Error("Missing parent");
+                    }
+                });
+                skeleton.bones.forEach(function (b) {
+                    if (b.parent !== null && skeleton.bones.indexOf(b.parent) === -1) {
+                        throw new Error("Invalid parent");
+                    }
+                });
+            };
+            /**
+            * Creates a skeleton from a skin
+            */
+            Skeleton.createFromSkin = function (jointSids, skeletonRootNodes, bindShapeMatrix, invBindMatrices, context) {
+                var bones = [];
+                for (var i = 0; i < jointSids.length; i++) {
+                    var jointSid = jointSids[i];
+                    var jointNode = COLLADA.Converter.Bone.findBoneNode(jointSid, skeletonRootNodes, context);
+                    if (jointNode === null) {
+                        context.log.write("Joint " + jointSid + " not found for skeleton, no bones created", 4 /* Warning */);
+                        return new Skeleton([]);
+                    }
+                    var converterNode = context.nodes.findConverter(jointNode);
+                    if (converterNode === null) {
+                        context.log.write("Joint " + jointSid + " not converted for skeleton, no bones created", 4 /* Warning */);
+                        return new Skeleton([]);
+                    }
+                    var bone = COLLADA.Converter.Bone.create(converterNode);
+                    bone.attachedToSkin = true;
+                    COLLADA.MathUtils.mat4Extract(invBindMatrices, i, bone.invBindMatrix);
+                    // Collada skinning equation: boneWeight*boneMatrix*invBindMatrix*bindShapeMatrix*vertexPos
+                    // (see chapter 4: "Skin Deformation (or Skinning) in COLLADA")
+                    // Here we could pre-multiply the inverse bind matrix and the bind shape matrix
+                    // We do not pre-multiply the bind shape matrix, because the same bone could be bound to
+                    // different meshes using different bind shape matrices and we would have to duplicate the bones
+                    // mat4.multiply(bone.invBindMatrix, bone.invBindMatrix, bindShapeMatrix);
+                    bones.push(bone);
+                }
+                var result = new Skeleton(bones);
+                // Add all missing bones of the skeleton
+                result = COLLADA.Converter.Skeleton.addBoneParents(result, context);
+                Skeleton.checkConsistency(result, context);
+                return result;
+            };
+            /**
+            * Creates a skeleton from a node
+            */
+            Skeleton.createFromNode = function (node, context) {
+                // Create a single node
+                var colladaNode = context.nodes.findCollada(node);
+                var bone = COLLADA.Converter.Bone.create(node);
+                mat4.identity(bone.invBindMatrix);
+                // mat4.invert(bone.invBindMatrix, node.initialWorldMatrix);
+                bone.attachedToSkin = true;
+                var result = new Skeleton([bone]);
+                // Add all parent bones of the skeleton
+                result = COLLADA.Converter.Skeleton.addBoneParents(result, context);
+                Skeleton.checkConsistency(result, context);
+                return result;
+            };
+            Skeleton.replaceBone = function (bones, index, bone) {
+                var result = bones.slice(0);
+                var oldBone = result[index];
+                result[index] = bone;
+                result.forEach(function (b) {
+                    if (b.parent === oldBone) {
+                        b.parent = bone;
+                    }
+                });
+                return result;
+            };
+            /**
+            * Add a bone to the list of bones, merging bones where possible
+            */
+            Skeleton.mergeBone = function (bones, bone) {
+                for (var i = 0; i < bones.length; ++i) {
+                    if (Converter.Bone.safeToMerge(bones[i], bone)) {
+                        var mergedBone = Converter.Bone.mergeBone(bones[i], bone);
+                        return Skeleton.replaceBone(bones, i, mergedBone);
+                    }
+                }
+                // No merge possible
+                var result = bones.slice(0);
+                var newBone = bone.clone();
+                result.push(newBone);
+                newBone.parent = Skeleton.findParent(result, newBone);
+                return result;
+            };
+            /**
+            * Merges the two skeletons
+            */
+            Skeleton.mergeSkeletons = function (skeleton1, skeleton2, context) {
+                var bones = [];
+                var skinBones = [];
+                // Add all bones from skeleton1
+                skeleton1.bones.forEach(function (b) {
+                    bones = Skeleton.mergeBone(bones, b);
+                });
+                // Add all bones from skeleton2 (if not already present)
+                skeleton2.bones.forEach(function (b) {
+                    bones = Skeleton.mergeBone(bones, b);
+                });
+                var result = new Skeleton(bones);
+                Skeleton.checkConsistency(result, context);
+                return result;
+            };
+            /**
+            * Assembles a list of skeleton root nodes
+            */
+            Skeleton.getSkeletonRootNodes = function (skeletonLinks, context) {
+                var skeletonRootNodes = [];
+                for (var i = 0; i < skeletonLinks.length; i++) {
+                    var skeletonLink = skeletonLinks[i];
+                    var skeletonRootNode = COLLADA.Loader.VisualSceneNode.fromLink(skeletonLink, context);
+                    if (skeletonRootNode === null) {
+                        context.log.write("Skeleton root node " + skeletonLink.getUrl() + " not found, skeleton root ignored", 4 /* Warning */);
+                        continue;
+                    }
+                    skeletonRootNodes.push(skeletonRootNode);
+                }
+                if (skeletonRootNodes.length === 0) {
+                    context.log.write("Controller has no skeleton, using the whole scene as the skeleton root", 4 /* Warning */);
+                    skeletonRootNodes = context.nodes.collada.filter(function (node) { return (context.isInstanceOf(node.parent, "VisualScene")); });
+                }
+                return skeletonRootNodes;
+            };
+            /**
+            * Find the parent for each bone
+            * The skeleton(s) may contain more bones than referenced by the skin
+            * This function also adds all bones that are not referenced but used for the skeleton transformation
+            */
+            Skeleton.addBoneParents = function (skeleton, context) {
+                var bones = skeleton.bones.slice(0);
+                var i = 0;
+                while (i < bones.length) {
+                    // Select the next unprocessed bone
+                    var bone = bones[i];
+                    ++i;
+                    for (var k = 0; k < bones.length; k++) {
+                        var parentBone = bones[k];
+                        if (bone.node.parent === parentBone.node) {
+                            bone.parent = parentBone;
+                            break;
+                        }
+                    }
+                    // If no parent bone found, add it to the list
+                    if ((bone.node.parent != null) && (bone.parent == null)) {
+                        bone.parent = COLLADA.Converter.Bone.create(bone.node.parent);
+                        bones.push(bone.parent);
+                    }
+                }
+                var result = new Skeleton(bones);
+                Skeleton.checkConsistency(result, context);
+                return result;
+            };
+            /**
+            * Given two arrays a and b, such that each bone from a is contained in b,
+            * compute a map that maps the old index (a) of each bone to the new index (b).
+            */
+            Skeleton.getBoneIndexMap = function (a, b) {
+                var result = new Uint32Array(a.bones.length);
+                for (var i = 0; i < a.bones.length; ++i) {
+                    var bone_a = a.bones[i];
+                    // Find the index of the current bone in b
+                    var new_index = -1;
+                    for (var j = 0; j < b.bones.length; ++j) {
+                        var bone_b = b.bones[j];
+                        if (COLLADA.Converter.Bone.safeToMerge(bone_a, bone_b)) {
+                            new_index = j;
+                            break;
+                        }
+                    }
+                    if (new_index < 0) {
+                        var a_name = bone_a.name;
+                        var b_names = b.bones.map(function (b) { return b.name; });
+                        throw new Error("Bone " + a_name + " not found in " + b_names);
+                    }
+                    result[i] = new_index;
+                }
+                return result;
+            };
+            /**
+            * Sorts bones so that child bones appear after their parents in the list.
+            */
+            Skeleton.sortBones = function (skeleton, context) {
+                var bones = skeleton.bones.slice(0);
+                bones = bones.sort(function (a, b) {
+                    // First, sort by depth
+                    var ad = a.depth();
+                    var bd = b.depth();
+                    if (ad !== bd) {
+                        return ad - bd;
+                    }
+                    // Next, sort by previous position of parent
+                    if (a.parent !== b.parent && a.parent !== null) {
+                        var ai = skeleton.bones.indexOf(a.parent);
+                        var bi = skeleton.bones.indexOf(b.parent);
+                        return ai - bi;
+                    }
+                    // Finally, sort by previous position of the bone
+                    var ai = skeleton.bones.indexOf(a);
+                    var bi = skeleton.bones.indexOf(b);
+                    return ai - bi;
+                });
+                if (bones.length != skeleton.bones.length || Skeleton.bonesSorted(bones) == false) {
+                    throw new Error("Error while sorting bones");
+                }
+                var result = new Skeleton(bones);
+                Skeleton.checkConsistency(result, context);
+                return result;
+            };
+            /**
+            * Returns true if the bones are sorted so that child bones appear after their parents in the list.
+            */
+            Skeleton.bonesSorted = function (bones) {
+                var errors = 0;
+                bones.forEach(function (bone) {
+                    if (bone.parent !== null) {
+                        var boneIndex = bones.indexOf(bone);
+                        var parentIndex = bones.indexOf(bone.parent);
+                        if (boneIndex < parentIndex) {
+                            ++errors;
+                        }
+                    }
+                });
+                return errors === 0;
+            };
+            return Skeleton;
+        })();
+        Converter.Skeleton = Skeleton;
+    })(Converter = COLLADA.Converter || (COLLADA.Converter = {}));
+})(COLLADA || (COLLADA = {}));
 /// <reference path="../math.ts" />
 /// <reference path="context.ts" />
 /// <reference path="utils.ts" />
 /// <reference path="bone.ts" />
+/// <reference path="skeleton.ts" />
 /// <reference path="animation.ts" />
 /// <reference path="animation_channel.ts" />
 var COLLADA;
@@ -5565,45 +5832,63 @@ var COLLADA;
                 this.fps = null;
                 this.tracks = [];
             }
-            AnimationData.create = function (bones, animation, index_begin, index_end, fps, context) {
+            AnimationData.create = function (skeleton, animation, index_begin, index_end, fps, context) {
                 var result = new COLLADA.Converter.AnimationData();
                 result.name = animation.name;
                 var src_channels = animation.channels;
                 // Get timeline statistics
                 var stat = new COLLADA.Converter.AnimationTimeStatistics();
                 COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
-                // Default fps if none give: average fps of source data
+                context.log.write("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")", 1 /* Debug */);
+                context.log.write("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")", 1 /* Debug */);
+                context.log.write("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")", 1 /* Debug */);
+                context.log.write("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")", 1 /* Debug */);
+                context.log.write("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")", 1 /* Debug */);
+                // Default fps if none give: median fps of source data
                 if (fps === null) {
-                    fps = stat.avgFps();
+                    fps = stat.fps.median();
                 }
                 if (fps === null || fps <= 0) {
-                    context.log.write("Could not determine FPS for animation, skipping animation", 3 /* Warning */);
+                    context.log.write("Could not determine FPS for animation, skipping animation", 4 /* Warning */);
                     return null;
                 }
                 // Duration (in seconds)
-                var start_time = stat.minTime;
-                var end_time = stat.maxTime;
+                var start_time = stat.beginTime.min();
+                var end_time = stat.endTime.max();
                 var duration = end_time - start_time;
-                // Keyframes (always include first and last keyframe)
-                var keyframes = Math.ceil(fps * duration) + 1;
-                fps = (keyframes - 1) / duration;
+                // Keyframes
+                var keyframes = Math.max(Math.floor(fps * duration + 1e-4) + 1, 2);
+                if (context.options.truncateResampledAnimations) {
+                    // Truncate duration, so that FPS is consistent with "keyframes/duration"
+                    duration = (keyframes - 1) / fps;
+                }
+                else {
+                    // Stretch FPS, so that FPS is consistent with "keyframes/duration"
+                    fps = (keyframes - 1) / duration;
+                }
                 var spf = 1 / fps;
+                context.log.write("Resampled duration: " + duration, 1 /* Debug */);
+                context.log.write("Resampled keyframes: " + keyframes, 1 /* Debug */);
+                context.log.write("Resampled FPS: " + fps, 1 /* Debug */);
                 // Store fps
-                result.fps = fps;
+                result.fps = +fps.toFixed(3);
                 result.keyframes = keyframes;
                 result.duration = duration;
-                result.original_fps = stat.avgFps();
+                result.original_fps = stat.fps.median();
                 if (!(fps > 0)) {
-                    context.log.write("Invalid FPS: " + fps + ", skipping animation", 3 /* Warning */);
+                    context.log.write("Invalid FPS: " + fps + ", skipping animation", 4 /* Warning */);
+                    return null;
                 }
                 if (!(duration > 0)) {
-                    context.log.write("Invalid duration: " + duration + ", skipping animation", 3 /* Warning */);
+                    context.log.write("Invalid duration: " + duration + ", skipping animation", 4 /* Warning */);
+                    return null;
                 }
                 if (!(keyframes > 0)) {
-                    context.log.write("Invalid number of keyframes: " + keyframes + ", skipping animation", 3 /* Warning */);
+                    context.log.write("Invalid number of keyframes: " + keyframes + ", skipping animation", 4 /* Warning */);
+                    return null;
                 }
-                for (var i = 0; i < bones.length; ++i) {
-                    var bone = bones[i];
+                for (var i = 0; i < skeleton.bones.length; ++i) {
+                    var bone = skeleton.bones[i];
                     var track = new COLLADA.Converter.AnimationDataTrack();
                     track.pos = new Float32Array(keyframes * 3);
                     track.rot = new Float32Array(keyframes * 4);
@@ -5614,8 +5899,8 @@ var COLLADA;
                     result.tracks.push(track);
                 }
                 var result_tracks = result.tracks;
-                for (var i = 0; i < bones.length; ++i) {
-                    var bone = bones[i];
+                for (var i = 0; i < skeleton.bones.length; ++i) {
+                    var bone = skeleton.bones[i];
                     bone.node.resetAnimation();
                 }
                 // Process all keyframes
@@ -5626,10 +5911,12 @@ var COLLADA;
                     var time = start_time + k * spf;
                     for (var c = 0; c < src_channels.length; ++c) {
                         var channel = src_channels[c];
-                        channel.target.applyAnimation(channel, time, context);
+                        if (channel) {
+                            channel.target.applyAnimation(channel, time, context);
+                        }
                     }
-                    for (var b = 0; b < bones.length; ++b) {
-                        var bone = bones[b];
+                    for (var b = 0; b < skeleton.bones.length; ++b) {
+                        var bone = skeleton.bones[b];
                         var track = result_tracks[b];
                         var mat = bone.node.getLocalMatrix(context);
                         COLLADA.MathUtils.decompose(mat, pos, rot, scl);
@@ -5653,8 +5940,8 @@ var COLLADA;
                         }
                     }
                 }
-                for (var i = 0; i < bones.length; ++i) {
-                    var bone = bones[i];
+                for (var i = 0; i < skeleton.bones.length; ++i) {
+                    var bone = skeleton.bones[i];
                     bone.node.resetAnimation();
                 }
                 // Remove unnecessary tracks
@@ -5665,8 +5952,8 @@ var COLLADA;
                 var inv_rot0 = quat.create();
                 var scl0 = vec3.create();
                 var inv_scl0 = vec3.create();
-                for (var b = 0; b < bones.length; ++b) {
-                    var bone = bones[b];
+                for (var b = 0; b < skeleton.bones.length; ++b) {
+                    var bone = skeleton.bones[b];
                     var track = result_tracks[b];
                     // Get rest pose transformation of the current bone
                     var mat0 = bone.node.getLocalMatrix(context);
@@ -5741,11 +6028,15 @@ var COLLADA;
                 }
                 return result;
             };
-            AnimationData.createFromLabels = function (bones, animation, labels, context) {
+            AnimationData.createFromLabels = function (skeleton, animation, labels, context) {
+                if (skeleton === null) {
+                    context.log.write("No skeleton present, no animation data generated.", 4 /* Warning */);
+                    return [];
+                }
                 var result = [];
                 for (var i = 0; i < labels.length; ++i) {
                     var label = labels[i];
-                    var data = COLLADA.Converter.AnimationData.create(bones, animation, label.begin, label.end, label.fps, context);
+                    var data = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps, context);
                     if (data !== null) {
                         data.name = label.name;
                         result.push(data);
@@ -5809,7 +6100,7 @@ var COLLADA;
                 var _this = this;
                 var context = new COLLADA.Converter.Context(this.log, this.options);
                 if (doc === null) {
-                    context.log.write("No document to convert", 3 /* Warning */);
+                    context.log.write("No document to convert", 4 /* Warning */);
                     return null;
                 }
                 var result = new COLLADA.Converter.Document();
@@ -5828,11 +6119,15 @@ var COLLADA;
                     if (context.options.worldTransformBake.value) {
                         var mat = Converter.Utils.getWorldTransform(context);
                         this.forEachGeometry(result, function (geometry) {
-                            if (geometry.bones.length > 0) {
+                            if (geometry.getSkeleton() !== null) {
                                 COLLADA.Converter.Geometry.transformGeometry(geometry, mat, context);
                             }
                         });
                     }
+                }
+                // Original animations curves
+                if (context.options.enableAnimations.value === true) {
+                    result.animations = ColladaConverter.createAnimations(doc, context);
                 }
                 // Extract geometries
                 if (context.options.enableExtractGeometry.value === true) {
@@ -5844,32 +6139,28 @@ var COLLADA;
                         COLLADA.Converter.GeometryChunk.mergeChunkData(geometry.chunks, context);
                     });
                 }
+                // Resampled animations
+                if (context.options.enableResampledAnimations.value === true) {
+                    result.resampled_animations = ColladaConverter.createResampledAnimations(doc, result, context);
+                }
                 // Compute bounding boxes
                 COLLADA.Converter.Node.forEachNode(result.nodes, function (node) {
                     _this.forEachGeometry(result, function (geometry) {
                         COLLADA.Converter.Geometry.computeBoundingBox(geometry, context);
                     });
                 });
-                // Original animations curves
-                if (context.options.enableAnimations.value === true) {
-                    result.animations = ColladaConverter.createAnimations(doc, context);
-                }
-                // Resampled animations
-                if (context.options.enableResampledAnimations.value === true) {
-                    result.resampled_animations = ColladaConverter.createResampledAnimations(doc, result, context);
-                }
                 return result;
             };
             ColladaConverter.createScene = function (doc, context) {
                 var result = [];
                 // Get the COLLADA scene
                 if (doc.scene === null) {
-                    context.log.write("Collada document has no scene", 3 /* Warning */);
+                    context.log.write("Collada document has no scene", 4 /* Warning */);
                     return result;
                 }
                 var scene = COLLADA.Loader.VisualScene.fromLink(doc.scene.instance, context);
                 if (scene === null) {
-                    context.log.write("Collada document has no scene", 3 /* Warning */);
+                    context.log.write("Collada document has no scene", 4 /* Warning */);
                     return result;
                 }
                 for (var i = 0; i < scene.children.length; ++i) {
@@ -5910,25 +6201,25 @@ var COLLADA;
                 }
                 // Get the geometry
                 if (file.geometries.length > 1) {
-                    context.log.write("Converted document contains multiple geometries, resampled animations are only generated for single geometries.", 3 /* Warning */);
+                    context.log.write("Converted document contains multiple geometries, resampled animations are only generated for single geometries.", 4 /* Warning */);
                     return [];
                 }
                 if (file.geometries.length === 0) {
-                    context.log.write("Converted document does not contain any geometries, no resampled animations generated.", 3 /* Warning */);
+                    context.log.write("Converted document does not contain any geometries, no resampled animations generated.", 4 /* Warning */);
                     return [];
                 }
                 var geometry = file.geometries[0];
                 // Process all animations in the document
                 var labels = context.options.animationLabels.value;
-                var fps = context.options.animationFps.value;
+                var fps = +context.options.animationFps.value;
                 for (var i = 0; i < file.animations.length; ++i) {
                     var animation = file.animations[i];
                     if (context.options.useAnimationLabels.value === true) {
-                        var datas = COLLADA.Converter.AnimationData.createFromLabels(geometry.bones, animation, labels, context);
+                        var datas = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, context);
                         result = result.concat(datas);
                     }
                     else {
-                        var data = COLLADA.Converter.AnimationData.create(geometry.bones, animation, null, null, fps, context);
+                        var data = COLLADA.Converter.AnimationData.create(geometry.getSkeleton(), animation, null, null, fps, context);
                         if (data !== null) {
                             result.push(data);
                         }
@@ -6104,7 +6395,7 @@ var COLLADA;
                     result.bytes_per_element = 4;
                 }
                 else {
-                    context.log.write("Unknown data type, data chunk ignored", 3 /* Warning */);
+                    context.log.write("Unknown data type, data chunk ignored", 4 /* Warning */);
                     return null;
                 }
                 context.registerChunk(result);
@@ -6241,11 +6532,11 @@ var COLLADA;
 (function (COLLADA) {
     var Exporter;
     (function (Exporter) {
-        var Bone = (function () {
-            function Bone() {
+        var Skeleton = (function () {
+            function Skeleton() {
             }
-            Bone.toJSON = function (bone, context) {
-                if (bone === null) {
+            Skeleton.toJSON = function (skeleton, context) {
+                if (skeleton === null) {
                     return null;
                 }
                 // TODO: options for this
@@ -6253,28 +6544,32 @@ var COLLADA;
                 var pos_tol = 6;
                 var scl_tol = 3;
                 var rot_tol = 6;
-                // Bone default transform
-                var mat = bone.node.initialLocalMatrix;
-                var pos = [0, 0, 0];
-                var rot = [0, 0, 0, 1];
-                var scl = [1, 1, 1];
-                COLLADA.MathUtils.decompose(mat, pos, rot, scl);
-                // Bone inverse bind matrix
-                var inv_bind_mat = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-                COLLADA.MathUtils.copyNumberArray(bone.invBindMatrix, inv_bind_mat, 16);
-                return {
-                    name: bone.name,
-                    parent: (bone.parent !== null) ? (bone.parent.index) : -1,
-                    skinned: bone.attachedToSkin,
-                    inv_bind_mat: inv_bind_mat.map(function (x) { return COLLADA.MathUtils.round(x, mat_tol); }),
-                    pos: pos.map(function (x) { return COLLADA.MathUtils.round(x, pos_tol); }),
-                    rot: rot.map(function (x) { return COLLADA.MathUtils.round(x, rot_tol); }),
-                    scl: scl.map(function (x) { return COLLADA.MathUtils.round(x, scl_tol); })
-                };
+                var result = [];
+                skeleton.bones.forEach(function (bone) {
+                    // Bone default transform
+                    var mat = bone.node.initialLocalMatrix;
+                    var pos = [0, 0, 0];
+                    var rot = [0, 0, 0, 1];
+                    var scl = [1, 1, 1];
+                    COLLADA.MathUtils.decompose(mat, pos, rot, scl);
+                    // Bone inverse bind matrix
+                    var inv_bind_mat = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+                    COLLADA.MathUtils.copyNumberArray(bone.invBindMatrix, inv_bind_mat, 16);
+                    result.push({
+                        name: bone.name,
+                        parent: skeleton.bones.indexOf(bone.parent),
+                        skinned: bone.attachedToSkin,
+                        inv_bind_mat: inv_bind_mat.map(function (x) { return COLLADA.MathUtils.round(x, mat_tol); }),
+                        pos: pos.map(function (x) { return COLLADA.MathUtils.round(x, pos_tol); }),
+                        rot: rot.map(function (x) { return COLLADA.MathUtils.round(x, rot_tol); }),
+                        scl: scl.map(function (x) { return COLLADA.MathUtils.round(x, scl_tol); })
+                    });
+                });
+                return result;
             };
-            return Bone;
+            return Skeleton;
         })();
-        Exporter.Bone = Bone;
+        Exporter.Skeleton = Skeleton;
     })(Exporter = COLLADA.Exporter || (COLLADA.Exporter = {}));
 })(COLLADA || (COLLADA = {}));
 /// <reference path="context.ts" />
@@ -6337,7 +6632,7 @@ var COLLADA;
 /// <reference path="exporter/context.ts" />
 /// <reference path="exporter/material.ts" />
 /// <reference path="exporter/geometry.ts" />
-/// <reference path="exporter/bone.ts" />
+/// <reference path="exporter/skeleton.ts" />
 /// <reference path="exporter/animation.ts" />
 /// <reference path="exporter/animation_track.ts" />
 var COLLADA;
@@ -6351,15 +6646,15 @@ var COLLADA;
             ColladaExporter.prototype.export = function (doc) {
                 var context = new COLLADA.Exporter.Context(this.log);
                 if (doc === null) {
-                    context.log.write("No document to convert", 3 /* Warning */);
+                    context.log.write("No document to convert", 4 /* Warning */);
                     return null;
                 }
                 if (doc.geometries.length === 0) {
-                    context.log.write("Document contains no geometry, nothing exported", 3 /* Warning */);
+                    context.log.write("Document contains no geometry, nothing exported", 4 /* Warning */);
                     return null;
                 }
                 else if (doc.geometries.length > 1) {
-                    context.log.write("Document contains multiple geometries, only the first geometry is exported", 3 /* Warning */);
+                    context.log.write("Document contains multiple geometries, only the first geometry is exported", 4 /* Warning */);
                 }
                 // Geometry and materials
                 var converter_materials = [];
@@ -6384,7 +6679,7 @@ var COLLADA;
                 var info = {
                     bounding_box: Exporter.BoundingBox.toJSON(converter_geometry.boundingBox)
                 };
-                var bones = converter_geometry.bones.map(function (e) { return Exporter.Bone.toJSON(e, context); });
+                var bones = Exporter.Skeleton.toJSON(converter_geometry.getSkeleton(), context);
                 var animations = doc.resampled_animations.map(function (e) { return Exporter.Animation.toJSON(e, context); });
                 // Assemble result: JSON part
                 result.json = {
@@ -6475,41 +6770,69 @@ var COLLADA;
 (function (COLLADA) {
     var Threejs;
     (function (Threejs) {
+        function threejsWorldMatrix(bone) {
+            if (bone === null) {
+                var result = mat4.create();
+                mat4.identity(result);
+                return result;
+            }
+            var parentWorld = threejsWorldMatrix(bone.parent);
+            var local = threejsLocalMatrix(bone);
+            var result = mat4.create();
+            mat4.multiply(result, parentWorld, local);
+            return result;
+        }
+        function threejsLocalMatrix(bone) {
+            if (bone === null) {
+                var result = mat4.create();
+                mat4.identity(result);
+                return result;
+            }
+            // The actual inverse bind matrix
+            var actualInvBind = mat4.clone(bone.invBindMatrix);
+            // Three.js computes the inverse bind matrix as the inverse of the world matrix
+            // Compute the corresponding target world matrix
+            var targetWorld = mat4.create();
+            mat4.invert(targetWorld, actualInvBind);
+            // The world matrix of the parent node
+            var parentWorld = threejsWorldMatrix(bone.parent);
+            // world = parentWorld * local
+            // local = parentWorld^-1 * world
+            var parentWorldInverse = mat4.create();
+            mat4.invert(parentWorldInverse, parentWorld);
+            var result = mat4.create();
+            mat4.multiply(result, parentWorldInverse, targetWorld);
+            return result;
+        }
+        function matToArray(mat) {
+            var result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+            COLLADA.MathUtils.copyNumberArray(mat, result, 16);
+            return result;
+        }
+        ;
         var Bone = (function () {
             function Bone() {
             }
-            Bone.toJSON = function (bone, context) {
-                if (bone === null) {
+            Bone.toJSON = function (skeleton, bone, context) {
+                if (skeleton === null || bone === null) {
                     return null;
                 }
-                // Matrices
-                var mat = mat4.clone(bone.node.initialLocalMatrix);
-                var matWorld = mat4.clone(bone.node.initialWorldMatrix);
-                var matBindInv = mat4.clone(bone.invBindMatrix);
-                var matBind = mat4.create();
-                mat4.invert(matBind, matBindInv);
-                if (bone.parent) {
-                    mat4.multiply(mat, bone.parent.invBindMatrix, matBind);
-                }
-                else {
-                    mat = matBind;
-                }
                 // Bone default transform
+                // This is used by tree.js to compute the inverse bind matrix,
+                // so we compute the transform accordingly
+                var localMatrix = threejsLocalMatrix(bone);
                 var pos = [0, 0, 0];
                 var rot = [0, 0, 0, 1];
                 var scl = [1, 1, 1];
-                COLLADA.MathUtils.decompose(mat, pos, rot, scl);
-                // Bone inverse bind matrix
-                var inv_bind_mat = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-                COLLADA.MathUtils.copyNumberArray(bone.invBindMatrix, inv_bind_mat, 16);
+                COLLADA.MathUtils.decompose(localMatrix, pos, rot, scl);
                 // Compose
                 return {
-                    "parent": bone.parentIndex(),
+                    "parent": skeleton.bones.indexOf(bone.parent),
                     "name": bone.name,
                     "pos": pos.map(function (x) { return COLLADA.MathUtils.round(x, context.pos_tol); }),
                     "rotq": rot.map(function (x) { return COLLADA.MathUtils.round(x, context.rot_tol); }),
                     "scl": scl.map(function (x) { return COLLADA.MathUtils.round(x, context.scl_tol); }),
-                    "inv_bind_mat": inv_bind_mat.map(function (x) { return COLLADA.MathUtils.round(x, context.mat_tol); })
+                    "inv_bind_mat": matToArray(bone.invBindMatrix).map(function (x) { return COLLADA.MathUtils.round(x, context.mat_tol); }),
                 };
             };
             return Bone;
@@ -6546,24 +6869,37 @@ var COLLADA;
                     "length": animation.keyframes,
                     "fps": animation.fps,
                     "hierarchy": animation.tracks.map(function (track, index) {
+                        // Get the actual default transformation of the current bone
+                        // This is not equal to the transformation stored in threejsBones[index]
+                        var localMatrix = bones[index].node.initialLocalMatrix;
+                        var default_pos = new Float32Array(3);
+                        var default_rot = new Float32Array(4);
+                        var default_scl = new Float32Array(3);
+                        COLLADA.MathUtils.decompose(localMatrix, default_pos, default_rot, default_scl);
+                        // Add all keyframes
                         var keys = [];
                         for (var k = 0; k < animation.keyframes; ++k) {
                             var key = { "time": roundTo(k * time_scale, 2) };
+                            // Keyframe data
                             if (track.pos)
                                 key.pos = vec3Key(track.pos, k, 4);
                             if (track.rot)
                                 key.rot = vec4Key(track.rot, k, 4);
                             if (track.scl)
                                 key.scl = vec3Key(track.scl, k, 3);
+                            // First and last keyframes must be complete
                             if (k == 0 || k == animation.keyframes - 1) {
                                 if (!track.pos)
-                                    key.pos = threejsBones[index].pos;
+                                    key.pos = vec3Key(default_pos, 0, 4);
                                 if (!track.rot)
-                                    key.rot = threejsBones[index].rotq;
+                                    key.rot = vec4Key(default_rot, 0, 4);
                                 if (!track.scl)
-                                    key.scl = threejsBones[index].scl;
+                                    key.scl = vec3Key(default_scl, 0, 3);
                             }
-                            keys.push(key);
+                            // Ignore empty keys
+                            if (key.pos || key.rot || key.scl) {
+                                keys.push(key);
+                            }
                         }
                         return {
                             "parent": index - 1,
@@ -6593,15 +6929,15 @@ var COLLADA;
             ThreejsExporter.prototype.export = function (doc) {
                 var context = new COLLADA.Threejs.Context(this.log);
                 if (doc === null) {
-                    context.log.write("No document to convert", 3 /* Warning */);
+                    context.log.write("No document to convert", 4 /* Warning */);
                     return null;
                 }
                 if (doc.geometries.length === 0) {
-                    context.log.write("Document contains no geometry, nothing exported", 3 /* Warning */);
+                    context.log.write("Document contains no geometry, nothing exported", 4 /* Warning */);
                     return null;
                 }
                 else if (doc.geometries.length > 1) {
-                    context.log.write("Document contains multiple geometries, only the first geometry is exported", 3 /* Warning */);
+                    context.log.write("Document contains multiple geometries, only the first geometry is exported", 4 /* Warning */);
                 }
                 var converter_geometry = doc.geometries[0];
                 // Geometry and materials
@@ -6679,12 +7015,17 @@ var COLLADA;
                     }
                     baseIndexOffset += chunk.vertexCount;
                 }
-                var bones = converter_geometry.bones.map(function (bone) {
-                    return COLLADA.Threejs.Bone.toJSON(bone, context);
-                });
-                var animations = doc.resampled_animations.map(function (e) {
-                    return COLLADA.Threejs.Animation.toJSON(e, converter_geometry.bones, bones, context);
-                });
+                var bones = [];
+                var animations = [];
+                var skeleton = converter_geometry.getSkeleton();
+                if (skeleton !== null) {
+                    bones = skeleton.bones.map(function (bone) {
+                        return COLLADA.Threejs.Bone.toJSON(skeleton, bone, context);
+                    });
+                    animations = doc.resampled_animations.map(function (e) {
+                        return COLLADA.Threejs.Animation.toJSON(e, skeleton.bones, bones, context);
+                    });
+                }
                 // Assemble result
                 return {
                     "metadata": {
