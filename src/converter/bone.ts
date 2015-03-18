@@ -17,6 +17,7 @@ module COLLADA.Converter {
             this.name = node.name;
             this.parent = null;
             this.invBindMatrix = mat4.create();
+            mat4.identity(this.invBindMatrix);
             this.attachedToSkin = false;
         }
 
@@ -70,25 +71,55 @@ module COLLADA.Converter {
             }
         }
 
-        /**
-        * Returns true if the two bones can safely be merged, i.e.,
-        * they reference the same scene graph node and have the same inverse bind matrix
-        */
-        static sameBone(a: COLLADA.Converter.Bone, b: COLLADA.Converter.Bone): boolean {
-            if (a === b) {
-                return true;
-            }
-            if (a.node !== b.node) {
+        static sameInvBindMatrix(a: COLLADA.Converter.Bone, b: COLLADA.Converter.Bone, tolerance: number): boolean {
+            if (a === null || b === null) {
                 return false;
             }
             for (var i = 0; i < 16; ++i) {
                 var ai = a.invBindMatrix[i];
                 var bi = b.invBindMatrix[i];
-                if (Math.abs(ai - bi) > 1e-5) {
+                if (Math.abs(ai - bi) > tolerance) {
                     return false;
                 }
             }
             return true;
+        }
+
+
+        /**
+        * Returns true if the two bones can safely be merged, i.e.,
+        * they reference the same scene graph node and have the same inverse bind matrix
+        */
+        static safeToMerge(a: COLLADA.Converter.Bone, b: COLLADA.Converter.Bone): boolean {
+            if (a === b) {
+                return true;
+            }
+            if (a === null || b === null) {
+                return false;
+            }
+            if (a.node !== b.node) {
+                return false;
+            }
+            if (a.attachedToSkin && b.attachedToSkin && !Bone.sameInvBindMatrix(a, b, 1e-5)) {
+                return false;
+            }
+            return true;
+        }
+
+        /**
+        * Merges the two given bones. Returns null if they cannot be merged.
+        */
+        static mergeBone(a: COLLADA.Converter.Bone, b: COLLADA.Converter.Bone): COLLADA.Converter.Bone {
+            if (!Bone.safeToMerge(a, b)) {
+                return null;
+            }
+            if (a.attachedToSkin) {
+                return a.clone();
+            } else if (b.attachedToSkin) {
+                return b.clone();
+            } else {
+                return a.clone();
+            }
         }
 
     }

@@ -11,26 +11,36 @@ module COLLADA.Converter {
         }
 
         /**
-        * Checks whether a list contains a bone equivalent to the given bone
+        * In the given list, finds a bone that can be merged with the given bone
         */
         static findBone(bones: Bone[], bone: Bone): Bone {
             for (var i = 0; i < bones.length; ++i) {
-                if (Bone.sameBone(bones[i], bone)) {
+                if (Bone.safeToMerge(bones[i], bone)) {
                     return bones[i];
                 }
             }
             return null;
         }
 
-        static indexOf(skeleton: Skeleton, bone: Bone): number {
-            bone = Skeleton.findBone(skeleton.bones, bone);
-            return skeleton.bones.indexOf(bone);
+        /**
+        * Find the parent bone of the given bone
+        */
+        static findParent(bones: Bone[], bone: Bone): Bone {
+            if (bone.parent === null) {
+                return null;
+            }
+            for (var i = 0; i < bones.length; ++i) {
+                if (bones[i].node === bone.parent.node) {
+                    return bones[i];
+                }
+            }
+            return null;
         }
 
         static checkConsistency(skeleton: Skeleton, context: Context): void {
             skeleton.bones.forEach((b1, i1) => {
                 skeleton.bones.forEach((b2, i2) => {
-                    if (i1 !== i2 && Bone.sameBone(b1, b2)) {
+                    if (i1 !== i2 && Bone.safeToMerge(b1, b2)) {
                         throw new Error("Duplicate bone");
                     }
                 });
@@ -38,12 +48,12 @@ module COLLADA.Converter {
 
             skeleton.bones.forEach((b) => {
                 if (b.parent !== null && b.node.parent === null) {
-                    throw new Error("Invalid parent");
+                    throw new Error("Missing parent");
                 }
             });
 
             skeleton.bones.forEach((b) => {
-                if (b.parent !== null && Skeleton.findBone(skeleton.bones, b.parent)===null) {
+                if (b.parent !== null && skeleton.bones.indexOf(b.parent) === -1) {
                     throw new Error("Invalid parent");
                 }
             });
@@ -99,6 +109,7 @@ module COLLADA.Converter {
             var colladaNode: COLLADA.Loader.VisualSceneNode = context.nodes.findCollada(node);
             var bone: COLLADA.Converter.Bone = COLLADA.Converter.Bone.create(node);
             mat4.identity(bone.invBindMatrix);
+            // mat4.invert(bone.invBindMatrix, node.initialWorldMatrix);
             bone.attachedToSkin = true;
 
             var result = new Skeleton([bone]);
@@ -107,6 +118,39 @@ module COLLADA.Converter {
             result = COLLADA.Converter.Skeleton.addBoneParents(result, context);
 
             Skeleton.checkConsistency(result, context);
+            return result;
+        }
+
+
+        static replaceBone(bones: Bone[], index: number, bone: Bone): Bone[]{
+            var result = bones.slice(0);
+            var oldBone = result[index];
+            result[index] = bone;
+            result.forEach((b) => {
+                if (b.parent === oldBone) {
+                    b.parent = bone;
+                }
+            });
+            return result;
+        }
+
+        /**
+        * Add a bone to the list of bones, merging bones where possible
+        */
+        static mergeBone(bones: Bone[], bone: Bone): Bone[]{
+            
+            for (var i = 0; i < bones.length; ++i) {
+                if (Bone.safeToMerge(bones[i], bone)) {
+                    var mergedBone = Bone.mergeBone(bones[i], bone);
+                    return Skeleton.replaceBone(bones, i, mergedBone);
+                }
+            }
+
+            // No merge possible
+            var result = bones.slice(0);
+            var newBone = bone.clone();
+            result.push(newBone);
+            newBone.parent = Skeleton.findParent(result, newBone);
             return result;
         }
 
@@ -119,24 +163,12 @@ module COLLADA.Converter {
 
             // Add all bones from skeleton1
             skeleton1.bones.forEach((b) => {
-                bones.push(b.clone());
+                bones = Skeleton.mergeBone(bones, b);
             });
 
             // Add all bones from skeleton2 (if not already present)
             skeleton2.bones.forEach((b) => {
-                var bone = Skeleton.findBone(bones, b);
-                if (bone === null) {
-                    bones.push(b.clone());
-                } else {
-                    bone.attachedToSkin = bone.attachedToSkin || b.attachedToSkin;
-                }
-            });
-
-            // Fix all parents
-            bones.forEach((b) => {
-                if (b.parent !== null) {
-                    b.parent = Skeleton.findBone(bones, b.parent);
-                }
+                bones = Skeleton.mergeBone(bones, b);
             });
 
             var result = new Skeleton(bones);
@@ -218,7 +250,7 @@ module COLLADA.Converter {
                 var new_index: number = -1;
                 for (var j: number = 0; j < b.bones.length; ++j) {
                     var bone_b: COLLADA.Converter.Bone = b.bones[j];
-                    if (COLLADA.Converter.Bone.sameBone(bone_a, bone_b)) {
+                    if (COLLADA.Converter.Bone.safeToMerge(bone_a, bone_b)) {
                         new_index = j;
                         break;
                     }
