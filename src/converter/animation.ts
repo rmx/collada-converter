@@ -13,56 +13,92 @@ module COLLADA.Converter {
     }
 
     export class AnimationTimeStatistics {
-        /** Start of the time line */
-        minTime: number;
-        /** End of the time line */
-        maxTime: number;
-        /** Minimum number of keyframes on a track */
-        minKeyframes: number;
-        /** Maximum number of keyframes on a track */
-        maxKeyframes: number;
-        /** Minimum average fps among all animation tracks */
-        minAvgFps: number;
-        /** Maximum average fps among all animation tracks */
-        maxAvgFps: number;
-        /** Sum of average fps of all tracks */
-        sumAvgFps: number;
-        /** Sum of keyframes */
-        sumKeyframes: number;
-        /** Number of data points */
-        count: number;
+        beginTime: Statistics;
+        endTime: Statistics;
+        duration: Statistics;
+        keyframes: Statistics;
+        fps: Statistics;
 
         constructor() {
-            this.minTime = Infinity;
-            this.maxTime = -Infinity;
-            this.minKeyframes = Infinity;
-            this.maxKeyframes = -Infinity;
-            this.minAvgFps = Infinity;
-            this.maxAvgFps = -Infinity;
-            this.sumAvgFps = 0;
-            this.sumKeyframes = 0;
-            this.count = 0;
+            this.beginTime = new Statistics();
+            this.endTime = new Statistics();
+            this.duration = new Statistics();
+            this.keyframes = new Statistics();
+            this.fps = new Statistics();
         }
 
-        avgFps(): number {
-            return (this.count > 0) ? (this.sumAvgFps / this.count) : null;
+        addDataPoint(beginTime: number, endTime: number, keyframes: number) {
+            var duration = endTime - beginTime;
+
+            this.beginTime.addDataPoint(beginTime);
+            this.endTime.addDataPoint(endTime);
+            this.duration.addDataPoint(duration);
+            this.keyframes.addDataPoint(keyframes);
+
+            if (duration > 0) {
+                var fps = (keyframes - 1) / duration;
+                this.fps.addDataPoint(fps);
+            }
+        }
+    }
+
+    export class Statistics {
+        data: number[];
+        sorted: boolean;
+
+        constructor() {
+            this.data = [];
+            this.sorted = true;
         }
 
-        avgKeyframes(): number {
-            return (this.count > 0) ? (this.sumKeyframes / this.count) : null;
+        addDataPoint(value: number) {
+            this.data.push(value);
+            this.sorted = false;
         }
 
-        addDataPoint(minTime: number, maxTime: number, keyframes: number) {
-            this.count++;
-            this.minTime = Math.min(this.minTime, minTime);
-            this.maxTime = Math.max(this.maxTime, maxTime);
-            this.minKeyframes = Math.min(this.minKeyframes, keyframes);
-            this.maxKeyframes = Math.max(this.maxKeyframes, keyframes);
-            this.sumKeyframes += keyframes;
-            var avgFps = (keyframes - 1) / (maxTime - minTime);
-            this.minAvgFps = Math.min(this.minAvgFps, avgFps);
-            this.maxAvgFps = Math.max(this.maxAvgFps, avgFps);
-            this.sumAvgFps += avgFps;
+        private sort() {
+            if (!this.sorted) {
+                this.sorted = true;
+                this.data.sort();
+            }
+        }
+
+        private compute(fn: (data:number[])=>number) {
+            if (this.data.length > 0) {
+                this.sort();
+                return fn(this.data);
+            } else {
+                return null;
+            }
+        }
+
+        count(): number {
+            return this.compute((data) => data.length);
+        }
+
+        min(): number {
+            return this.compute((data) => data[0]);
+        }
+
+        max(): number {
+            return this.compute((data) => data[data.length - 1]);
+        }
+
+        median(): number {
+            return this.compute((data) => {
+                var m = (this.data.length - 1) / 2;
+                var l = this.data[Math.floor(m)];
+                var r = this.data[Math.ceil(m)];
+                return (l + r) / 2;
+            });
+        }
+
+        sum(): number {
+            return this.compute((data) => data.reduce((prev, cur) => prev + cur, 0));
+        }
+
+        mean(): number {
+            return this.compute((data) => this.sum() / this.count());
         }
     }
 

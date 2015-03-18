@@ -196,14 +196,14 @@ module COLLADA.Converter {
             // Static geometries (<instance_geometry>)
             for (var i: number = 0; i < collada_node.geometries.length; i++) {
                 var loaderGeometry: COLLADA.Loader.InstanceGeometry = collada_node.geometries[i];
-                var converterGeometry: COLLADA.Converter.Geometry = COLLADA.Converter.Geometry.createStatic(loaderGeometry, context);
+                var converterGeometry: COLLADA.Converter.Geometry = COLLADA.Converter.Geometry.createStatic(loaderGeometry, converter_node, context);
                 converter_node.geometries.push(converterGeometry);
             }
 
             // Animated geometries (<instance_controller>)
             for (var i: number = 0; i < collada_node.controllers.length; i++) {
                 var loaderController: COLLADA.Loader.InstanceController = collada_node.controllers[i];
-                var converterGeometry: COLLADA.Converter.Geometry = COLLADA.Converter.Geometry.createAnimated(loaderController, context);
+                var converterGeometry: COLLADA.Converter.Geometry = COLLADA.Converter.Geometry.createAnimated(loaderController, converter_node, context);
                 converter_node.geometries.push(converterGeometry);
             }
 
@@ -242,52 +242,56 @@ module COLLADA.Converter {
 
             // Collect all geometries and the corresponding nodes
             // Detach geometries from nodes in the process
-            var nodes: COLLADA.Converter.Node[] = [];
-            var geometries: COLLADA.Converter.Geometry[] = [];
+            var result: { node: COLLADA.Converter.Node; geometry: COLLADA.Converter.Geometry }[] = [];
             COLLADA.Converter.Node.forEachNode(scene_nodes, (node) => {
                 for (var i: number = 0; i < node.geometries.length; ++i) {
-                    nodes.push(node);
-                    geometries.push(node.geometries[i]);
+                    result.push({ node: node, geometry: node.geometries[i] });
                 }
                 node.geometries = [];
             });
 
-            if (geometries.length === 0) {
+            if (result.length === 0) {
                 context.log.write("No geometry found in the scene, returning an empty geometry", LogLevel.Warning);
                 var geometry: COLLADA.Converter.Geometry = new COLLADA.Converter.Geometry();
                 geometry.name = "empty_geometry";
                 return [geometry];
             }
 
-            // Apply the node transformation to static geometries
-            // A geometry is static if it is not skinned and attached to a static node
-            for (var i: number = 0; i < geometries.length; ++i) {
-                var geometry: COLLADA.Converter.Geometry = geometries[i];
-                var node: COLLADA.Converter.Node = nodes[i];
-                var is_skinned: boolean = geometry.bones.length > 0;
-                var is_animated: boolean = node.isAnimated(true);
-                if (!is_skinned) {
-                    if (is_animated) {
-                        context.log.write("Geometry '" + geometry.name + "' is not skinned, but attached to an animated node. " +
-                            "This animation will be lost because the geometry is being detached from the node.", LogLevel.Warning);
-                    }
-                    var world_matrix = node.getWorldMatrix(context);
+            // Check whether the geometries need a skeleton
+            var skinnedGeometries: number = 0;
+            var animatedNodeGeometries: number = 0;
+            result.forEach((element) => {
+                if (element.geometry.getSkeleton() !== null) skinnedGeometries++; 
+                if (element.node.isAnimated(true)) animatedNodeGeometries++;
+            });
+
+            if (!context.options.createSkeleton.value) {
+                if (skinnedGeometries > 0) {
+                    context.log.write("Scene contains " + skinnedGeometries + " skinned geometries, but skeleton creation is disabled. Static geometry was generated.", LogLevel.Warning);
+                }
+                if (animatedNodeGeometries > 0) {
+                    context.log.write("Scene contains " + animatedNodeGeometries + " static geometries attached to animated nodes, but skeleton creation is disabled. Static geometry was generated.", LogLevel.Warning);
+                }
+                // Apply the node transformation to static geometries
+                result.forEach((element) => {
+                    var world_matrix = element.node.getWorldMatrix(context);
                     if (context.options.worldTransformUnitScale) {
                         var mat: Mat4 = mat4.create();
-                        mat4.invert(mat, node.transformation_post);
+                        mat4.invert(mat, element.node.transformation_post);
                         mat4.multiply(world_matrix, world_matrix, mat);
                     }
-                    COLLADA.Converter.Geometry.transformGeometry(geometry, world_matrix, context);
-                }
+                    COLLADA.Converter.Geometry.transformGeometry(element.geometry, world_matrix, context);
+                });
             }
 
             // Merge all geometries
             if (context.options.singleGeometry) {
+                var geometries = result.map((element) => { return element.geometry });
                 var geometry: COLLADA.Converter.Geometry = COLLADA.Converter.Geometry.mergeGeometries(geometries, context);
-                geometries = [geometry];
+                return [geometry];
+            } else {
+                return result.map((element) => { return element.geometry });
             }
-
-            return geometries;
         }
 
         static setupWorldTransform(node: COLLADA.Converter.Node, context: COLLADA.Converter.Context) {

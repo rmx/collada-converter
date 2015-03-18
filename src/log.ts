@@ -1,15 +1,17 @@
 module COLLADA {
 
     export enum LogLevel {
-        Trace = 1,
-        Info = 2,
-        Warning = 3,
-        Error = 4,
-        Exception = 5
+        Debug = 1,
+        Trace = 2,
+        Info = 3,
+        Warning = 4,
+        Error = 5,
+        Exception = 6
     };
 
     export function LogLevelToString(level: LogLevel): string {
         switch (level) {
+            case LogLevel.Debug: return "DEBUG";
             case LogLevel.Trace: return "TRACE";
             case LogLevel.Info: return "INFO";
             case LogLevel.Warning: return "WARNING";
