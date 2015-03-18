@@ -36,7 +36,7 @@ module COLLADA.Threejs {
 
             // Compose
             return {
-                "parent": skeleton.bones.indexOf(bone),
+                "parent": skeleton.bones.indexOf(bone.parent),
                 "name": bone.name,
                 "pos": pos.map((x) => COLLADA.MathUtils.round(x, context.pos_tol)),
                 "rotq": rot.map((x) => COLLADA.MathUtils.round(x, context.rot_tol)),
