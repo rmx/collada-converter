@@ -24,6 +24,12 @@
     <TypeScriptCompile Include="..\examples\convert-options.ts">
       <Link>convert-options.ts</Link>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="..\examples\stringify.ts">
+      <Link>stringify.ts</Link>
+    </TypeScriptCompile>
+    <TypeScriptCompile Include="..\examples\parse-animations.ts">
+      <Link>parse-animations.ts</Link>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="..\examples\threejs-renderer.ts">
       <Link>threejs-renderer.ts</Link>
     </TypeScriptCompile>
