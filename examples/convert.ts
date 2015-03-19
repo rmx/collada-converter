@@ -534,6 +534,7 @@ function init() {
     optionElements.push(new ColladaConverterOption(options.sortBones, optionsForm));
     optionElements.push(new ColladaConverterOption(options.applyBindShape, optionsForm));
     optionElements.push(new ColladaConverterOption(options.singleBufferPerGeometry, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.truncateResampledAnimations, optionsForm));
 
     // Register events
     $("#drop-target").on("dragover", onFileDrag);
