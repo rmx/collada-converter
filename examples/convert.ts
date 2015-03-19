@@ -265,9 +265,16 @@ function updateUIOutput() {
         $("#output-geometry-size").text(geometry_size);
 
         // Rendered chunks
+        $("#output-chunks").append('<option value="0" selected>All</option>');
         for (var i = 0; i < data.chunks.length; ++i) {
-            $("#chunk-" + i).removeClass("hidden");
-            $("#chunk-" + i + " > span").text(data.chunks[i].name || ("" + i));
+            var chunk_name = data.chunks[i].name || ("Chunk " + i);
+            $("#output-chunks").append('<option value="' + (i + 1) + '">' + chunk_name + '</option>');
+        }
+
+        // Played animation
+        for (var i = 0; i < data.animations.length; ++i) {
+            var animation_name = data.animations[i].name || ("Animation " + i);
+            $("#output-animation").append('<option value="' + (i) + '">' + animation_name + '</option>');
         }
 
         // File sizes
@@ -279,7 +286,8 @@ function updateUIOutput() {
         $("#output-geometry-complexity").text("");
         $("#output-animation-complexity").text("");
         $("#output-geometry-size").text("");
-        $(".chunk-checkbox-container").addClass("hidden");
+        $("#output-chunks").find('option').remove();
+        $("#output-animation").find('option').remove();
 
         // Output
         $("#output-custom-json .output-size").text("");
@@ -547,6 +555,9 @@ function init() {
         previewJSON(conversion_data.s5_exported_threejs));
     $("#close-preview").click(() =>
         (<any>$("#preview-modal")).modal('hide'));
+
+    $("#output-animation").change(() =>
+        renderer.animation_index = +$("#output-animation").val());
 
     // Update all UI elements
     reset();

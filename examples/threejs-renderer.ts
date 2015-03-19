@@ -19,6 +19,7 @@ class ThreejsRenderer {
     time: number;
     last_timestamp: number;
     render_loops: number;
+    animation_index: number;
 
     constructor() {
         this.canvas = null;
@@ -33,6 +34,7 @@ class ThreejsRenderer {
         this.last_timestamp = null;
         this.time = 0;
         this.render_loops = 1;
+        this.animation_index = 0;
     }
 
     init(canvas: HTMLCanvasElement) {
@@ -141,6 +143,8 @@ class ThreejsRenderer {
     tick(timestamp: number): boolean {
         // Abort if there is nothing to render
         if (!this.mesh) {
+            this.zoomToObject(10);
+            this.drawScene();
             return false;
         }
 
@@ -184,7 +188,10 @@ class ThreejsRenderer {
 
         if (data.skeleton) {
             if (data.model.animations.length > 0) {
-                RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton,
+                var index = this.animation_index;
+                if (index < 0) index = 0;
+                if (index >= data.model.animations.length) index = data.model.animations.length;
+                RMXSkeletalAnimation.sampleAnimation(data.model.animations[index], data.model.skeleton,
                     data.skeleton.pose, this.time * 25);
             } else {
                 RMXSkeletalAnimation.resetPose(data.model.skeleton, data.skeleton.pose);
