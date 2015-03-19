@@ -87,7 +87,7 @@ module COLLADA.Converter {
 
             // Keyframes
             var keyframes: number = Math.max(Math.floor(fps * duration + 1e-4) + 1, 2);
-            if (context.options.truncateResampledAnimations) {
+            if (context.options.truncateResampledAnimations.value) {
                 // Truncate duration, so that FPS is consistent with "keyframes/duration"
                 duration = (keyframes - 1) / fps;
             } else {
@@ -291,7 +291,7 @@ module COLLADA.Converter {
         }
 
         static createFromLabels(skeleton: COLLADA.Converter.Skeleton, animation: COLLADA.Converter.Animation,
-            labels: COLLADA.Converter.AnimationLabel[], context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[]{
+            labels: COLLADA.Converter.AnimationLabel[], defaultFps: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[]{
 
             if (skeleton === null) {
                 context.log.write("No skeleton present, no animation data generated.", LogLevel.Warning);
@@ -302,7 +302,7 @@ module COLLADA.Converter {
 
             for (var i: number = 0; i < labels.length; ++i) {
                 var label: COLLADA.Converter.AnimationLabel = labels[i];
-                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps, context);
+                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps || defaultFps, context);
                 if (data !== null) {
                     data.name = label.name;
                     result.push(data);

@@ -179,7 +179,7 @@ module COLLADA.Converter {
 
                 if (context.options.useAnimationLabels.value === true) {
                     var labels: COLLADA.Converter.AnimationLabel[] = context.options.animationLabels.value;
-                    var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, context);
+                    var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, fps, context);
                     result = result.concat(datas);
                 } else {
                     var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(geometry.getSkeleton(), animation, null, null, fps, context);
