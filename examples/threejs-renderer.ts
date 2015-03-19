@@ -42,7 +42,7 @@ class ThreejsRenderer {
 
         // Camera
         this.camera = new THREE.PerspectiveCamera(27, canvas.width / canvas.height, 1, 10);
-        this.zoomToObject(10);
+        this.resetCamera();
 
         // Scene
         this.scene = new THREE.Scene();
@@ -139,11 +139,16 @@ class ThreejsRenderer {
         this.camera.updateProjectionMatrix();
     }
 
+    /** Resets the camera */
+    resetCamera() {
+        this.zoomToObject(10);
+    }
+
     /** Main render loop */
     tick(timestamp: number): boolean {
         // Abort if there is nothing to render
         if (!this.mesh) {
-            this.zoomToObject(10);
+            this.resetCamera();
             this.drawScene();
             return false;
         }
@@ -200,6 +205,18 @@ class ThreejsRenderer {
             var gl: WebGLRenderingContext = this.renderer.context;
             data.skeleton.update(gl);
         }
+    }
+
+    setAnimation(index: number) {
+        this.animation_index = index;
+        this.time = 0;
+    }
+
+    setChunk(index: number) {
+        var mesh: THREE.Object3D = this.mesh;
+        mesh.children.forEach((child, i) => {
+            child.visible = index === -1 || index === i;
+        });
     }
 
     setMesh(json: COLLADA.Exporter.DocumentJSON, data: Uint8Array) {

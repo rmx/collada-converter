@@ -265,10 +265,10 @@ function updateUIOutput() {
         $("#output-geometry-size").text(geometry_size);
 
         // Rendered chunks
-        $("#output-chunks").append('<option value="0" selected>All</option>');
+        $("#output-chunk").append('<option value="-1" selected>All</option>');
         for (var i = 0; i < data.chunks.length; ++i) {
             var chunk_name = data.chunks[i].name || ("Chunk " + i);
-            $("#output-chunks").append('<option value="' + (i + 1) + '">' + chunk_name + '</option>');
+            $("#output-chunk").append('<option value="' + (i) + '">' + chunk_name + '</option>');
         }
 
         // Played animation
@@ -286,7 +286,7 @@ function updateUIOutput() {
         $("#output-geometry-complexity").text("");
         $("#output-animation-complexity").text("");
         $("#output-geometry-size").text("");
-        $("#output-chunks").find('option').remove();
+        $("#output-chunk").find('option').remove();
         $("#output-animation").find('option').remove();
 
         // Output
@@ -556,8 +556,10 @@ function init() {
     $("#close-preview").click(() =>
         (<any>$("#preview-modal")).modal('hide'));
 
+    $("#output-chunk").change(() =>
+        renderer.setChunk(+$("#output-chunk").val()));
     $("#output-animation").change(() =>
-        renderer.animation_index = +$("#output-animation").val());
+        renderer.setAnimation(+$("#output-animation").val()));
 
     // Update all UI elements
     reset();
