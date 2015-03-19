@@ -94,37 +94,52 @@ module COLLADA.Converter {
 
         constructor() {
             this.singleAnimation = new OptionBool("Single animation", true,
-                "If enabled, all animations are merged into a single animation. Enable if each bone has a separate top level animation.");
+                "Enabled: all animations are merged into a single animation (useful if each bone has a separate top level animation).<br/>" +
+                "Disabled: animations are not merged.");
             this.singleGeometry = new OptionBool("Single geometry", true,
-                "If enabled, all geometries are merged into a single geometry. Only has an effect if 'enableExtractGeometry' is enabled.");
+                "Enabled: all geometries are merged into a single geometry. Only has an effect if 'enableExtractGeometry' is enabled.<br/>" +
+                "Disabled: geometries are not merged.");
             this.singleBufferPerGeometry = new OptionBool("Single buffer", false,
-                "If enabled, all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of each buffer.");
+                "Enabled: all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of the buffer set.<br/>" +
+                "Disabled: each chunk has its own set of buffers.");
             this.enableAnimations = new OptionBool("Animations", true,
-                "If enabled, animations are exported. Otherwise, all animations are ignored.");
+                "Enabled: animations are exported.<br/>" +
+                "Disabled: all animations are ignored.");
             this.enableExtractGeometry = new OptionBool("Extract geometry", true,
-                "If enabled, extracts all geometries from the scene and detaches them from their scene graph nodes. Otherwise, geometries remain attached to nodes.");
+                "Enabled: extract all geometries from the scene and detach them from their scene graph nodes.<br/>" +
+                "Disabled: geometries remain attached to nodes.");
             this.enableResampledAnimations = new OptionBool("Resampled animations", true,
-                "If enabled, generates resampled animations for all skeleton bones.");
+                "Enabled: generate resampled animations for all skeleton bones.<br/>" +
+                "Disabled: do not generate resampled animations.");
             this.useAnimationLabels = new OptionBool("Animation labels", false,
-                "If enabled, animations labels are used to split the global animation into separete animations.");
+                "Enabled: animations labels are used to split the global animation into separete animations.<br/>" +
+                "Disabled: only one global animation is exported.");
             this.animationLabels = new OptionArray<COLLADA.Converter.AnimationLabel>("Animation labels", [],
-                "An array of animation labels ({name, begin, end, fps)} that describes how the global animation is split. Only has an effect if 'useAnimationLabels' is enabled.");
+                "An array of animation labels ({name, begin, end, fps)} that describes how the global animation is split.<br/>" +
+                "Only has an effect if 'useAnimationLabels' is enabled.");
             this.animationFps = new OptionFloat("Animation samples per second", 10, 0, 100,
                 "Default FPS for resampled animations.");
             this.removeConstAnimationTracks = new OptionBool("Remove static animations", true,
-                "If enabled, animation tracks are removed if they only contain the rest pose transformation for all times.");
+                "Enabled: animation tracks are removed if they only contain the rest pose transformation for all times.<br/>" +
+                "Disabled: all animation tracks are exported.");
             this.applyBindShape = new OptionBool("Apply bind shape", true,
-                "If enabled, the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.");
+                "Enabled: the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.<br/>" +
+                "Disabled: the bind shape matrix needs to be manually exported and applied during rendering.");
             this.removeTexturePath = new OptionBool("Remove texture path", true,
-                "If enabled, only the filename and extension of textures are kept and the remaining path is discarded.");
+                "Enabled: only the filename and extension of textures are kept and the remaining path is discarded.<br/>" +
+                "Disabled: original texture paths are kept.");
             this.sortBones = new OptionBool("Sort bones", true,
-                "If enabled, bones are sorted so that child bones always appear after their parent bone in the list of bones.");
+                "Enabled: bones are sorted so that child bones always appear after their parent bone in the list of bones.<br/>" +
+                "Disabled: bones appear in their original order.");
             this.worldTransform = new OptionBool("World transform", false,
-                "If enabled, all objects (geometries, animations, skeletons) are transformed as specified by the corresponding options.");
+                "Enabled: all objects (geometries, animations, skeletons) are transformed as specified by the corresponding world transform options.<br/>" +
+                "Disabled: the world transform options are ignored.");
             this.worldTransformBake = new OptionBool("Bake world transform", true,
-                "If enabled, the world transformation is applied to skinned geometry. Otherwise, it is only applied to the bones.");
+                "Enabled: the world transformation is applied to skinned geometry.<br/>" +
+                "Disabled: the world transformation is applied to the bones.");
             this.worldTransformUnitScale = new OptionBool("World transform no node scale", true,
-                "If enabled, the world scale will not add any scaling transformation to any nodes. The world scale will instead be distributed to the translation part of all local transformations.");
+                "If enabled, the world scale will not add any scaling transformation to any nodes." +
+                "The world scale will instead be distributed to the translation part of all local transformations.");
             this.worldTransformScale = new OptionFloat("World transform: scale", 1.0, 1e-6, 1e6,
                 "Scale factor. See the 'worldTransform' option.");
             this.worldTransformRotationAxis = new OptionSelect("World transform: rotation axis", "none", ["none", "x", "y", "z"],
@@ -132,9 +147,11 @@ module COLLADA.Converter {
             this.worldTransformRotationAngle = new OptionFloat("World transform: rotation angle", 0, 0, 360,
                 "Rotation angle (in degrees). See the 'worldTransform' option.");
             this.truncateResampledAnimations = new OptionBool("Truncate resampled animations", true,
-                "True: animation durations will be truncated in order to keep the requested FPS. False: requested FPS will be slightly modified to keep the original duration.");
-            this.createSkeleton = new OptionBool("Generate a skeleton", true,
-                "If true, a skeleton will be generated and all geometry will be attached to skeleton bones. If false, no skeleton is generated and all geometry will be static.");
+                "Enabled: animation durations are truncated in order to keep the requested FPS.<br/>" +
+                "Disabled: requested FPS is slightly modified to keep the original duration.");
+            this.createSkeleton = new OptionBool("Generate skeleton", true,
+                "Enabled: a skeleton is generated and all geometry is attached to skeleton bones.<br/>" +
+                "Disabled: no skeleton is generated and all geometry is static.");
         }
 
     }

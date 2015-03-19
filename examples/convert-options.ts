@@ -60,7 +60,7 @@ class ColladaConverterOption {
         // Info
         var info_icon = $("<span>").addClass("glyphicon glyphicon-info-sign");
         var info_button = $("<button>").addClass("btn btn-info btn-block").attr("type", "button");
-        (<any>info_button).popover({'title': option.title, 'content': option.description, 'placement': top, 'trigger': 'click hover'});
+        (<any>info_button).popover({'title': option.title, 'html': true, 'content': option.description, 'placement': top, 'trigger': 'click hover'});
         info_button.append(info_icon);
         var info_group = $("<div>").addClass("col-sm-2");
         info_group.append(info_button);
