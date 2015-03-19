@@ -173,12 +173,12 @@ module COLLADA.Converter {
             var geometry: COLLADA.Converter.Geometry = file.geometries[0];
 
             // Process all animations in the document
-            var labels: COLLADA.Converter.AnimationLabel[] = context.options.animationLabels.value;
             var fps: number = +context.options.animationFps.value;
             for (var i: number = 0; i < file.animations.length; ++i) {
                 var animation: COLLADA.Converter.Animation = file.animations[i];
 
                 if (context.options.useAnimationLabels.value === true) {
+                    var labels: COLLADA.Converter.AnimationLabel[] = context.options.animationLabels.value;
                     var datas: COLLADA.Converter.AnimationData[] = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, context);
                     result = result.concat(datas);
                 } else {
