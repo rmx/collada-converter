@@ -33,6 +33,7 @@ module COLLADA.Converter {
             this.dataCount = null;
         }
 
+        // TODO: This is the most expensive function in the whole project. Use a binary search or find out why it's so slow.
         findInputIndices(t: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationChannelIndices {
             var input: Float32Array = this.input;
 
