@@ -249,7 +249,9 @@ function updateUIOutput() {
         var animation_complexity: string = "";
         animation_complexity += data.bones.length + " bones";
         animation_complexity += ", ";
-        animation_complexity += ((data.animations.length > 0) ? data.animations[0].frames : 0) + " keyframes";
+        animation_complexity += data.animations.length + " animations";
+        animation_complexity += ", ";
+        animation_complexity += data.animations.reduce((prev, cur) => prev + cur.frames, 0) + " keyframes";
         $("#output-animation-complexity").text(animation_complexity);
 
         // Geometry size
