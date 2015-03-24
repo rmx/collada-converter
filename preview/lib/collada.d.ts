@@ -1478,7 +1478,7 @@ declare module COLLADA.Converter {
         tracks: AnimationDataTrack[];
         constructor();
         static create(skeleton: Skeleton, animation: Animation, index_begin: number, index_end: number, fps: number, context: Context): AnimationData;
-        static createFromLabels(skeleton: Skeleton, animation: Animation, labels: AnimationLabel[], context: Context): AnimationData[];
+        static createFromLabels(skeleton: Skeleton, animation: Animation, labels: AnimationLabel[], defaultFps: number, context: Context): AnimationData[];
     }
 }
 declare module COLLADA.Converter {

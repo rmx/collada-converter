@@ -4492,7 +4492,7 @@ var COLLADA;
             Statistics.prototype.sort = function () {
                 if (!this.sorted) {
                     this.sorted = true;
-                    this.data.sort();
+                    this.data = this.data.sort(function (a, b) { return a - b; });
                 }
             };
             Statistics.prototype.compute = function (fn) {
@@ -4562,9 +4562,13 @@ var COLLADA;
                 for (var i = 0; i < animation.channels.length; ++i) {
                     var channel = animation.channels[i];
                     if (channel) {
-                        var channelMinTime = channel.input[(index_begin !== null) ? index_begin : 0];
-                        var channelMaxTime = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
-                        var channelKeyframes = channel.input.length;
+                        var begin = (index_begin !== null) ? index_begin : -Infinity;
+                        begin = Math.min(Math.max(begin, 0), channel.input.length - 1);
+                        var end = (index_end !== null) ? index_end : Infinity;
+                        end = Math.min(Math.max(end, 0), channel.input.length - 1);
+                        var channelMinTime = channel.input[begin];
+                        var channelMaxTime = channel.input[end];
+                        var channelKeyframes = end - begin + 1;
                         result.addDataPoint(channelMinTime, channelMaxTime, channelKeyframes);
                     }
                 }
@@ -4593,6 +4597,7 @@ var COLLADA;
                 this.dataOffset = null;
                 this.dataCount = null;
             }
+            // TODO: This is the most expensive function in the whole project. Use a binary search or find out why it's so slow.
             AnimationChannel.prototype.findInputIndices = function (t, context) {
                 var input = this.input;
                 var warnInvalidTime = function (str) {
@@ -5499,27 +5504,27 @@ var COLLADA;
         Converter.OptionArray = OptionArray;
         var Options = (function () {
             function Options() {
-                this.singleAnimation = new OptionBool("Single animation", true, "If enabled, all animations are merged into a single animation. Enable if each bone has a separate top level animation.");
-                this.singleGeometry = new OptionBool("Single geometry", true, "If enabled, all geometries are merged into a single geometry. Only has an effect if 'enableExtractGeometry' is enabled.");
-                this.singleBufferPerGeometry = new OptionBool("Single buffer", false, "If enabled, all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of each buffer.");
-                this.enableAnimations = new OptionBool("Animations", true, "If enabled, animations are exported. Otherwise, all animations are ignored.");
-                this.enableExtractGeometry = new OptionBool("Extract geometry", true, "If enabled, extracts all geometries from the scene and detaches them from their scene graph nodes. Otherwise, geometries remain attached to nodes.");
-                this.enableResampledAnimations = new OptionBool("Resampled animations", true, "If enabled, generates resampled animations for all skeleton bones.");
-                this.useAnimationLabels = new OptionBool("Animation labels", false, "If enabled, animations labels are used to split the global animation into separete animations.");
-                this.animationLabels = new OptionArray("Animation labels", [], "An array of animation labels ({name, begin, end, fps)} that describes how the global animation is split. Only has an effect if 'useAnimationLabels' is enabled.");
+                this.singleAnimation = new OptionBool("Single animation", true, "Enabled: all animations are merged into a single animation (useful if each bone has a separate top level animation).<br/>" + "Disabled: animations are not merged.");
+                this.singleGeometry = new OptionBool("Single geometry", true, "Enabled: all geometries are merged into a single geometry. Only has an effect if 'enableExtractGeometry' is enabled.<br/>" + "Disabled: geometries are not merged.");
+                this.singleBufferPerGeometry = new OptionBool("Single buffer", false, "Enabled: all chunks within one geometry use one set of vertex buffers, each chunk occupying a different part of the buffer set.<br/>" + "Disabled: each chunk has its own set of buffers.");
+                this.enableAnimations = new OptionBool("Animations", true, "Enabled: animations are exported.<br/>" + "Disabled: all animations are ignored.");
+                this.enableExtractGeometry = new OptionBool("Extract geometry", true, "Enabled: extract all geometries from the scene and detach them from their scene graph nodes.<br/>" + "Disabled: geometries remain attached to nodes.");
+                this.enableResampledAnimations = new OptionBool("Resampled animations", true, "Enabled: generate resampled animations for all skeleton bones.<br/>" + "Disabled: do not generate resampled animations.");
+                this.useAnimationLabels = new OptionBool("Animation labels", false, "Enabled: animations labels are used to split the global animation into separete animations.<br/>" + "Disabled: only one global animation is exported.");
+                this.animationLabels = new OptionArray("Animation labels", [], "An array of animation labels ({name, begin, end, fps)} that describes how the global animation is split.<br/>" + "Only has an effect if 'useAnimationLabels' is enabled.");
                 this.animationFps = new OptionFloat("Animation samples per second", 10, 0, 100, "Default FPS for resampled animations.");
-                this.removeConstAnimationTracks = new OptionBool("Remove static animations", true, "If enabled, animation tracks are removed if they only contain the rest pose transformation for all times.");
-                this.applyBindShape = new OptionBool("Apply bind shape", true, "If enabled, the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.");
-                this.removeTexturePath = new OptionBool("Remove texture path", true, "If enabled, only the filename and extension of textures are kept and the remaining path is discarded.");
-                this.sortBones = new OptionBool("Sort bones", true, "If enabled, bones are sorted so that child bones always appear after their parent bone in the list of bones.");
-                this.worldTransform = new OptionBool("World transform", false, "If enabled, all objects (geometries, animations, skeletons) are transformed as specified by the corresponding options.");
-                this.worldTransformBake = new OptionBool("Bake world transform", true, "If enabled, the world transformation is applied to skinned geometry. Otherwise, it is only applied to the bones.");
-                this.worldTransformUnitScale = new OptionBool("World transform no node scale", true, "If enabled, the world scale will not add any scaling transformation to any nodes. The world scale will instead be distributed to the translation part of all local transformations.");
+                this.removeConstAnimationTracks = new OptionBool("Remove static animations", true, "Enabled: animation tracks are removed if they only contain the rest pose transformation for all times.<br/>" + "Disabled: all animation tracks are exported.");
+                this.applyBindShape = new OptionBool("Apply bind shape", true, "Enabled: the positions and normals of skin-animated meshes are pre-multiplied by the bind shape matrix.<br/>" + "Disabled: the bind shape matrix needs to be manually exported and applied during rendering.");
+                this.removeTexturePath = new OptionBool("Remove texture path", true, "Enabled: only the filename and extension of textures are kept and the remaining path is discarded.<br/>" + "Disabled: original texture paths are kept.");
+                this.sortBones = new OptionBool("Sort bones", true, "Enabled: bones are sorted so that child bones always appear after their parent bone in the list of bones.<br/>" + "Disabled: bones appear in their original order.");
+                this.worldTransform = new OptionBool("World transform", false, "Enabled: all objects (geometries, animations, skeletons) are transformed as specified by the corresponding world transform options.<br/>" + "Disabled: the world transform options are ignored.");
+                this.worldTransformBake = new OptionBool("Bake world transform", true, "Enabled: the world transformation is applied to skinned geometry.<br/>" + "Disabled: the world transformation is applied to the bones.");
+                this.worldTransformUnitScale = new OptionBool("World transform no node scale", true, "If enabled, the world scale will not add any scaling transformation to any nodes." + "The world scale will instead be distributed to the translation part of all local transformations.");
                 this.worldTransformScale = new OptionFloat("World transform: scale", 1.0, 1e-6, 1e6, "Scale factor. See the 'worldTransform' option.");
                 this.worldTransformRotationAxis = new OptionSelect("World transform: rotation axis", "none", ["none", "x", "y", "z"], "Rotation axis. See the 'worldTransform' option.");
                 this.worldTransformRotationAngle = new OptionFloat("World transform: rotation angle", 0, 0, 360, "Rotation angle (in degrees). See the 'worldTransform' option.");
-                this.truncateResampledAnimations = new OptionBool("Truncate resampled animations", true, "True: animation durations will be truncated in order to keep the requested FPS. False: requested FPS will be slightly modified to keep the original duration.");
-                this.createSkeleton = new OptionBool("Generate a skeleton", true, "If true, a skeleton will be generated and all geometry will be attached to skeleton bones. If false, no skeleton is generated and all geometry will be static.");
+                this.truncateResampledAnimations = new OptionBool("Truncate resampled animations", true, "Enabled: animation durations are truncated in order to keep the requested FPS.<br/>" + "Disabled: requested FPS is slightly modified to keep the original duration.");
+                this.createSkeleton = new OptionBool("Generate skeleton", true, "Enabled: a skeleton is generated and all geometry is attached to skeleton bones.<br/>" + "Disabled: no skeleton is generated and all geometry is static.");
             }
             return Options;
         })();
@@ -5824,6 +5829,10 @@ var COLLADA;
             return AnimationDataTrack;
         })();
         Converter.AnimationDataTrack = AnimationDataTrack;
+        function logStatistics(name, stat, precision, context) {
+            context.log.write(name + ": " + stat.mean().toFixed(precision) + " (" + "min: " + stat.min().toFixed(precision) + ", " + "med: " + stat.median().toFixed(precision) + ", " + "max: " + stat.max().toFixed(precision) + ")", 1 /* Debug */);
+        }
+        ;
         var AnimationData = (function () {
             function AnimationData() {
                 this.name = "";
@@ -5839,11 +5848,11 @@ var COLLADA;
                 // Get timeline statistics
                 var stat = new COLLADA.Converter.AnimationTimeStatistics();
                 COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
-                context.log.write("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")", 1 /* Debug */);
-                context.log.write("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")", 1 /* Debug */);
-                context.log.write("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")", 1 /* Debug */);
-                context.log.write("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")", 1 /* Debug */);
-                context.log.write("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")", 1 /* Debug */);
+                logStatistics("Original Duration", stat.duration, 3, context);
+                logStatistics("Original Time Start", stat.beginTime, 3, context);
+                logStatistics("Original Time Stop", stat.endTime, 3, context);
+                logStatistics("Original Keyframes", stat.keyframes, 3, context);
+                logStatistics("Original FPS", stat.fps, 3, context);
                 // Default fps if none give: median fps of source data
                 if (fps === null) {
                     fps = stat.fps.median();
@@ -5858,7 +5867,7 @@ var COLLADA;
                 var duration = end_time - start_time;
                 // Keyframes
                 var keyframes = Math.max(Math.floor(fps * duration + 1e-4) + 1, 2);
-                if (context.options.truncateResampledAnimations) {
+                if (context.options.truncateResampledAnimations.value) {
                     // Truncate duration, so that FPS is consistent with "keyframes/duration"
                     duration = (keyframes - 1) / fps;
                 }
@@ -5867,9 +5876,9 @@ var COLLADA;
                     fps = (keyframes - 1) / duration;
                 }
                 var spf = 1 / fps;
-                context.log.write("Resampled duration: " + duration, 1 /* Debug */);
-                context.log.write("Resampled keyframes: " + keyframes, 1 /* Debug */);
-                context.log.write("Resampled FPS: " + fps, 1 /* Debug */);
+                context.log.write("Resampled duration: " + duration.toFixed(3), 1 /* Debug */);
+                context.log.write("Resampled keyframes: " + keyframes.toFixed(3), 1 /* Debug */);
+                context.log.write("Resampled FPS: " + fps.toFixed(3), 1 /* Debug */);
                 // Store fps
                 result.fps = +fps.toFixed(3);
                 result.keyframes = keyframes;
@@ -6028,7 +6037,7 @@ var COLLADA;
                 }
                 return result;
             };
-            AnimationData.createFromLabels = function (skeleton, animation, labels, context) {
+            AnimationData.createFromLabels = function (skeleton, animation, labels, defaultFps, context) {
                 if (skeleton === null) {
                     context.log.write("No skeleton present, no animation data generated.", 4 /* Warning */);
                     return [];
@@ -6036,7 +6045,7 @@ var COLLADA;
                 var result = [];
                 for (var i = 0; i < labels.length; ++i) {
                     var label = labels[i];
-                    var data = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps, context);
+                    var data = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps || defaultFps, context);
                     if (data !== null) {
                         data.name = label.name;
                         result.push(data);
@@ -6210,12 +6219,12 @@ var COLLADA;
                 }
                 var geometry = file.geometries[0];
                 // Process all animations in the document
-                var labels = context.options.animationLabels.value;
                 var fps = +context.options.animationFps.value;
                 for (var i = 0; i < file.animations.length; ++i) {
                     var animation = file.animations[i];
                     if (context.options.useAnimationLabels.value === true) {
-                        var datas = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, context);
+                        var labels = context.options.animationLabels.value;
+                        var datas = COLLADA.Converter.AnimationData.createFromLabels(geometry.getSkeleton(), animation, labels, fps, context);
                         result = result.concat(datas);
                     }
                     else {

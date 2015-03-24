@@ -2,6 +2,7 @@
 /// <reference path="../external/jquery/jquery.d.ts" />
 /// <reference path="./threejs-renderer.ts" />
 /// <reference path="./convert-options.ts" />
+/// <reference path="./parse-animations.ts" />
 /// <reference path="./stringify.ts" />
 
 // ----------------------------------------------------------------------------
@@ -16,18 +17,20 @@ var renderer: ThreejsRenderer;
 interface i_conversion_data {
     stage: number;
     exception: boolean;
-    s0_source: string;                             // Stage 0: raw file string
-    s1_xml: Document;                              // Stage 1: XML document
-    s2_loaded: COLLADA.Loader.Document;            // Stage 2: COLLADA document
-    s3_converted: COLLADA.Converter.Document;      // Stage 3: Converted document
-    s4_exported_custom: COLLADA.Exporter.Document; // Stage 4: JSON + binary
-    s5_exported_threejs: any;                      // Stage 5: JSON
+    s0_source: string;                                  // Stage 0: raw file string
+    s0_animations: parseAnimations.AnimationLabel[];    // Stage 0: animation setup
+    s1_xml: Document;                                   // Stage 1: XML document
+    s2_loaded: COLLADA.Loader.Document;                 // Stage 2: COLLADA document
+    s3_converted: COLLADA.Converter.Document;           // Stage 3: Converted document
+    s4_exported_custom: COLLADA.Exporter.Document;      // Stage 4: JSON + binary
+    s5_exported_threejs: any;                           // Stage 5: JSON
 }
 
 var conversion_data: i_conversion_data = {
     stage: null,
     exception: null,
     s0_source: null,
+    s0_animations: null,
     s1_xml: null,
     s2_loaded: null,
     s3_converted: null,
@@ -115,7 +118,8 @@ function reset() {
 }
 
 function resetInput() {
-    conversion_data.s0_source = ""
+    conversion_data.s0_source = "";
+    conversion_data.s0_animations = null;
 
     updateUIInput();
 }
@@ -215,6 +219,13 @@ function updateUIInput() {
         $("#drop-target-instructions").removeClass("hidden");
         $("#convert").attr("disabled", "disabled");
     }
+
+    if (conversion_data.s0_animations) {
+        $("#input_animations").removeClass("hidden");
+        $("#input_animations").text("Animation labels loaded (" + conversion_data.s0_animations.length + ")");
+    } else {
+        $("#input_animations").addClass("hidden");
+    }
 }
 
 function updateUIOutput() {
@@ -238,7 +249,9 @@ function updateUIOutput() {
         var animation_complexity: string = "";
         animation_complexity += data.bones.length + " bones";
         animation_complexity += ", ";
-        animation_complexity += ((data.animations.length > 0) ? data.animations[0].frames : 0) + " keyframes";
+        animation_complexity += data.animations.length + " animations";
+        animation_complexity += ", ";
+        animation_complexity += data.animations.reduce((prev, cur) => prev + cur.frames, 0) + " keyframes";
         $("#output-animation-complexity").text(animation_complexity);
 
         // Geometry size
@@ -252,9 +265,16 @@ function updateUIOutput() {
         $("#output-geometry-size").text(geometry_size);
 
         // Rendered chunks
+        $("#output-chunk").append('<option value="-1" selected>All</option>');
         for (var i = 0; i < data.chunks.length; ++i) {
-            $("#chunk-" + i).removeClass("hidden");
-            $("#chunk-" + i + " > span").text(data.chunks[i].name || ("" + i));
+            var chunk_name = data.chunks[i].name || ("Chunk " + i);
+            $("#output-chunk").append('<option value="' + (i) + '">' + chunk_name + '</option>');
+        }
+
+        // Played animation
+        for (var i = 0; i < data.animations.length; ++i) {
+            var animation_name = data.animations[i].name || ("Animation " + i);
+            $("#output-animation").append('<option value="' + (i) + '">' + animation_name + '</option>');
         }
 
         // File sizes
@@ -266,7 +286,8 @@ function updateUIOutput() {
         $("#output-geometry-complexity").text("");
         $("#output-animation-complexity").text("");
         $("#output-geometry-size").text("");
-        $(".chunk-checkbox-container").addClass("hidden");
+        $("#output-chunk").find('option').remove();
+        $("#output-animation").find('option').remove();
 
         // Output
         $("#output-custom-json .output-size").text("");
@@ -294,50 +315,70 @@ function onFileDrag(ev: JQueryEventObject) {
 }
 
 function onFileDrop(ev: JQueryEventObject) {
-    writeProgress("Something dropped.");
+    console.log("Something dropped.");
+    ev.stopPropagation();
     ev.preventDefault();
     var dt = (<any>ev.originalEvent).dataTransfer;
     if (!dt) {
         writeProgress("Your browser does not support drag&drop for files (?).");
         return;
     }
-    var files = dt.files;
-    if (files.length == 0) {
-        writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
-        return;
-    }
-    if (files.length > 1) {
-        writeProgress("You dropped multiple files. Please only drop a single file.");
-        return;
+    var filelist: FileList = dt.files;
+    var files: File[] = [];
+    for (var i = 0; i < filelist.length; ++i) {
+        files.push(filelist[i]);
     }
 
-    onFileLoad(files[0]);
+    files = files.sort((a, b) => b.size - a.size);
+
+    switch (files.length) {
+        case 0: writeProgress("You did not drop a file. Try dragging and dropping a file instead."); break;
+        case 1: onFileLoad(files[0]); break;
+        case 2: onFileLoad(files[0], files[1]); break;
+        default: writeProgress("You dropped too many files. Please only drop a single file.");
+    };
 }
 
-
-function onFileLoad(file: File) {
-    // Reset all data
-    reset();
-
+function readTextFile(file: File, name: string, callback: (result: string) => void) {
     // File reader
     var reader = new FileReader();
     reader.onload = () => {
-        timeEnd("Reading file");
+        timeEnd("Reading " + name);
         var result: string = reader.result;
-        convertSetup(result);
+        callback(result);
     };
     reader.onerror = () => {
-        writeProgress("Error reading file.");
+        writeProgress("Error reading " + name + ".");
     };
-    timeStart("Reading file");
+    timeStart("Reading " + name);
 
     // Read
     reader.readAsText(file);
 }
 
+
+function onFileLoad(file: File, animations?: File) {
+    // Reset all data
+    reset();
+
+    // Read the 
+    if (animations) {
+        readTextFile(animations, "animations",(result) => {
+            animationSetup(result);
+            readTextFile(file, "file",(result2) => convertSetup(result2));
+        });
+    } else {
+        readTextFile(file, "file",(result) => convertSetup(result));
+    }
+}
+
 // ----------------------------------------------------------------------------
 // Conversion
 // ----------------------------------------------------------------------------
+
+function animationSetup(src: string) {
+    conversion_data.s0_animations = parseAnimations.parse(src);
+}
 
 function convertSetup(src: string) {
     // Set the source data
@@ -407,6 +448,8 @@ function convertConvert() {
     var converterlog = converter.log = new COLLADA.LogCallback;
     converterlog.onmessage = (message: string, level: COLLADA.LogLevel) => { writeLog("converter", message, level); }
     converter.options = options;
+    converter.options.animationLabels.value = conversion_data.s0_animations;
+    converter.options.useAnimationLabels.value = conversion_data.s0_animations != null;
 
     // Convert
     timeStart("COLLADA conversion");
@@ -491,10 +534,10 @@ function init() {
     optionElements.push(new ColladaConverterOption(options.sortBones, optionsForm));
     optionElements.push(new ColladaConverterOption(options.applyBindShape, optionsForm));
     optionElements.push(new ColladaConverterOption(options.singleBufferPerGeometry, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.truncateResampledAnimations, optionsForm));
 
     // Register events
     $("#drop-target").on("dragover", onFileDrag);
-    $("#drop-target").on("drop", onFileDrop);
     $("#drop-target").on("drop", onFileDrop);
     $("#convert").click(onConvertClick);
 
@@ -513,6 +556,11 @@ function init() {
         previewJSON(conversion_data.s5_exported_threejs));
     $("#close-preview").click(() =>
         (<any>$("#preview-modal")).modal('hide'));
+
+    $("#output-chunk").change(() =>
+        renderer.setChunk(+$("#output-chunk").val()));
+    $("#output-animation").change(() =>
+        renderer.setAnimation(+$("#output-animation").val()));
 
     // Update all UI elements
     reset();

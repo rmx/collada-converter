@@ -39,6 +39,19 @@ module COLLADA.Converter {
         }
     }
 
+    function logStatistics(name: string, stat: Statistics, precision: number, context: Context): void {
+        context.log.write(name + ": "
+            + stat.mean().toFixed(precision)
+            + " ("
+            + "min: " + stat.min().toFixed(precision)
+            + ", "
+            + "med: " + stat.median().toFixed(precision)
+            + ", "
+            + "max: " + stat.max().toFixed(precision)
+            + ")",
+            LogLevel.Debug);
+    };
+
     export class AnimationData {
         name: string;
         duration: number;
@@ -65,11 +78,12 @@ module COLLADA.Converter {
             var stat: COLLADA.Converter.AnimationTimeStatistics = new COLLADA.Converter.AnimationTimeStatistics();
             COLLADA.Converter.Animation.getTimeStatistics(animation, index_begin, index_end, stat, context);
 
-            context.log.write("Original Duration: " + stat.duration.mean() + " (" + stat.duration.min() + " - " + stat.duration.max() + ")", LogLevel.Debug);
-            context.log.write("Original Time Start: " + stat.beginTime.mean() + " (" + stat.beginTime.min() + " - " + stat.beginTime.max() + ")", LogLevel.Debug);
-            context.log.write("Original Time Stop: " + stat.endTime.mean() + " (" + stat.endTime.min() + " - " + stat.endTime.max() + ")", LogLevel.Debug);
-            context.log.write("Original Keyframes: " + stat.keyframes.mean() + " (" + stat.keyframes.min() + " - " + stat.keyframes.max() + ")", LogLevel.Debug);
-            context.log.write("Original FPS: " + stat.fps.mean() + " (" + stat.fps.min() + " - " + stat.fps.max() + ")", LogLevel.Debug);
+
+            logStatistics("Original Duration", stat.duration, 3, context);
+            logStatistics("Original Time Start", stat.beginTime, 3, context);
+            logStatistics("Original Time Stop", stat.endTime, 3, context);
+            logStatistics("Original Keyframes", stat.keyframes, 3, context);
+            logStatistics("Original FPS", stat.fps, 3, context);
 
             // Default fps if none give: median fps of source data
             if (fps === null) {
@@ -87,7 +101,7 @@ module COLLADA.Converter {
 
             // Keyframes
             var keyframes: number = Math.max(Math.floor(fps * duration + 1e-4) + 1, 2);
-            if (context.options.truncateResampledAnimations) {
+            if (context.options.truncateResampledAnimations.value) {
                 // Truncate duration, so that FPS is consistent with "keyframes/duration"
                 duration = (keyframes - 1) / fps;
             } else {
@@ -96,9 +110,9 @@ module COLLADA.Converter {
             }
             var spf: number = 1 / fps;
 
-            context.log.write("Resampled duration: " + duration, LogLevel.Debug);
-            context.log.write("Resampled keyframes: " + keyframes, LogLevel.Debug);
-            context.log.write("Resampled FPS: " + fps, LogLevel.Debug);
+            context.log.write("Resampled duration: " + duration.toFixed(3), LogLevel.Debug);
+            context.log.write("Resampled keyframes: " + keyframes.toFixed(3), LogLevel.Debug);
+            context.log.write("Resampled FPS: " + fps.toFixed(3), LogLevel.Debug);
 
             // Store fps
             result.fps = +fps.toFixed(3);
@@ -291,7 +305,7 @@ module COLLADA.Converter {
         }
 
         static createFromLabels(skeleton: COLLADA.Converter.Skeleton, animation: COLLADA.Converter.Animation,
-            labels: COLLADA.Converter.AnimationLabel[], context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[]{
+            labels: COLLADA.Converter.AnimationLabel[], defaultFps: number, context: COLLADA.Converter.Context): COLLADA.Converter.AnimationData[]{
 
             if (skeleton === null) {
                 context.log.write("No skeleton present, no animation data generated.", LogLevel.Warning);
@@ -302,7 +316,7 @@ module COLLADA.Converter {
 
             for (var i: number = 0; i < labels.length; ++i) {
                 var label: COLLADA.Converter.AnimationLabel = labels[i];
-                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps, context);
+                var data: COLLADA.Converter.AnimationData = COLLADA.Converter.AnimationData.create(skeleton, animation, label.begin, label.end, label.fps || defaultFps, context);
                 if (data !== null) {
                     data.name = label.name;
                     result.push(data);

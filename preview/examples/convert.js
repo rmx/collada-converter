@@ -723,13 +723,14 @@ var ThreejsRenderer = (function () {
         this.last_timestamp = null;
         this.time = 0;
         this.render_loops = 1;
+        this.animation_index = 0;
     }
     ThreejsRenderer.prototype.init = function (canvas) {
         var _this = this;
         this.canvas = canvas;
         // Camera
         this.camera = new THREE.PerspectiveCamera(27, canvas.width / canvas.height, 1, 10);
-        this.zoomToObject(10);
+        this.resetCamera();
         // Scene
         this.scene = new THREE.Scene();
         // Lights
@@ -815,10 +816,16 @@ var ThreejsRenderer = (function () {
         this.camera.far = 2 * r + 20;
         this.camera.updateProjectionMatrix();
     };
+    /** Resets the camera */
+    ThreejsRenderer.prototype.resetCamera = function () {
+        this.zoomToObject(10);
+    };
     /** Main render loop */
     ThreejsRenderer.prototype.tick = function (timestamp) {
         // Abort if there is nothing to render
         if (!this.mesh) {
+            this.resetCamera();
+            this.drawScene();
             return false;
         }
         // Timing
@@ -857,7 +864,12 @@ var ThreejsRenderer = (function () {
         var data = mesh.userData;
         if (data.skeleton) {
             if (data.model.animations.length > 0) {
-                RMXSkeletalAnimation.sampleAnimation(data.model.animations[0], data.model.skeleton, data.skeleton.pose, this.time * 25);
+                var index = this.animation_index;
+                if (index < 0)
+                    index = 0;
+                if (index >= data.model.animations.length)
+                    index = data.model.animations.length;
+                RMXSkeletalAnimation.sampleAnimation(data.model.animations[index], data.model.skeleton, data.skeleton.pose, this.time * 25);
             }
             else {
                 RMXSkeletalAnimation.resetPose(data.model.skeleton, data.skeleton.pose);
@@ -865,6 +877,16 @@ var ThreejsRenderer = (function () {
             var gl = this.renderer.context;
             data.skeleton.update(gl);
         }
+    };
+    ThreejsRenderer.prototype.setAnimation = function (index) {
+        this.animation_index = index;
+        this.time = 0;
+    };
+    ThreejsRenderer.prototype.setChunk = function (index) {
+        var mesh = this.mesh;
+        mesh.children.forEach(function (child, i) {
+            child.visible = index === -1 || index === i;
+        });
     };
     ThreejsRenderer.prototype.setMesh = function (json, data) {
         this.resetMesh();
@@ -934,7 +956,7 @@ var ColladaConverterOption = (function () {
         // Info
         var info_icon = $("<span>").addClass("glyphicon glyphicon-info-sign");
         var info_button = $("<button>").addClass("btn btn-info btn-block").attr("type", "button");
-        info_button.popover({ 'title': option.title, 'content': option.description, 'placement': top, 'trigger': 'click hover' });
+        info_button.popover({ 'title': option.title, 'html': true, 'content': option.description, 'placement': top, 'trigger': 'click hover' });
         info_button.append(info_icon);
         var info_group = $("<div>").addClass("col-sm-2");
         info_group.append(info_button);
@@ -949,6 +971,110 @@ var ColladaConverterOption = (function () {
     }
     return ColladaConverterOption;
 })();
+var parseAnimations;
+(function (parseAnimations) {
+    var AnimationLabel = (function () {
+        function AnimationLabel() {
+            this.name = null;
+            this.begin = null;
+            this.begin = null;
+            this.fps = null;
+        }
+        return AnimationLabel;
+    })();
+    parseAnimations.AnimationLabel = AnimationLabel;
+    function isNumber(str) {
+        return !isNaN(parseInt(str, 10));
+    }
+    function isString(str) {
+        return !isNumber(str);
+    }
+    /** Count number of elements for which the callback returns true */
+    function count(data, callback) {
+        var result = 0;
+        data.forEach(function (t) {
+            if (callback(t)) {
+                result++;
+            }
+        });
+        return result;
+    }
+    /** Returns true if all elements of data have the same content at the given index */
+    function sameContent(data, indexFn) {
+        if (data.length < 2) {
+            return false;
+        }
+        var contents = data.map(function (line) {
+            var index = indexFn(line);
+            if (index < 0 || line.length <= index) {
+                return null;
+            }
+            else {
+                return line[index];
+            }
+        });
+        return contents.every(function (content) {
+            return content !== null && content === contents[0];
+        });
+    }
+    function guessLabel(line) {
+        var numbers = line.filter(isNumber).map(function (str) { return parseInt(str, 10); });
+        var strings = line.filter(isString);
+        if (numbers.length < 2 || strings.length < 1) {
+            return null;
+        }
+        var result = new AnimationLabel;
+        result.name = strings.join(" ");
+        result.begin = numbers.reduce(function (prev, cur) { return Math.min(prev, cur); }, Infinity);
+        result.end = numbers.reduce(function (prev, cur) { return Math.max(prev, cur); }, -Infinity);
+        return result;
+    }
+    function parse(source) {
+        var lines = source.split(/\r\n|[\n\v\f\r\x85\u2028\u2029]/);
+        // Remove trailing whitespace
+        lines = lines.map(function (line) { return line.trim(); });
+        // Split lines
+        var parts = lines.map(function (line) { return line.split(/[\s-:;,]+/); });
+        // Remove invalid lines
+        var parts = parts.filter(function (line) {
+            if (line.length < 3)
+                return false;
+            if (count(line, isNumber) < 2)
+                return false;
+            if (count(line, isString) < 1)
+                return false;
+            return true;
+        });
+        // Longest line
+        var maxLength = parts.reduce(function (prev, cur) { return Math.max(prev, cur.length); }, 0);
+        // Remove parts that are the same on each line (from the beginning of each line)
+        var i = 0;
+        while (i < maxLength) {
+            if (sameContent(parts, function () { return i; })) {
+                parts = parts.map(function (line) { return line.filter(function (value, index) { return index !== i; }); });
+                maxLength--;
+            }
+            else {
+                i++;
+            }
+        }
+        // Remove parts that are the same on each line (from the end of each line)
+        i = 0;
+        while (i < maxLength) {
+            if (sameContent(parts, function (str) { return str.length - i - 1; })) {
+                parts = parts.filter(function (value, index) { return index !== i; });
+                maxLength--;
+            }
+            else {
+                i++;
+            }
+        }
+        // Extract labels from each line
+        var labels = parts.map(function (line) { return guessLabel(line); });
+        return labels.filter(function (label) { return label !== null; });
+    }
+    parseAnimations.parse = parse;
+})(parseAnimations || (parseAnimations = {}));
 // Code from https://github.com/lydell/json-stringify-pretty-compact
 // Copyright 2014 Simon Lydell
 // X11 (“MIT”) Licensed. (See LICENSE.)
@@ -1029,6 +1155,7 @@ var stringify;
 /// <reference path="../external/jquery/jquery.d.ts" />
 /// <reference path="./threejs-renderer.ts" />
 /// <reference path="./convert-options.ts" />
+/// <reference path="./parse-animations.ts" />
 /// <reference path="./stringify.ts" />
 // ----------------------------------------------------------------------------
 // Evil global data
@@ -1041,6 +1168,7 @@ var conversion_data = {
     stage: null,
     exception: null,
     s0_source: null,
+    s0_animations: null,
     s1_xml: null,
     s2_loaded: null,
     s3_converted: null,
@@ -1120,6 +1248,7 @@ function reset() {
 }
 function resetInput() {
     conversion_data.s0_source = "";
+    conversion_data.s0_animations = null;
     updateUIInput();
 }
 function resetOutput() {
@@ -1204,6 +1333,13 @@ function updateUIInput() {
         $("#drop-target-instructions").removeClass("hidden");
         $("#convert").attr("disabled", "disabled");
     }
+    if (conversion_data.s0_animations) {
+        $("#input_animations").removeClass("hidden");
+        $("#input_animations").text("Animation labels loaded (" + conversion_data.s0_animations.length + ")");
+    }
+    else {
+        $("#input_animations").addClass("hidden");
+    }
 }
 function updateUIOutput() {
     if (conversion_data.s4_exported_custom) {
@@ -1224,7 +1360,9 @@ function updateUIOutput() {
         var animation_complexity = "";
         animation_complexity += data.bones.length + " bones";
         animation_complexity += ", ";
-        animation_complexity += ((data.animations.length > 0) ? data.animations[0].frames : 0) + " keyframes";
+        animation_complexity += data.animations.length + " animations";
+        animation_complexity += ", ";
+        animation_complexity += data.animations.reduce(function (prev, cur) { return prev + cur.frames; }, 0) + " keyframes";
         $("#output-animation-complexity").text(animation_complexity);
         // Geometry size
         var bbox = data.info.bounding_box;
@@ -1235,9 +1373,15 @@ function updateUIOutput() {
             geometry_size += "[" + bbox.max[0].toFixed(2) + "," + bbox.max[1].toFixed(2) + "," + bbox.max[2].toFixed(2) + "]";
         }
         $("#output-geometry-size").text(geometry_size);
+        // Rendered chunks
+        $("#output-chunk").append('<option value="-1" selected>All</option>');
         for (var i = 0; i < data.chunks.length; ++i) {
-            $("#chunk-" + i).removeClass("hidden");
-            $("#chunk-" + i + " > span").text(data.chunks[i].name || ("" + i));
+            var chunk_name = data.chunks[i].name || ("Chunk " + i);
+            $("#output-chunk").append('<option value="' + (i) + '">' + chunk_name + '</option>');
+        }
+        for (var i = 0; i < data.animations.length; ++i) {
+            var animation_name = data.animations[i].name || ("Animation " + i);
+            $("#output-animation").append('<option value="' + (i) + '">' + animation_name + '</option>');
         }
         // File sizes
         $("#output-custom-json .output-size").text(fileSizeStr(JSON.stringify(data).length));
@@ -1249,7 +1393,8 @@ function updateUIOutput() {
         $("#output-geometry-complexity").text("");
         $("#output-animation-complexity").text("");
         $("#output-geometry-size").text("");
-        $(".chunk-checkbox-container").addClass("hidden");
+        $("#output-chunk").find('option').remove();
+        $("#output-animation").find('option').remove();
         // Output
         $("#output-custom-json .output-size").text("");
         $("#output-custom-binary .output-size").text("");
@@ -1273,44 +1418,70 @@ function onFileDrag(ev) {
     ev.preventDefault();
 }
 function onFileDrop(ev) {
-    writeProgress("Something dropped.");
+    console.log("Something dropped.");
+    ev.stopPropagation();
     ev.preventDefault();
     var dt = ev.originalEvent.dataTransfer;
     if (!dt) {
         writeProgress("Your browser does not support drag&drop for files (?).");
         return;
     }
-    var files = dt.files;
-    if (files.length == 0) {
-        writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
-        return;
+    var filelist = dt.files;
+    var files = [];
+    for (var i = 0; i < filelist.length; ++i) {
+        files.push(filelist[i]);
     }
-    if (files.length > 1) {
-        writeProgress("You dropped multiple files. Please only drop a single file.");
-        return;
+    files = files.sort(function (a, b) { return b.size - a.size; });
+    switch (files.length) {
+        case 0:
+            writeProgress("You did not drop a file. Try dragging and dropping a file instead.");
+            break;
+        case 1:
+            onFileLoad(files[0]);
+            break;
+        case 2:
+            onFileLoad(files[0], files[1]);
+            break;
+        default:
+            writeProgress("You dropped too many files. Please only drop a single file.");
     }
-    onFileLoad(files[0]);
+    ;
 }
-function onFileLoad(file) {
-    // Reset all data
-    reset();
+function readTextFile(file, name, callback) {
     // File reader
     var reader = new FileReader();
     reader.onload = function () {
-        timeEnd("Reading file");
+        timeEnd("Reading " + name);
         var result = reader.result;
-        convertSetup(result);
+        callback(result);
     };
     reader.onerror = function () {
-        writeProgress("Error reading file.");
+        writeProgress("Error reading " + name + ".");
     };
-    timeStart("Reading file");
+    timeStart("Reading " + name);
     // Read
     reader.readAsText(file);
+}
+function onFileLoad(file, animations) {
+    // Reset all data
+    reset();
+    // Read the 
+    if (animations) {
+        readTextFile(animations, "animations", function (result) {
+            animationSetup(result);
+            readTextFile(file, "file", function (result2) { return convertSetup(result2); });
+        });
+    }
+    else {
+        readTextFile(file, "file", function (result) { return convertSetup(result); });
+    }
 }
 // ----------------------------------------------------------------------------
 // Conversion
 // ----------------------------------------------------------------------------
+function animationSetup(src) {
+    conversion_data.s0_animations = parseAnimations.parse(src);
+}
 function convertSetup(src) {
     // Set the source data
     conversion_data.s0_source = src;
@@ -1388,6 +1559,8 @@ function convertConvert() {
         writeLog("converter", message, level);
     };
     converter.options = options;
+    converter.options.animationLabels.value = conversion_data.s0_animations;
+    converter.options.useAnimationLabels.value = conversion_data.s0_animations != null;
     // Convert
     timeStart("COLLADA conversion");
     conversion_data.s3_converted = converter.convert(conversion_data.s2_loaded);
@@ -1460,9 +1633,9 @@ function init() {
     optionElements.push(new ColladaConverterOption(options.sortBones, optionsForm));
     optionElements.push(new ColladaConverterOption(options.applyBindShape, optionsForm));
     optionElements.push(new ColladaConverterOption(options.singleBufferPerGeometry, optionsForm));
+    optionElements.push(new ColladaConverterOption(options.truncateResampledAnimations, optionsForm));
     // Register events
     $("#drop-target").on("dragover", onFileDrag);
-    $("#drop-target").on("drop", onFileDrop);
     $("#drop-target").on("drop", onFileDrop);
     $("#convert").click(onConvertClick);
     $("#output-custom-json .output-download").click(function () { return downloadJSON(conversion_data.s4_exported_custom.json, "model.json"); });
@@ -1472,6 +1645,8 @@ function init() {
     $("#output-custom-binary .output-view").click(function () { return alert("Binary preview not implemented"); });
     $("#output-threejs .output-view").click(function () { return previewJSON(conversion_data.s5_exported_threejs); });
     $("#close-preview").click(function () { return $("#preview-modal").modal('hide'); });
+    $("#output-chunk").change(function () { return renderer.setChunk(+$("#output-chunk").val()); });
+    $("#output-animation").change(function () { return renderer.setAnimation(+$("#output-animation").val()); });
     // Update all UI elements
     reset();
     writeProgress("Converter initialized");

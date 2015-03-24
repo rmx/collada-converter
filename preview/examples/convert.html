@@ -53,6 +53,9 @@
                                     <p class="drop-target-title" id="input_file_size">
                                         File loaded (0 kB).
                                     </p>
+                                    <p class="drop-target-title" id="input_animations">
+                                        Animations loaded (0).
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -73,14 +76,6 @@
                 <h3>Options</h3>
                 <form class="form-horizontal" role="form" id="form-options">
                     <!-- Content generated -->
-                </form>
-                <h3>Log</h3>
-                <form class="form-horizontal" role="form">
-                    <div class="form-group">
-                        <div class="col-sm-12">
-                            <textarea class="form-control" rows="8" id="log" readonly></textarea>
-                        </div>
-                    </div>
                 </form>
             </div>
             <div class="col-md-6">
@@ -114,30 +109,15 @@
                     <div class="form-group">
                         <label class="col-sm-4 control-label">Rendered chunks</label>
                         <div class="col-md-8">
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-0">
-                                <input type="checkbox" class="chunk-checkbox" value="0"><span>0</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-1">
-                                <input type="checkbox" class="chunk-checkbox" value="1"><span>1</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-2">
-                                <input type="checkbox" class="chunk-checkbox" value="2"><span>2</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-3">
-                                <input type="checkbox" class="chunk-checkbox" value="3"><span>3</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-4">
-                                <input type="checkbox" class="chunk-checkbox" value="4"><span>4</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-5">
-                                <input type="checkbox" class="chunk-checkbox" value="5"><span>5</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-6">
-                                <input type="checkbox" class="chunk-checkbox" value="6"><span>6</span>
-                            </label>
-                            <label class="checkbox-inline chunk-checkbox-container hidden" id="chunk-7">
-                                <input type="checkbox" class="chunk-checkbox" value="7"><span>7</span>
-                            </label>
+                            <select class="form-control" id="output-chunk">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">Played animation</label>
+                        <div class="col-md-8">
+                            <select class="form-control" id="output-animation">
+                            </select>
                         </div>
                     </div>
                 </form>
@@ -181,6 +161,18 @@
                         </div>
                     </div>
                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <h3>Log</h3>
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <div class="col-sm-12">
+                            <textarea class="form-control" rows="8" id="log" readonly></textarea>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

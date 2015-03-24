@@ -59,7 +59,7 @@ module COLLADA.Converter {
         private sort() {
             if (!this.sorted) {
                 this.sorted = true;
-                this.data.sort();
+                this.data = this.data.sort((a, b) => a - b);
             }
         }
 
@@ -146,9 +146,14 @@ module COLLADA.Converter {
                 var channel: COLLADA.Converter.AnimationChannel = animation.channels[i];
 
                 if (channel) {
-                    var channelMinTime: number = channel.input[(index_begin !== null) ? index_begin : 0];
-                    var channelMaxTime: number = channel.input[(index_end !== null) ? index_end : (channel.input.length - 1)];
-                    var channelKeyframes: number = channel.input.length;
+                    var begin = (index_begin !== null) ? index_begin : -Infinity;
+                    begin = Math.min(Math.max(begin, 0), channel.input.length - 1);
+                    var end = (index_end !== null) ? index_end : Infinity;
+                    end = Math.min(Math.max(end, 0), channel.input.length - 1);
+
+                    var channelMinTime: number = channel.input[begin];
+                    var channelMaxTime: number = channel.input[end];
+                    var channelKeyframes: number = end - begin + 1;
 
                     result.addDataPoint(channelMinTime, channelMaxTime, channelKeyframes);
                 }
